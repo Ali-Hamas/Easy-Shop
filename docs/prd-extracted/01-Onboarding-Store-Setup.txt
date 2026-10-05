@@ -1,0 +1,83 @@
+Human build spec - no code - F-commerce platform
+Page 1
+PDF 01
+ Onboarding and Store Setup
+The first 5 minutes after signup: create shop, choose country, connect channels, add first product.
+Why this exists
+If onboarding feels hard, sellers quit before seeing value. This flow must get them to a working demo fast.
+Primary user
+New shop owner.
+Business value
+Higher activation. More shops reach paid trial because AI can demo with real products.
+Build priority
+P0 - first user journey.
+1. Page Goal
+- Create account and store without technical language.
+- Reserve subdomain and choose business category.
+- Connect Facebook/Instagram or skip for website-only start.
+- Add/import first products so AI has something real to answer from.
+2. How It Should Look
+Step progress: Account -> Shop -> Products -> Channels -> AI mode -> Launch.
+Right side preview: mobile store preview updates as seller types.
+Bottom action: Back, Save draft, Continue. Never lose input.
+Completion page: live URL, test AI inbox, add more products.
+3. Main Sections
+Account
+Phone/email, password/OTP, owner name, preferred language.
+Shop basics
+Shop name, subdomain, logo, category, country, currency.
+Products
+Manual add, Excel import, Facebook catalog import later.
+Channels
+Connect Meta pages, Instagram, WhatsApp, courier.
+Launch
+Show live website and run sample AI reply.
+4. User Actions
+Action
+Result
+Edge case
+Check subdomain
+Validates availability and format.
+If unavailable, suggest short names.
+Upload logo
+Adds brand image to website and invoices.
+If missing, create text logo.
+Import Excel
+Reads product rows and maps columns.
+Show mapping screen if columns unclear.
+
+Human build spec - no code - F-commerce platform
+Page 2
+Action
+Result
+Edge case
+Connect Meta
+Requests page messaging permissions.
+Offer skip and retry from settings.
+Launch store
+Publishes site and activates demo AI mode.
+Block only if no product and no template.
+5. Data Fields
+- Owner: name, email, phone, password/OTP, language.
+- Shop: legal name, display name, subdomain, category, address, country, currency.
+- Policy defaults: delivery charge, return days, COD allowed, advance payment rules.
+- First product: name, price, stock, image, variants, delivery notes.
+6. AI / Automation Behavior
+- AI suggests shop description from category and product names.
+- AI writes first welcome message and FAQ answers.
+- AI can clean imported product names but must ask before changing prices.
+- AI test chat lets owner ask 'price?' and see how buyer reply will look.
+7. Empty, Error, and Safety States
+- Empty state must show one clear next button, not a blank table.
+- Every destructive action needs confirm: delete, cancel order, disconnect account, refund mark.
+- If third-party API fails, keep local draft and show retry.
+- AI must never invent price, stock, delivery charge, delivery date, or policy.
+8. Acceptance Checklist
+- Signup to live store under 5 minutes for manual path.
+- Seller can skip Meta connection and still launch website.
+- Import errors show row number and fix instruction.
+- No hidden required fields after final launch click.
+9. Do Not Build Yet
+- No multi-warehouse setup in onboarding.
+- No complex tax setup for V1.
+- No theme editor during onboarding; choose template only.

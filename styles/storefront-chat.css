@@ -1,0 +1,86 @@
+.store-chat-trigger {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 48px;
+  padding: 12px 20px;
+  border-radius: 999px;
+  background: var(--brand);
+  color: white;
+  border: 0;
+  box-shadow: var(--shadow-sm);
+  cursor: pointer;
+  z-index: 30;
+}
+.store-chat {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.store-chat-note {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+.store-chat-messages {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-height: 38vh;
+  overflow: auto;
+  padding: 4px;
+}
+.store-chat-messages article {
+  max-width: 90%;
+  padding: 12px 16px;
+  border-radius: 12px;
+  background: var(--surface-secondary, #f3f5f7);
+  overflow-wrap: anywhere;
+}
+.store-chat-messages article[data-sender="customer"] {
+  align-self: flex-end;
+  background: var(--brand-soft, #efeeff);
+}
+.store-chat-messages article span {
+  font-size: 12px;
+  font-weight: 600;
+}
+.store-chat-messages article p {
+  white-space: pre-wrap;
+  margin: 4px 0;
+}
+.store-chat-messages time {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+.store-chat form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.store-chat label {
+  font-size: 13px;
+  font-weight: 600;
+}
+.store-chat input,
+.store-chat textarea {
+  border: 1px solid var(--border-default);
+  border-radius: 8px;
+  padding: 12px;
+  min-width: 0;
+  width: 100%;
+  background: var(--surface, white);
+}
+.store-chat-error {
+  color: var(--danger);
+  font-size: 13px;
+}
+@media (max-width: 430px) {
+  .store-chat-trigger {
+    bottom: 16px;
+    right: 16px;
+    max-width: calc(100vw - 32px);
+  }
+}

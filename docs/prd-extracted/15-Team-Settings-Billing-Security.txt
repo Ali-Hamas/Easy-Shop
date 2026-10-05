@@ -1,0 +1,84 @@
+Human build spec - no code - F-commerce platform
+Page 1
+PDF 15
+ Team, Settings, Billing, and Security
+Controls staff access, shop settings, language, billing plans, connected accounts, and safety.
+Why this exists
+Small teams share passwords too often. The platform needs simple roles and clear billing.
+Primary user
+Owner, admin, staff.
+Business value
+Enables paid plans, team growth, and trust.
+Build priority
+P0/P1 - basic version required before launch.
+1. Page Goal
+- Manage staff roles and permissions.
+- Control shop settings, policies, integrations, language, notifications.
+- Show billing plan, usage, invoices, and upgrade path.
+- Protect account with audit logs and secure access.
+2. How It Should Look
+Settings tabs: Profile, Shop, Team, Integrations, AI, Notifications, Billing, Security.
+Team table: name, role, status, last active, permissions, actions.
+Billing page: current plan, usage bars, invoices, payment method, upgrade.
+Audit log: user/action/date/object/status.
+3. Main Sections
+Team roles
+Owner, admin, sales, packer, marketer, accountant.
+Permissions
+Page-level and action-level controls.
+Integrations
+Meta, courier, payment, WhatsApp/SMS.
+Billing
+Plan limits, invoices, usage, upgrade/downgrade.
+Security
+Password/OTP, sessions, audit logs.
+4. User Actions
+Action
+Result
+Edge case
+Invite staff
+Sends invite with role.
+Expire invite after set time.
+Change role
+Updates permissions.
+Owner role cannot be removed
+accidentally.
+
+Human build spec - no code - F-commerce platform
+Page 2
+Action
+Result
+Edge case
+Disconnect integration
+Stops sync and automation.
+Warn what breaks before disconnect.
+Upgrade plan
+Moves shop to higher limits.
+Show price and effective date.
+View audit
+Filters security/action history.
+Cannot edit audit log.
+5. Data Fields
+- User: name, email/phone, role, status, last active.
+- Role: permissions for inbox, orders, products, payments, exports, billing.
+- Billing: plan, limits, usage, invoices, payment status.
+- Security: sessions, login events, audit actions, integration tokens.
+6. AI / Automation Behavior
+- AI respects user permissions before answering or acting.
+- AI explains plan limit and suggests upgrade only when relevant.
+- AI can help configure policies but needs owner approval.
+- AI flags suspicious staff actions from audit patterns later.
+7. Empty, Error, and Safety States
+- Empty state must show one clear next button, not a blank table.
+- Every destructive action needs confirm: delete, cancel order, disconnect account, refund mark.
+- If third-party API fails, keep local draft and show retry.
+- AI must never invent price, stock, delivery charge, delivery date, or policy.
+8. Acceptance Checklist
+- Owner cannot remove own access without transfer flow.
+- Payment/export permissions are restricted by default.
+- Disconnecting Meta/courier shows affected features.
+- Billing usage updates clearly and avoids surprise charges.
+9. Do Not Build Yet
+- No enterprise SSO in V1.
+- No custom role builder until fixed roles fail.
+- No complicated subscription proration rules early.

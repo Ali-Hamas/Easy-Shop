@@ -1,0 +1,85 @@
+Human build spec - no code - F-commerce platform
+Page 1
+PDF 06
+ AI Order Confirmation and Checkout
+ Forms
+Converts chat interest into clean orders with name, phone, address, product, payment, and risk
+checks.
+Why this exists
+Most small sellers lose money through wrong addresses, fake orders, and manual confirmation chaos.
+Primary user
+Buyer, sales staff, owner.
+Business value
+Direct revenue feature: more confirmed orders, fewer returns.
+Build priority
+P0 - order quality.
+1. Page Goal
+- Let AI collect missing order details naturally inside chat.
+- Offer checkout link when chat becomes messy.
+- Validate phone, address, area, stock, payment method, and duplicate orders.
+- Use risk rules before confirming COD orders.
+2. How It Should Look
+Chat order card: items, buyer info, delivery, payment, risk score, confirm button.
+Checkout form: product summary, name, phone, district/city, address, COD/advance.
+Risk banner: safe, review, require advance.
+Confirmation screen: order ID, tracking expectation, contact options.
+3. Main Sections
+Order extraction
+Reads details from conversation and fills order card.
+Checkout form
+Short mobile form shareable in DM.
+Validation
+Phone, duplicate, stock, delivery zone, payment rules.
+Risk scoring
+Return history, area, COD amount, incomplete address.
+Confirmation
+Creates order and sends buyer receipt.
+4. User Actions
+Action
+Result
+Edge case
+Send checkout link
+Buyer fills clean order form.
+Expire link after configurable time.
+
+Human build spec - no code - F-commerce platform
+Page 2
+Action
+Result
+Edge case
+Ask missing info
+AI asks one missing field.
+If buyer refuses, mark incomplete.
+Require advance
+Requests partial payment before confirm.
+If unpaid, keep pending.
+Confirm order
+Locks item snapshot and reserves stock.
+Block if stock unavailable.
+Cancel draft
+Removes incomplete order draft.
+Do not delete chat history.
+5. Data Fields
+- Buyer: name, phone, alternate phone, address, city/district/area.
+- Order: item, variant, quantity, price snapshot, discount, delivery charge, total.
+- Payment: COD, advance, paid amount, transaction ID, proof image.
+- Risk: score, reason, previous returns, duplicate order check.
+6. AI / Automation Behavior
+- AI extracts fields but shows confidence for each field.
+- AI asks for missing data in buyer language.
+- AI decides safe/review/advance using rules, not free imagination.
+- AI summarizes order before final confirm.
+7. Empty, Error, and Safety States
+- Empty state must show one clear next button, not a blank table.
+- Every destructive action needs confirm: delete, cancel order, disconnect account, refund mark.
+- If third-party API fails, keep local draft and show retry.
+- AI must never invent price, stock, delivery charge, delivery date, or policy.
+8. Acceptance Checklist
+- No order confirm without phone, address, item, quantity, and price.
+- Duplicate buyer/order warning before confirmation.
+- If AI extracts wrong address, staff can edit before confirm.
+- Buyer gets clear cancellation/reschedule policy.
+9. Do Not Build Yet
+- No automatic high-value COD confirmation without review.
+- No full fraud scoring marketplace in V1.
+- No forced account creation for buyer.
