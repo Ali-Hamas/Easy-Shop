@@ -1,4 +1,4 @@
-﻿import type { FastifyInstance } from "fastify";
+import type { FastifyInstance } from "fastify";
 import { ZodError, type ZodTypeAny } from "zod";
 import { onboardingService, OnboardingError } from "./onboarding.service.js";
 import {
@@ -8,7 +8,7 @@ import {
   shopParamsSchema,
   startOnboardingSchema,
   updateAiModeSchema,
-  updateShopSchema
+  updateShopSchema,
 } from "./onboarding.validators.js";
 
 function parse<T extends ZodTypeAny>(schema: T, value: unknown) {
@@ -19,7 +19,7 @@ function handleError(error: unknown) {
   if (error instanceof OnboardingError) {
     return {
       statusCode: error.statusCode,
-      body: { code: error.code, message: error.message }
+      body: { code: error.code, message: error.message },
     };
   }
 
@@ -29,8 +29,8 @@ function handleError(error: unknown) {
       body: {
         code: "VALIDATION_ERROR",
         message: "Request validation failed.",
-        issues: error.issues
-      }
+        issues: error.issues,
+      },
     };
   }
 
@@ -43,7 +43,7 @@ export async function registerOnboardingRoutes(app: FastifyInstance) {
   app.post("/subdomain/check", async (request, reply) => {
     try {
       const body = parse(checkSubdomainSchema, request.body);
-      return onboardingService.checkSubdomain(body.subdomain);
+      return await onboardingService.checkSubdomain(body.subdomain);
     } catch (error) {
       const result = handleError(error);
       return reply.code(result.statusCode).send(result.body);
@@ -53,7 +53,7 @@ export async function registerOnboardingRoutes(app: FastifyInstance) {
   app.post("/start", async (request, reply) => {
     try {
       const body = parse(startOnboardingSchema, request.body);
-      return reply.code(201).send(await onboardingService.start(body));
+      return reply.code(201).send(await onboardingService.start({ ...body, ownerUserId: request.authUser!.id }));
     } catch (error) {
       const result = handleError(error);
       return reply.code(result.statusCode).send(result.body);
@@ -63,7 +63,7 @@ export async function registerOnboardingRoutes(app: FastifyInstance) {
   app.get("/:shopId", async (request, reply) => {
     try {
       const params = parse(shopParamsSchema, request.params);
-      return onboardingService.getState(params.shopId);
+      return await onboardingService.getState(params.shopId);
     } catch (error) {
       const result = handleError(error);
       return reply.code(result.statusCode).send(result.body);
@@ -74,7 +74,7 @@ export async function registerOnboardingRoutes(app: FastifyInstance) {
     try {
       const params = parse(shopParamsSchema, request.params);
       const body = parse(updateShopSchema, request.body);
-      return onboardingService.updateShop(params.shopId, body);
+      return await onboardingService.updateShop(params.shopId, body);
     } catch (error) {
       const result = handleError(error);
       return reply.code(result.statusCode).send(result.body);
@@ -85,7 +85,9 @@ export async function registerOnboardingRoutes(app: FastifyInstance) {
     try {
       const params = parse(shopParamsSchema, request.params);
       const body = parse(addProductSchema, request.body);
-      return reply.code(201).send(await onboardingService.addProduct(params.shopId, body));
+      return reply
+        .code(201)
+        .send(await onboardingService.addProduct(params.shopId, body));
     } catch (error) {
       const result = handleError(error);
       return reply.code(result.statusCode).send(result.body);
@@ -95,7 +97,7 @@ export async function registerOnboardingRoutes(app: FastifyInstance) {
   app.post("/:shopId/channels/meta/skip", async (request, reply) => {
     try {
       const params = parse(shopParamsSchema, request.params);
-      return onboardingService.skipMeta(params.shopId);
+      return await onboardingService.skipMeta(params.shopId);
     } catch (error) {
       const result = handleError(error);
       return reply.code(result.statusCode).send(result.body);
@@ -106,7 +108,7 @@ export async function registerOnboardingRoutes(app: FastifyInstance) {
     try {
       const params = parse(shopParamsSchema, request.params);
       const body = parse(updateAiModeSchema, request.body);
-      return onboardingService.updateAiMode(params.shopId, body.aiMode);
+      return await onboardingService.updateAiMode(params.shopId, body.aiMode);
     } catch (error) {
       const result = handleError(error);
       return reply.code(result.statusCode).send(result.body);
@@ -117,7 +119,10 @@ export async function registerOnboardingRoutes(app: FastifyInstance) {
     try {
       const params = parse(shopParamsSchema, request.params);
       const body = parse(chooseTemplateSchema, request.body);
-      return onboardingService.chooseTemplate(params.shopId, body.templateId);
+      return await onboardingService.chooseTemplate(
+        params.shopId,
+        body.templateId,
+      );
     } catch (error) {
       const result = handleError(error);
       return reply.code(result.statusCode).send(result.body);
@@ -127,11 +132,10 @@ export async function registerOnboardingRoutes(app: FastifyInstance) {
   app.post("/:shopId/launch", async (request, reply) => {
     try {
       const params = parse(shopParamsSchema, request.params);
-      return onboardingService.launch(params.shopId);
+      return await onboardingService.launch(params.shopId);
     } catch (error) {
       const result = handleError(error);
       return reply.code(result.statusCode).send(result.body);
     }
   });
 }
-

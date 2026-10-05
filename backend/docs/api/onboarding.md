@@ -8,9 +8,9 @@ Purpose:
 - Keeps draft state, audit events, and launch checklist.
 - Provides test-only template references for storefront selection.
 
-Auth:
-- `POST /start` can use `Authorization: Bearer <token>` to attach the shop to the logged-in owner.
-- Public website-only live-test start still works and creates an owner user without password.
+Auth: Requires an HttpOnly merchant session and server-side shop ownership validation. Mutations require the configured Origin. See auth.md. Account IDs are resolved by the server; production is supported.
+- This branch has no session validation. Bearer tokens are not interpreted.
+- Public development start creates an owner user without password. Authentication must be implemented before production administration.
 - Production rule: dashboard onboarding must require authenticated owner session.
 
 ## `POST /subdomain/check`
@@ -105,7 +105,7 @@ Response:
 
 Side effects:
 - Creates or reuses owner user.
-- Creates draft shop in PostgreSQL.
+- Creates draft shop in MongoDB.
 - Creates `shop_staff` owner membership.
 - Reserves subdomain.
 - Sets default COD policy and suggest-only AI mode.
@@ -190,7 +190,7 @@ Request:
 ```
 
 Side effects:
-- Creates active product and default variant in PostgreSQL.
+- Creates active product and default variant in MongoDB.
 - Writes opening stock to `inventory_ledger`.
 - Moves onboarding step to `channels`.
 
@@ -303,3 +303,7 @@ Cache:
 Errors:
 - `404 SHOP_NOT_FOUND`
 - `409 LAUNCH_BLOCKED`
+
+
+## Persistence failure
+Database-backed endpoints return 503 DATABASE_UNAVAILABLE with a sanitized message. Owner email/phone uniqueness conflicts return 409 OWNER_CONFLICT. All mutations preserve audit/stock writes transactionally.

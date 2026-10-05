@@ -1,6 +1,13 @@
 export const languages = ["bn", "bn-en", "en", "ur-roman", "ur"] as const;
 export const aiModes = ["off", "suggest", "auto_low_risk"] as const;
-export const onboardingSteps = ["account", "shop", "products", "channels", "ai_mode", "launch"] as const;
+export const onboardingSteps = [
+  "account",
+  "shop",
+  "products",
+  "channels",
+  "ai_mode",
+  "launch",
+] as const;
 export const shopStatuses = ["draft", "launched"] as const;
 
 export type Language = (typeof languages)[number];

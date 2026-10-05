@@ -13,7 +13,9 @@ function walk(dir) {
   });
 }
 
-const routeFiles = walk(modulesDir).filter((file) => file.endsWith(".routes.ts"));
+const routeFiles = walk(modulesDir).filter((file) =>
+  file.endsWith(".routes.ts"),
+);
 const missing = routeFiles.filter((file) => {
   const parts = relative(modulesDir, file).split(sep);
   const moduleName = parts[0];
@@ -34,7 +36,7 @@ const requiredSections = [
   "Side effects:",
   "Audit/timeline:",
   "Cache:",
-  "Errors:"
+  "Errors:",
 ];
 
 const incomplete = [];
@@ -43,14 +45,19 @@ for (const file of routeFiles) {
   const moduleName = relative(modulesDir, file).split(sep)[0];
   const docPath = join(docsDir, `${moduleName}.md`);
   const doc = existsSync(docPath) ? readFileSync(docPath, "utf8") : "";
-  const missingSections = requiredSections.filter((section) => !doc.includes(section));
-  if (missingSections.length) incomplete.push({ docPath, missing: missingSections });
+  const missingSections = requiredSections.filter(
+    (section) => !doc.includes(section),
+  );
+  if (missingSections.length)
+    incomplete.push({ docPath, missing: missingSections });
 }
 
 if (incomplete.length) {
   console.error("Incomplete API docs:");
   for (const item of incomplete) {
-    console.error(`- ${relative(root, item.docPath)} ${item.missing.join(", ")}`);
+    console.error(
+      `- ${relative(root, item.docPath)} ${item.missing.join(", ")}`,
+    );
   }
   process.exit(1);
 }

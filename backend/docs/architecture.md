@@ -1,55 +1,7 @@
-# Backend Architecture
+# Backend architecture
 
-## Shape
+Fastify + TypeScript modular monolith. Active modules: health, system, onboarding and public storefront. The native MongoDB Node driver owns persistence. No authentication, inventory-management, customer-management or AI-reply module was added.
 
-Modular monolith first.
+shared/models.ts defines typed collections and idempotent indexes; shared/db.ts owns a single reusable pool, transaction sessions, readiness and shutdown. Multi-document writes are transactional and sequential. Every onboarding mutation writes the shop revision to serialize against launch. MongoDB unique indexes enforce subdomain and tenant product-slug uniqueness under concurrent requests. Ledger and audit records remain append-only, separate from shop documents.
 
-Reason:
-- 1000 sellers does not require microservices.
-- Shared stock/order/payment/audit rules stay simpler in one deployable.
-- Modules can split later because boundaries are explicit.
-
-## Modules
-
-- Active: `health`, `system`, `onboarding`, `storefront`.
-- Planned foundation: `auth`, `shops`, `settings`, `webhooks`, `jobs`.
-- Planned P0 path: `catalog`, `inventory`, `inbox`, `orders`, `delivery`, `ai`.
-- Planned growth/trust: `payments`, `customers`, `marketing`, `analytics`.
-
-Source of truth:
-- `src/shared/module-registry.ts`
-- `GET /api/v1/system/modules`
-- `src/modules/README.md`
-
-## Required Infrastructure
-
-- PostgreSQL: source of truth.
-- Redis: cache, rate limits, idempotency, job locks.
-- Storage: local disk for dev/current VPS, object storage shape for S3/R2 later.
-- Queue/worker: imports, webhooks, AI, courier, payments, exports.
-- Docker: local and deployment parity.
-
-## Database and Storage
-
-- Migrations live in `migrations/*.sql`.
-- Run migrations with `npm run db:migrate`.
-- Deploy runs migrations before build/reload.
-- Uploaded files stay under `LOCAL_STORAGE_DIR`; metadata lives in `asset_objects`.
-- Product images link through `product_images`, not raw URLs.
-- Inventory changes use append-only `inventory_ledger`; checkout reservations use `inventory_reservations`.
-
-## Cache Rule
-
-Client cache is allowed for reads. Server re-checks critical writes:
-
-- stock
-- payment
-- permissions
-- courier booking
-- order confirmation
-- AI approval/execution
-
-## API Docs Rule
-
-Every new API route must add or update `backend/docs/api/*.md` in the same change.
-`npm run check:api-docs` fails when a route module has no doc or misses required sections.
+Public APIs use UUID strings and ISO timestamps; BSON Decimal128 prices serialize as numbers. Zod remains the API validation boundary. Errors are sanitized centrally; raw driver errors/URIs are not logged or returned. See mongodb-migration.md for the complete schema map. No historical PostgreSQL data import was attempted because no source data was provided.
