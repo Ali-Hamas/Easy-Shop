@@ -43,6 +43,9 @@ test.describe("Storefront Product Display & Preview Mode Verification", () => {
     await page.getByLabel(/Price/).fill("2400");
     await page.getByLabel("Opening stock").fill("12");
     await page.getByRole("button", { name: "Save & continue" }).click();
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+      "Start with your storefront.",
+    );
 
     // 3. Do NOT launch yet - shop remains in 'draft' status.
     // Verify that public unauthenticated visit to unlaunched shop returns 404

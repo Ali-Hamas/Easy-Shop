@@ -2,7 +2,15 @@
 import { useState, useRef } from "react";
 import Image from "next/image";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { Package, Plus, Check, AlertCircle } from "lucide-react";
+import {
+  Package,
+  Plus,
+  Check,
+  AlertCircle,
+  Upload,
+  Link as LinkIcon,
+  Trash2,
+} from "lucide-react";
 import { Input, Textarea, Select } from "@/components/ui/fields";
 import { Button } from "@/components/ui/button";
 import { blankProduct, blankVariant, editProduct } from "@/adapters/inventory";
@@ -20,14 +28,23 @@ import { cn } from "@/lib/utils";
 
 function EditorImage({ url }: { url: string }) {
   const [failed, setFailed] = useState(false);
-  return !failed && /^https?:\/\//.test(url) ? (
-    <Image
+  const isValid =
+    !failed &&
+    Boolean(url) &&
+    (/^https?:\/\//i.test(url) ||
+      url.startsWith("data:image/") ||
+      url.startsWith("/uploads/"));
+  return isValid ? (
+    <img
       src={url}
       alt="Product preview"
-      width={220}
-      height={180}
-      unoptimized
-      referrerPolicy="no-referrer"
+      className="editor-preview-thumb-img"
+      style={{
+        width: "100%",
+        height: "100%",
+        objectFit: "cover",
+        borderRadius: 8,
+      }}
       onError={() => setFailed(true)}
     />
   ) : (
@@ -52,7 +69,18 @@ export function ProductEditor({
     product ? editProduct(product) : blankProduct(),
   );
   const [section, setSection] = useState(0);
-  const [media, setMedia] = useState(() => product?.images.join("\n") ?? "");
+  const [imagesList, setImagesList] = useState<string[]>(() => {
+    const initial = product?.images ?? [];
+    return [initial[0] || "", initial[1] || "", initial[2] || ""];
+  });
+  const [slotModes, setSlotModes] = useState<("upload" | "url")[]>(() => {
+    const initial = product?.images ?? [];
+    return [
+      initial[0]?.startsWith("http") ? "url" : "upload",
+      initial[1]?.startsWith("http") ? "url" : "upload",
+      initial[2]?.startsWith("http") ? "url" : "upload",
+    ];
+  });
   const [archiveConfirmed, setArchiveConfirmed] = useState(false);
   const [busy, setBusy] = useState(false);
   const [generalError, setGeneralError] = useState("");
@@ -99,6 +127,73 @@ export function ProductEditor({
           : null,
       );
 
+      return next;
+    });
+  }
+
+  function handleFileUpload(slotIndex: number, file: File) {
+    if (!file.type.startsWith("image/")) {
+      setGeneralError("Please select a valid image file (PNG, JPG, WEBP).");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const dataUrl = e.target?.result as string;
+      const img = new window.Image();
+      img.onload = () => {
+        const maxDim = 1200;
+        let width = img.width;
+        let height = img.height;
+        if (width > maxDim || height > maxDim) {
+          if (width > height) {
+            height = Math.round((height * maxDim) / width);
+            width = maxDim;
+          } else {
+            width = Math.round((width * maxDim) / height);
+            height = maxDim;
+          }
+        }
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        if (ctx) {
+          ctx.drawImage(img, 0, 0, width, height);
+          const compressed = canvas.toDataURL("image/jpeg", 0.88);
+          updateImageSlot(slotIndex, compressed);
+        } else {
+          updateImageSlot(slotIndex, dataUrl);
+        }
+      };
+      img.onerror = () => updateImageSlot(slotIndex, dataUrl);
+      img.src = dataUrl;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function updateImageSlot(slotIndex: number, val: string) {
+    setImagesList((prev) => {
+      const next = [...prev];
+      next[slotIndex] = val;
+      return next;
+    });
+    if (slotIndex === 0 && val.trim()) {
+      clearFieldError("images");
+    }
+  }
+
+  function removeImageSlot(slotIndex: number) {
+    setImagesList((prev) => {
+      const next = [...prev];
+      next[slotIndex] = "";
+      return next;
+    });
+  }
+
+  function setSlotMode(slotIndex: number, mode: "upload" | "url") {
+    setSlotModes((prev) => {
+      const next = [...prev];
+      next[slotIndex] = mode;
       return next;
     });
   }
@@ -157,19 +252,6 @@ export function ProductEditor({
     }
   }
 
-  function handleMediaChange(val: string) {
-    setMedia(val);
-    const lines = val
-      .split("\n")
-      .map((l) => l.trim())
-      .filter(Boolean);
-    const allValid =
-      lines.length <= 8 && lines.every((l) => /^https?:\/\//i.test(l));
-    if (allValid) {
-      clearFieldError("images");
-    }
-  }
-
   function navigateToFirstError(target: ProductFieldError) {
     setSection(target.sectionIndex);
     requestAnimationFrame(() => {
@@ -190,7 +272,8 @@ export function ProductEditor({
     setGeneralError("");
 
     // 1. Client-side pre-validation
-    const validation = validateProductDraft(draft, media);
+    const cleanImages = imagesList.map((s) => s.trim());
+    const validation = validateProductDraft(draft, cleanImages);
     if (!validation.isValid) {
       setFieldErrors(validation.errors);
       setSectionErrors(validation.sectionErrors);
@@ -205,10 +288,7 @@ export function ProductEditor({
     try {
       const payload = {
         ...draft,
-        images: media
-          .split("\n")
-          .map((v) => v.trim())
-          .filter(Boolean),
+        images: cleanImages.filter(Boolean),
       };
       const p = product
         ? await inventoryService.update(
@@ -385,20 +465,198 @@ export function ProductEditor({
               )}
 
               {section === 1 && (
-                <>
-                  <Textarea
-                    id="field-product-media"
-                    label="Product image URLs"
-                    hint="One HTTP(S) URL per line, up to eight. File upload is not connected."
-                    value={media}
-                    error={fieldErrors["images"]?.message}
-                    onChange={(e) => handleMediaChange(e.target.value)}
-                  />
-                  <p className="field-hint">
-                    Use images you have permission to publish. The first image
-                    leads the catalog.
-                  </p>
-                </>
+                <div className="product-media-section">
+                  <div className="product-media-intro">
+                    <h4 className="product-media-heading">Product Images</h4>
+                    <p className="field-hint">
+                      Add up to 3 images. Image 1 is <strong>mandatory</strong> and serves as the primary storefront image. Images 2 and 3 are <strong>optional</strong>. You can choose to upload an image from your device or paste an image URL for each slot.
+                    </p>
+                  </div>
+
+                  {fieldErrors["images"] && (
+                    <div className="product-media-error-banner" role="alert">
+                      <AlertCircle size={15} />
+                      <span>{fieldErrors["images"].message}</span>
+                    </div>
+                  )}
+
+                  <div className="product-slots-container">
+                    {[0, 1, 2].map((slotIdx) => {
+                      const isRequired = slotIdx === 0;
+                      const val = imagesList[slotIdx] || "";
+                      const mode = slotModes[slotIdx] || "upload";
+                      const slotError =
+                        fieldErrors[`field-product-image-${slotIdx}`]?.message ||
+                        (isRequired && !val.trim() && fieldErrors["images"]?.message);
+
+                      return (
+                        <div
+                          key={slotIdx}
+                          className={`product-image-slot-card ${isRequired ? "slot-required" : "slot-optional"} ${val ? "has-image" : "no-image"}`}
+                        >
+                          <div className="slot-card-header">
+                            <div className="slot-title-wrap">
+                              <span className="slot-number-badge">
+                                {slotIdx + 1}
+                              </span>
+                              <strong className="slot-title">
+                                {isRequired ? "Main Image" : `Additional Image ${slotIdx + 1}`}
+                              </strong>
+                              {isRequired ? (
+                                <span className="slot-required-pill">Required</span>
+                              ) : (
+                                <span className="slot-optional-pill">Optional</span>
+                              )}
+                            </div>
+
+                            <div className="slot-mode-selector" role="radiogroup">
+                              <button
+                                type="button"
+                                role="radio"
+                                aria-checked={mode === "upload"}
+                                className={`slot-toggle-tab ${mode === "upload" ? "active" : ""}`}
+                                onClick={() => setSlotMode(slotIdx, "upload")}
+                              >
+                                <Upload size={12} /> Upload File
+                              </button>
+                              <button
+                                type="button"
+                                role="radio"
+                                aria-checked={mode === "url"}
+                                className={`slot-toggle-tab ${mode === "url" ? "active" : ""}`}
+                                onClick={() => setSlotMode(slotIdx, "url")}
+                              >
+                                <LinkIcon size={12} /> Paste URL
+                              </button>
+                            </div>
+                          </div>
+
+                          <div className="slot-card-content">
+                            {mode === "upload" ? (
+                              val ? (
+                                <div className="slot-preview-card">
+                                  <div className="slot-preview-thumb">
+                                    <img
+                                      src={val}
+                                      alt={`Slot ${slotIdx + 1}`}
+                                      className="slot-thumb-img"
+                                    />
+                                  </div>
+                                  <div className="slot-preview-details">
+                                    <span className="slot-status-text">
+                                      ✓ Image uploaded & ready
+                                    </span>
+                                    <div className="slot-preview-actions">
+                                      <label className="slot-action-btn primary-action">
+                                        <Upload size={13} /> Change Image
+                                        <input
+                                          type="file"
+                                          accept="image/*"
+                                          style={{ display: "none" }}
+                                          onChange={(e) => {
+                                            const file = e.target.files?.[0];
+                                            if (file) handleFileUpload(slotIdx, file);
+                                          }}
+                                        />
+                                      </label>
+                                      <button
+                                        type="button"
+                                        className="slot-action-btn danger-action"
+                                        onClick={() => removeImageSlot(slotIdx)}
+                                      >
+                                        <Trash2 size={13} /> Remove
+                                      </button>
+                                    </div>
+                                  </div>
+                                </div>
+                              ) : (
+                                <label
+                                  htmlFor={`slot-file-${slotIdx}`}
+                                  className="slot-dropzone"
+                                >
+                                  <input
+                                    id={`slot-file-${slotIdx}`}
+                                    type="file"
+                                    accept="image/*"
+                                    style={{ display: "none" }}
+                                    onChange={(e) => {
+                                      const file = e.target.files?.[0];
+                                      if (file) handleFileUpload(slotIdx, file);
+                                    }}
+                                  />
+                                  <div className="slot-dropzone-inner">
+                                    <div className="slot-dropzone-icon-circle">
+                                      <Upload size={20} />
+                                    </div>
+                                    <span className="slot-dropzone-title">
+                                      {isRequired
+                                        ? "Upload primary product image"
+                                        : `Upload image ${slotIdx + 1}`}
+                                    </span>
+                                    <span className="slot-dropzone-hint">
+                                      Click to choose file from device (PNG, JPG, WEBP)
+                                    </span>
+                                  </div>
+                                </label>
+                              )
+                            ) : (
+                              <div className="slot-url-block">
+                                <div className="slot-url-field-wrap">
+                                  <input
+                                    id={`field-product-image-${slotIdx}`}
+                                    type="url"
+                                    className="slot-url-input"
+                                    placeholder="https://example.com/product-image.jpg"
+                                    value={val}
+                                    onChange={(e) =>
+                                      updateImageSlot(slotIdx, e.target.value)
+                                    }
+                                  />
+                                  {val && (
+                                    <button
+                                      type="button"
+                                      className="slot-clear-btn"
+                                      onClick={() => removeImageSlot(slotIdx)}
+                                      title="Clear URL"
+                                    >
+                                      <Trash2 size={13} />
+                                    </button>
+                                  )}
+                                </div>
+                                {val ? (
+                                  <div className="slot-url-preview-card">
+                                    <img
+                                      src={val}
+                                      alt={`Slot ${slotIdx + 1} Preview`}
+                                      className="slot-url-preview-thumb"
+                                      onError={(e) => {
+                                        (e.target as HTMLElement).style.display =
+                                          "none";
+                                      }}
+                                    />
+                                    <span className="slot-url-preview-note">
+                                      Direct link preview
+                                    </span>
+                                  </div>
+                                ) : (
+                                  <span className="field-hint">
+                                    Enter a secure public link (https://...)
+                                  </span>
+                                )}
+                              </div>
+                            )}
+
+                            {slotError && (
+                              <p className="slot-error-msg" role="alert">
+                                {slotError}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
               )}
 
               {section === 2 && (
@@ -789,10 +1047,21 @@ export function ProductEditor({
           <span>Storefront preview</span>
           <div className="preview-product-image">
             <EditorImage
-              key={media.split("\n")[0]}
-              url={media.split("\n")[0] ?? ""}
+              key={imagesList[0] || "empty"}
+              url={imagesList[0] || ""}
             />
           </div>
+          {imagesList.filter(Boolean).length > 1 && (
+            <div className="preview-mini-thumbnails">
+              {imagesList.map((img, idx) =>
+                img ? (
+                  <div key={idx} className="preview-mini-thumb">
+                    <img src={img} alt={`Preview ${idx + 1}`} />
+                  </div>
+                ) : null,
+              )}
+            </div>
+          )}
           <strong>{draft.name || "Your next product"}</strong>
           <p>{draft.category || "Add a category"}</p>
           <b>{formatMoney(draft.price, product?.currency ?? currency)}</b>

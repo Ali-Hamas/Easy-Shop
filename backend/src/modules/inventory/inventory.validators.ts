@@ -3,9 +3,14 @@ const money = z.number().finite().min(0).max(9999999999.99).multipleOf(0.01);
 const text = z.string().trim().max(5000);
 const image = z
   .string()
-  .url()
-  .max(2000)
-  .refine((v) => /^https?:\/\//.test(v), "Use an HTTP or HTTPS image URL.");
+  .max(10000000)
+  .refine(
+    (v) =>
+      /^https?:\/\//.test(v) ||
+      /^data:image\//.test(v) ||
+      /^\/uploads\//.test(v),
+    "Use an HTTP/HTTPS image URL or uploaded image.",
+  );
 const sku = z
   .string()
   .trim()
@@ -35,7 +40,7 @@ export const productSchema = z
     price: money,
     comparePrice: money.nullable().default(null),
     cost: money.nullable().default(null),
-    images: z.array(image).max(8).default([]),
+    images: z.array(image).max(3).default([]),
     status: z.enum(["draft", "active", "archived"]).default("active"),
     variants: z.array(variantSchema).min(1).max(50),
     aiFacts: z

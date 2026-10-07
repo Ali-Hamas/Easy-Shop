@@ -35,7 +35,7 @@
 }
 .button-primary:hover:not(:disabled) {
   background: var(--button-hover-bg);
-  box-shadow: 0 2px 5px rgb(88 86 214 / 15%);
+  box-shadow: 0 2px 5px rgb(45 91 117 / 18%);
 }
 .button-primary:active:not(:disabled) {
   background: var(--button-pressed-bg);

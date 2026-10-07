@@ -237,15 +237,24 @@ export function ComponentGallery() {
           </LabSection>
           <LabSection
             title="Colors"
-            description="Neutral surfaces. Indigo with a purpose. Status color only where it helps."
+            description="Neutral surfaces. Coastal palette (#447794 & #2D5B75) with purpose. Status color only where it helps."
           >
             <div className="color-swatches">
               {[
                 { name: "Canvas", token: "--app-bg", hex: "#F7F8FA" },
                 { name: "Surface", token: "--surface", hex: "#FFFFFF" },
                 { name: "Inset", token: "--surface-secondary", hex: "#F3F5F7" },
-                { name: "Primary", token: "--brand", hex: "#5856D6" },
-                { name: "Primary soft", token: "--brand-soft", hex: "#EFEEFF" },
+                {
+                  name: "Coastal Mid (Color 1)",
+                  token: "--brand",
+                  hex: "#447794",
+                },
+                {
+                  name: "Coastal Deep (Color 2)",
+                  token: "--brand-secondary",
+                  hex: "#2D5B75",
+                },
+                { name: "Coastal Soft", token: "--brand-soft", hex: "#E4EDF3" },
               ].map((c) => (
                 <button
                   key={c.name}

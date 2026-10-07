@@ -29,6 +29,7 @@ import { storefrontService } from "@/services/commerce";
 import { ApiError } from "@/lib/api/client";
 import { formatMoney, productPath } from "@/adapters/commerce";
 import type { PublicStore, ProductDetail } from "@/types/commerce";
+import "@/styles/storefront.css";
 
 type CartItem = {
   productId: string;
@@ -51,17 +52,20 @@ function ProductVisual({
   className?: string;
 }) {
   const [failed, setFailed] = useState(false);
-  const valid = !!url && /^https?:\/\//i.test(url);
+  const valid =
+    !!url &&
+    (/^https?:\/\//i.test(url) ||
+      url.startsWith("data:image/") ||
+      url.startsWith("/uploads/") ||
+      url.startsWith("/"));
 
   return (
     <div className={`buyer-product-visual ${className || ""}`}>
       {valid && !failed ? (
-        <Image
-          unoptimized
-          width={800}
-          height={800}
+        <img
           src={url!}
           alt={name}
+          className="buyer-product-visual-img"
           loading="lazy"
           referrerPolicy="no-referrer"
           onError={() => setFailed(true)}
@@ -90,6 +94,7 @@ export default function StorefrontExperience({
   const [product, setProduct] = useState<ProductDetail | null>(null);
   const [variant, setVariant] = useState("");
   const [quantity, setQuantity] = useState(1);
+  const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [error, setError] = useState<ApiError | null>(null);
   const [loading, setLoading] = useState(true);
   const [version, setVersion] = useState(0);
@@ -134,6 +139,7 @@ export default function StorefrontExperience({
           setProduct(detail.product);
           setVariant(detail.product.variants[0]?.id ?? "");
           setQuantity(1);
+          setActiveImageIndex(0);
         } else {
           setStore(
             await storefrontService.get(
@@ -306,29 +312,33 @@ export default function StorefrontExperience({
 
         <div className="buyer-header-right">
           {/* Search Trigger */}
-          {!slug ? <div className="buyer-search-input-wrap">
-            <Search size={15} aria-hidden />
-            <input
-              type="text"
-              placeholder="Search products…"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="buyer-search-input"
-              aria-label="Search products in store"
-            />
-            {searchQuery && (
-              <button
-                type="button"
-                onClick={() => setSearchQuery("")}
-                className="buyer-search-clear"
-                aria-label="Clear search"
-              >
-                <X size={13} />
-              </button>
-            )}
-          </div>
-
-          : <Link href={`/store/${encodeURIComponent(subdomain)}`} className="buyer-link">Browse products</Link>}
+          {!slug ? (
+            <div className="buyer-search-input-wrap">
+              <Search size={15} aria-hidden />
+              <input
+                type="text"
+                placeholder="Search products…"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="buyer-search-input"
+                aria-label="Search products in store"
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery("")}
+                  className="buyer-search-clear"
+                  aria-label="Clear search"
+                >
+                  <X size={13} />
+                </button>
+              )}
+            </div>
+          ) : (
+            <Link href={`/store/${encodeURIComponent(subdomain)}`} className="buyer-link">
+              Browse products
+            </Link>
+          )}
 
           {/* Cart / Bag Button */}
           <button
@@ -345,31 +355,6 @@ export default function StorefrontExperience({
           </button>
         </div>
       </header>
-
-      {/* Category Navigation Bar (only if real categories exist) */}
-      {realCategories.length >= 2 && !slug && (
-        <nav className="buyer-category-nav" aria-label="Product categories">
-          <div className="buyer-category-nav-inner">
-            <button
-              type="button"
-              className={`buyer-category-pill ${!selectedCategory ? "active" : ""}`}
-              onClick={() => setSelectedCategory(null)}
-            >
-              All Products ({store?.products.length ?? 0})
-            </button>
-            {realCategories.map((cat) => (
-              <button
-                key={cat}
-                type="button"
-                className={`buyer-category-pill ${selectedCategory === cat ? "active" : ""}`}
-                onClick={() => setSelectedCategory(cat)}
-              >
-                {cat}
-              </button>
-            ))}
-          </div>
-        </nav>
-      )}
 
       {/* Added to Bag Toast Notification */}
       <AnimatePresence>
@@ -447,11 +432,72 @@ export default function StorefrontExperience({
 
             <section className="buyer-detail">
               <div className="buyer-gallery-container">
-                <ProductVisual
-                  url={product.imageUrl}
-                  name={product.name}
-                  className="buyer-detail-visual"
-                />
+                {(() => {
+                  const productImages = (
+                    product.images && product.images.length > 0
+                      ? product.images
+                      : [product.imageUrl]
+                  ).filter(Boolean) as string[];
+
+                  const activeSrc =
+                    productImages[activeImageIndex] ??
+                    product.imageUrl ??
+                    null;
+
+                  return (
+                    <div className="buyer-gallery-wrapper">
+                      {/* Main Featured Image Display */}
+                      <div className="buyer-gallery-main-view">
+                        <AnimatePresence mode="wait">
+                          <motion.div
+                            key={activeSrc || "main"}
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            transition={{ duration: 0.2 }}
+                            className="buyer-gallery-main-motion"
+                          >
+                            <ProductVisual
+                              url={activeSrc}
+                              name={product.name}
+                              className="buyer-detail-visual"
+                            />
+                          </motion.div>
+                        </AnimatePresence>
+                      </div>
+
+                      {/* Small Thumbnail Boxes below main image if multiple images exist */}
+                      {productImages.length > 1 && (
+                        <div
+                          className="buyer-gallery-thumbnails"
+                          role="tablist"
+                          aria-label="Product image thumbnails"
+                        >
+                          {productImages.map((thumbUrl, idx) => {
+                            const isCurrent = idx === activeImageIndex;
+                            return (
+                              <button
+                                key={idx}
+                                type="button"
+                                role="tab"
+                                aria-selected={isCurrent}
+                                aria-label={`View photo ${idx + 1}`}
+                                className={`buyer-gallery-thumb-btn ${isCurrent ? "active" : ""}`}
+                                onClick={() => setActiveImageIndex(idx)}
+                              >
+                                <img
+                                  src={thumbUrl}
+                                  alt={`${product.name} thumbnail ${idx + 1}`}
+                                  className="buyer-gallery-thumb-img"
+                                />
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
               </div>
 
               <div className="buyer-detail-copy">
@@ -643,45 +689,56 @@ export default function StorefrontExperience({
              =================================================== */
           <>
             {/* Storefront Hero / Introduction */}
-            <motion.section className="buyer-hero" initial={{ opacity: 0, y: reduced ? 0 : 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
+            <motion.section
+              className="buyer-hero"
+              initial={{ opacity: 0, y: reduced ? 0 : 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4 }}
+            >
               <div className="buyer-hero-inner buyer-hero-brand">
                 <span className="buyer-hero-badge">
-                  <span className="status-dot live" />
-                  Independent Shop · {store.shop.country}
+                  Independent Boutique · {store.shop.country}
                 </span>
 
                 <h1 className="buyer-hero-title">{store.shop.displayName}</h1>
 
                 <p className="buyer-hero-desc">
-                  Explore the collection and find something for your everyday. Ask the shop about any product.
+                  Curated contemporary essentials, handcrafted with enduring quality and timeless design. Explore the new season collection below.
                 </p>
 
                 <div className="buyer-hero-meta">
-                  <span>
-                    <strong>{store.products.length}</strong>{" "}
-                    {store.products.length === 1 ? "curated item" : "curated items"} in catalog
-                  </span>
-                  <span className="bullet">·</span>
-                  <span>
-                    Delivery:{" "}
-                    <strong>
-                      {store.shop.policyDefaults.deliveryCharge === 0
-                        ? "Free"
-                        : formatMoney(
-                            store.shop.policyDefaults.deliveryCharge,
-                            store.shop.currency,
-                          )}
-                    </strong>
-                  </span>
-                  <span className="bullet">·</span>
-                  <span>
-                    COD:{" "}
-                    <strong>
-                      {store.shop.policyDefaults.codAllowed
-                        ? "Supported"
-                        : "Ask the seller"}
-                    </strong>
-                  </span>
+                  <div className="buyer-hero-meta-item">
+                    <span className="meta-dot" />
+                    <span>
+                      <strong>{store.products.length}</strong>{" "}
+                      {store.products.length === 1 ? "curated item" : "curated items"} in catalog
+                    </span>
+                  </div>
+                  <div className="buyer-hero-meta-item">
+                    <span className="meta-dot" />
+                    <span>
+                      Delivery:{" "}
+                      <strong>
+                        {store.shop.policyDefaults.deliveryCharge === 0
+                          ? "Free"
+                          : formatMoney(
+                              store.shop.policyDefaults.deliveryCharge,
+                              store.shop.currency,
+                            )}
+                      </strong>
+                    </span>
+                  </div>
+                  <div className="buyer-hero-meta-item">
+                    <span className="meta-dot" />
+                    <span>
+                      COD:{" "}
+                      <strong>
+                        {store.shop.policyDefaults.codAllowed
+                          ? "Supported"
+                          : "Inquire"}
+                      </strong>
+                    </span>
+                  </div>
                 </div>
               </div>
             </motion.section>
@@ -833,9 +890,32 @@ export default function StorefrontExperience({
                  CASE 2: 2 TO 4 PRODUCTS -> BALANCED EDITORIAL GRID
                  =================================================== */
               <section className="buyer-curated-section" aria-label="Curated Collection">
-                <div className="buyer-section-heading">
-                  <span>Our Collection</span>
-                  <h2>The collection ({filteredProducts.length} pieces)</h2>
+                <div className="buyer-collection-toolbar">
+                  <div className="buyer-section-heading">
+                    <span>Our Collection</span>
+                    <h2>The collection ({filteredProducts.length} pieces)</h2>
+                  </div>
+                  {realCategories.length >= 2 && (
+                    <div className="buyer-category-filter-group" role="tablist" aria-label="Filter by category">
+                      <button
+                        type="button"
+                        className={`buyer-category-pill ${!selectedCategory ? "active" : ""}`}
+                        onClick={() => setSelectedCategory(null)}
+                      >
+                        All Products ({store.products.length})
+                      </button>
+                      {realCategories.map((cat) => (
+                        <button
+                          key={cat}
+                          type="button"
+                          className={`buyer-category-pill ${selectedCategory === cat ? "active" : ""}`}
+                          onClick={() => setSelectedCategory(cat)}
+                        >
+                          {cat}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 <div className="buyer-grid-curated">
@@ -918,9 +998,32 @@ export default function StorefrontExperience({
                  CASE 3: 5+ PRODUCTS OR SEARCH FILTER ACTIVE -> STANDARD RESPONSIVE GRID
                  =================================================== */
               <section className="buyer-catalog-section" aria-label="Product Catalog">
-                <div className="buyer-section-heading">
-                  <span>Catalog</span>
-                  <h2>All Products ({filteredProducts.length})</h2>
+                <div className="buyer-collection-toolbar">
+                  <div className="buyer-section-heading">
+                    <span>Catalog</span>
+                    <h2>All Products ({filteredProducts.length})</h2>
+                  </div>
+                  {realCategories.length >= 2 && (
+                    <div className="buyer-category-filter-group" role="tablist" aria-label="Filter by category">
+                      <button
+                        type="button"
+                        className={`buyer-category-pill ${!selectedCategory ? "active" : ""}`}
+                        onClick={() => setSelectedCategory(null)}
+                      >
+                        All Products ({store.products.length})
+                      </button>
+                      {realCategories.map((cat) => (
+                        <button
+                          key={cat}
+                          type="button"
+                          className={`buyer-category-pill ${selectedCategory === cat ? "active" : ""}`}
+                          onClick={() => setSelectedCategory(cat)}
+                        >
+                          {cat}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 <div className="buyer-catalog-grid">

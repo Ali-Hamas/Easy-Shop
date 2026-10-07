@@ -95,11 +95,14 @@ export function humanizeProductError(
     return {
       sectionIndex: 1,
       fieldKey: "images",
-      inputId: "field-product-media",
+      inputId:
+        typeof idx !== "undefined"
+          ? `field-product-image-${idx}`
+          : "field-product-image-0",
       message:
         typeof idx !== "undefined"
-          ? `Image URL #${Number(idx) + 1} must be a valid HTTP or HTTPS address.`
-          : "Images must be valid HTTP or HTTPS URLs (up to 8).",
+          ? `Image #${Number(idx) + 1} must be a valid uploaded file or HTTP/HTTPS address.`
+          : "Main product image is required (upload file or paste URL, up to 3 images).",
     };
   }
 
@@ -325,7 +328,7 @@ export function mapBackendIssuesToErrors(
 
 export function validateProductDraft(
   draft: InventoryInput,
-  mediaUrls: string,
+  mediaUrls: string | string[],
 ): ProductValidationResult {
   const errors: Record<string, ProductFieldError> = {};
   const sectionErrors: Record<number, number> = {
@@ -400,27 +403,39 @@ export function validateProductDraft(
     );
   }
 
-  // 1. Media
-  const rawLines = mediaUrls
-    .split("\n")
-    .map((l) => l.trim())
-    .filter(Boolean);
-  if (rawLines.length > 8) {
+  // 1. Media: 1 image is mandatory, 2-3 images total allowed
+  const rawLines: string[] = Array.isArray(mediaUrls)
+    ? mediaUrls.map((l) => (typeof l === "string" ? l.trim() : ""))
+    : mediaUrls.split("\n").map((l) => l.trim());
+  const validImages = rawLines.filter(Boolean);
+
+  if (!rawLines[0] || validImages.length === 0) {
     addError(
       1,
       "images",
-      "field-product-media",
-      "You can specify up to 8 image URLs.",
+      "field-product-image-0",
+      "Main product image is required. Upload an image file or paste an image URL.",
+    );
+  } else if (validImages.length > 3) {
+    addError(
+      1,
+      "images",
+      "field-product-image-0",
+      "You can add up to 3 product images (1 required, 2 optional).",
     );
   } else {
-    for (let i = 0; i < rawLines.length; i++) {
-      const line = rawLines[i];
-      if (!/^https?:\/\//i.test(line)) {
+    for (let i = 0; i < validImages.length; i++) {
+      const line = validImages[i];
+      const isValid =
+        /^https?:\/\//i.test(line) ||
+        line.startsWith("data:image/") ||
+        line.startsWith("/uploads/");
+      if (!isValid) {
         addError(
           1,
           "images",
-          "field-product-media",
-          `Image URL #${i + 1} must start with http:// or https://.`,
+          `field-product-image-${i}`,
+          `Image #${i + 1} must be an uploaded image file or start with http:// or https://.`,
         );
         break;
       }

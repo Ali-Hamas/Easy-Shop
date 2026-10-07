@@ -185,7 +185,7 @@
   gap: 8px;
   font-size: 12px;
   white-space: nowrap;
-  color: #5856d6;
+  color: var(--brand, #447794);
 }
 .inventory-story-controls {
   display: flex;
@@ -214,12 +214,12 @@
   font-size: 10px;
 }
 .inventory-story-controls button[aria-pressed="true"] {
-  color: #5856d6;
+  color: var(--brand-secondary, #2d5b75);
 }
 .inventory-story-controls button[aria-pressed="true"] > span {
-  background: #5856d6;
+  background: var(--brand-secondary, #2d5b75);
   color: white;
-  border-color: #5856d6;
+  border-color: var(--brand-secondary, #2d5b75);
 }
 .reply-choreography {
   display: flex;
@@ -235,11 +235,11 @@
     transform 0.2s;
 }
 .reply-experience[data-phase="1"] .customer-mini {
-  background: #f7f6ff;
+  background: var(--brand-subtle, #f0f5f8);
   transform: translateX(4px);
 }
 .reply-experience[data-phase="2"] .conversation-source {
-  background: #efeeff;
+  background: var(--brand-soft, #e4edf3);
   transform: translateX(4px);
 }
 .reply-experience[data-phase="4"] .reply-workbench {
@@ -256,8 +256,8 @@
     color 0.18s;
 }
 .reply-choreography span[data-active="true"] {
-  background: #efeeff;
-  color: #4b49c6;
+  background: var(--brand-soft, #e4edf3);
+  color: var(--brand-secondary, #2d5b75);
 }
 .thread-flow button > span {
   position: relative;
@@ -265,7 +265,7 @@
 .flow-traveler {
   position: absolute !important;
   inset: -5px;
-  border: 2px solid #5856d6;
+  border: 2px solid var(--brand, #447794);
   border-radius: 50%;
   pointer-events: none;
 }
@@ -274,7 +274,7 @@
   border: 0;
   background: none;
   padding: 10px 0;
-  color: #5856d6;
+  color: var(--brand, #447794);
   font-size: 12px;
   cursor: pointer;
 }
@@ -286,7 +286,7 @@
 }
 .milestone-link:hover,
 .milestone-link:focus-visible {
-  background: #f7f6ff;
+  background: var(--brand-subtle, #f0f5f8);
   transform: translateX(3px);
 }
 .milestone-link {
@@ -313,8 +313,8 @@
   animation: panel-leave 0.15s ease-in;
 }
 .shop-switcher[aria-expanded="true"] > .shop-icon {
-  background: #efeeff;
-  color: #5856d6;
+  background: var(--brand-soft, #e4edf3);
+  color: var(--brand-secondary, #2d5b75);
 }
 .shop-switcher > svg {
   transition: transform 0.18s;

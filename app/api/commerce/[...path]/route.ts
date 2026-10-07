@@ -106,7 +106,7 @@ async function forward(
       "ORIGIN_REJECTED",
       "Open this form from the same local application.",
     );
-  const bodyLimit = path.startsWith("inventory/") ? 256000 : 20000;
+  const bodyLimit = path.startsWith("inventory/") ? 15 * 1024 * 1024 : 20000;
   if (Number(request.headers.get("content-length") ?? 0) > bodyLimit)
     return fail(413, "REQUEST_TOO_LARGE", "The submitted form is too large.");
   try {

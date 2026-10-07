@@ -56,18 +56,26 @@ export async function registerStorefrontRoutes(app: FastifyInstance) {
           variantId: { $in: variants.map((v) => v._id) },
         })
         .toArray();
-      const image = await c.images.findOne(
-        { shopId: shop._id, productId: p._id },
-        { sort: { sortOrder: 1 } },
-      );
-      const asset = image
-        ? await c.assets.findOne({ _id: image.assetId, shopId: shop._id })
-        : null;
-
+      const imgDocs = await c.images
+        .find({ shopId: shop._id, productId: p._id })
+        .sort({ sortOrder: 1 })
+        .toArray();
+      const assetImages: string[] = [];
+      for (const img of imgDocs) {
+        const a = await c.assets.findOne({ _id: img.assetId, shopId: shop._id });
+        if (a?.publicUrl) assetImages.push(a.publicUrl);
+      }
+      const rawImages: string[] =
+        Array.isArray(p.images) && p.images.length > 0
+          ? p.images
+          : assetImages.length > 0
+          ? assetImages
+          : p.imageUrl
+          ? [p.imageUrl]
+          : [];
+      const productImages = Array.from(new Set(rawImages.filter(Boolean)));
       const imageUrl =
-        p.imageUrl ||
-        p.images?.[0] ||
-        asset?.publicUrl ||
+        productImages[0] ||
         variants.find((v) => v.image)?.image ||
         null;
 
@@ -94,6 +102,7 @@ export async function registerStorefrontRoutes(app: FastifyInstance) {
         price: amount(p.price),
         stock,
         imageUrl: typeof imageUrl === "string" ? imageUrl : null,
+        images: productImages,
         status: p.status,
         variants: variants.map((v) => ({
           id: v._id,
@@ -191,18 +200,26 @@ export async function registerStorefrontRoutes(app: FastifyInstance) {
       })
       .toArray();
 
-    const image = await c.images.findOne(
-      { shopId: p.shopId, productId: p._id },
-      { sort: { sortOrder: 1 } },
-    );
-    const asset = image
-      ? await c.assets.findOne({ _id: image.assetId, shopId: p.shopId })
-      : null;
-
+    const imgDocs = await c.images
+      .find({ shopId: p.shopId, productId: p._id })
+      .sort({ sortOrder: 1 })
+      .toArray();
+    const assetImages: string[] = [];
+    for (const img of imgDocs) {
+      const a = await c.assets.findOne({ _id: img.assetId, shopId: p.shopId });
+      if (a?.publicUrl) assetImages.push(a.publicUrl);
+    }
+    const rawImages: string[] =
+      Array.isArray(p.images) && p.images.length > 0
+        ? p.images
+        : assetImages.length > 0
+        ? assetImages
+        : p.imageUrl
+        ? [p.imageUrl]
+        : [];
+    const productImages = Array.from(new Set(rawImages.filter(Boolean)));
     const imageUrl =
-      p.imageUrl ||
-      p.images?.[0] ||
-      asset?.publicUrl ||
+      productImages[0] ||
       variants.find((v) => v.image)?.image ||
       null;
 
@@ -241,6 +258,7 @@ export async function registerStorefrontRoutes(app: FastifyInstance) {
         price: amount(p.price),
         currency: p.currency,
         imageUrl: typeof imageUrl === "string" ? imageUrl : null,
+        images: productImages,
         variants: mappedVariants,
       },
     };

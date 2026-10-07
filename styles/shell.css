@@ -45,11 +45,12 @@
   width: 29px;
   height: 31px;
   border-radius: 8px;
-  color: var(--brand);
-  background: var(--brand-soft);
+  color: var(--brand-secondary, #2d5b75);
+  background: var(--brand-soft, #e4edf3);
+  border: 1px solid var(--ai-border, #bfd5e2);
 }
 .brand-period {
-  color: var(--brand);
+  color: var(--brand, #447794);
 }
 .sidebar-collapse {
   margin-left: auto;
@@ -70,6 +71,7 @@
 .workspace-label .tiny-dot {
   width: 4px;
   height: 4px;
+  background: var(--brand, #447794);
 }
 .nav-group {
   margin-bottom: 24px;
@@ -98,12 +100,12 @@
 }
 .nav-link:hover {
   background: var(--surface-secondary);
-  color: var(--text);
+  color: var(--brand-secondary, #2d5b75);
 }
 .nav-active,
 .nav-active:hover {
-  background: var(--nav-active-bg);
-  color: var(--nav-active-text);
+  background: var(--nav-active-bg, #f0f5f8);
+  color: var(--brand-secondary, #2d5b75);
   font-weight: 550;
 }
 .nav-indicator {
@@ -111,17 +113,18 @@
   left: -3px;
   top: 11px;
   bottom: 11px;
-  width: 2px;
+  width: 3px;
   border-radius: 2px;
-  background: var(--brand);
+  background: var(--brand, #447794);
 }
 .nav-ai {
   font-size: 11px;
   line-height: 1.4;
-  padding: 1px 4px;
+  padding: 1px 5px;
   border-radius: 4px;
-  color: var(--brand);
-  background: var(--brand-soft);
+  color: var(--brand-secondary, #2d5b75);
+  background: var(--brand-soft, #e4edf3);
+  border: 1px solid var(--ai-border, #bfd5e2);
   margin-left: auto;
 }
 .nav-end {
@@ -218,10 +221,11 @@
   width: 33px;
   display: grid;
   place-items: center;
-  border: 1px solid var(--border-default);
+  border: 1px solid var(--ai-border, #bfd5e2);
   border-radius: 9px;
   box-shadow: var(--shadow-subtle);
-  color: var(--text-secondary);
+  color: var(--brand-secondary, #2d5b75);
+  background: var(--brand-soft, #e4edf3);
 }
 .shop-subtitle {
   display: block;

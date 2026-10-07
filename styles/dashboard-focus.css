@@ -16,7 +16,8 @@
   flex-wrap: wrap;
 }
 .focus-masthead p {
-  color: var(--text-secondary);
+  color: var(--brand-secondary, #2d5b75);
+  font-weight: 550;
   margin: 0 0 8px;
   font-size: 13px;
 }
@@ -47,6 +48,12 @@
   background: var(--surface);
   min-width: 0;
 }
+.focus-attention {
+  border-left: 3px solid var(--brand, #447794);
+}
+.focus-activity {
+  border-left: 3px solid var(--brand, #447794);
+}
 .focus-section-top {
   display: flex;
   justify-content: space-between;
@@ -57,6 +64,11 @@
   display: flex;
   align-items: center;
   gap: 8px;
+  color: var(--brand-secondary, #2d5b75);
+  font-weight: 550;
+}
+.focus-section-top > span svg {
+  color: var(--brand, #447794);
 }
 .focus-status {
   color: var(--success-text);
@@ -91,15 +103,17 @@
   width: 24px;
   height: 24px;
   flex-shrink: 0;
-  border: 1px solid var(--border-strong);
+  border: 1px solid var(--ai-border, #bfd5e2);
+  color: var(--brand-secondary, #2d5b75);
   border-radius: 50%;
   display: grid;
   place-items: center;
   font-size: 12px;
+  background: var(--surface);
 }
 .focus-setup li[data-complete="true"] > span {
-  background: var(--success-soft);
-  color: var(--success-text);
+  background: var(--brand-soft, #e4edf3);
+  color: var(--brand-secondary, #2d5b75);
   border-color: transparent;
 }
 .focus-task-list {
@@ -114,6 +128,16 @@
   border-bottom: 1px solid var(--border-default);
   text-decoration: none;
   color: var(--text);
+  transition:
+    color var(--motion-micro),
+    background var(--motion-micro);
+}
+.focus-task-list a:hover {
+  color: var(--brand-secondary, #2d5b75);
+  background: var(--brand-subtle, #f0f5f8);
+}
+.focus-task-list a strong svg {
+  color: var(--brand, #447794);
 }
 .focus-task-list span,
 .focus-task-list strong {
@@ -124,9 +148,12 @@
 .focus-task-list strong {
   font-size: 20px;
   font-weight: 550;
+  color: var(--brand-secondary, #2d5b75);
 }
 .focus-ai {
-  background: var(--brand-very-soft, #f7f6ff);
+  background: var(--brand-very-soft, #f0f5f8);
+  border: 1px solid var(--ai-border, #bfd5e2);
+  border-left: 3px solid var(--brand-secondary, #2d5b75);
 }
 .focus-ai h2 {
   font-size: 20px;
@@ -135,17 +162,22 @@
 }
 .focus-ai-orbit {
   margin: 28px 0 24px;
-  color: var(--brand);
+  color: var(--brand-secondary, #2d5b75);
   display: flex;
   gap: 20px;
   align-items: center;
 }
+.focus-ai-orbit > svg {
+  color: var(--brand, #447794);
+}
 .focus-ai-orbit span {
   font-size: 12px;
-  border: 1px solid var(--border-default);
+  border: 1px solid var(--ai-border, #bfd5e2);
   padding: 10px 14px;
   border-radius: 999px;
   background: var(--surface);
+  color: var(--brand-secondary, #2d5b75);
+  font-weight: 500;
 }
 .focus-ai-count {
   display: flex;
@@ -157,6 +189,7 @@
   font-size: 32px;
   font-weight: 500;
   letter-spacing: -1px;
+  color: var(--brand-secondary, #2d5b75);
 }
 .focus-ai-count span {
   font-size: 12px;
@@ -232,7 +265,7 @@
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: var(--border-strong);
+  background: var(--brand, #447794);
   flex-shrink: 0;
 }
 .focus-storefront {
@@ -249,7 +282,7 @@
   margin-bottom: 20px;
 }
 .focus-storefront-header > svg {
-  color: var(--text);
+  color: var(--brand-secondary, #2d5b75);
 }
 .store-status-badge {
   display: inline-flex;
@@ -299,8 +332,8 @@
   margin: 8px 0 16px;
 }
 .store-url-box {
-  background: var(--surface);
-  border: 1px solid var(--border-default);
+  background: var(--brand-surface, #f4f8fa);
+  border: 1px solid var(--ai-border, #bfd5e2);
   border-radius: 8px;
   padding: 10px 14px;
   margin-bottom: 20px;
@@ -310,14 +343,15 @@
 }
 .store-url-label {
   font-size: 11px;
-  color: var(--text-tertiary);
+  color: var(--brand-secondary, #2d5b75);
+  font-weight: 550;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 .store-url-text {
   font-family: monospace;
   font-size: 12px;
-  color: var(--text);
+  color: var(--brand-secondary, #2d5b75);
   overflow-wrap: anywhere;
 }
 .focus-storefront-actions {
@@ -375,8 +409,8 @@
 }
 .focus-facts a:hover,
 .focus-task-list a:hover {
-  color: var(--brand);
-  background: var(--surface-hover);
+  color: var(--brand-secondary, #2d5b75);
+  background: var(--brand-subtle, #f0f5f8);
 }
 @media (max-width: 1100px) {
   .focus-primary-grid,
@@ -453,13 +487,71 @@
   }
 }
 /* Store identity is the first operational landmark, before attention and activity. */
-.focus-dashboard > .focus-storefront {display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);column-gap:40px;margin-bottom:24px;border-color:var(--border-strong);background:var(--surface);}
-.focus-dashboard > .focus-storefront .focus-storefront-header {grid-column:1;}
-.focus-dashboard > .focus-storefront .focus-shop-name {grid-column:1;font-size:26px;margin:16px 0 8px;letter-spacing:-.8px;}
-.focus-dashboard > .focus-storefront .focus-storefront-desc {grid-column:1;margin:0;max-width:440px;}
-.focus-dashboard > .focus-storefront .store-url-box {grid-column:2;grid-row:1 / span 2;align-self:center;margin:0;}
-.focus-dashboard > .focus-storefront .focus-storefront-actions {grid-column:2;grid-row:3 / span 2;margin:8px 0 0;align-self:center;}
-.focus-dashboard > .focus-storefront .focus-storefront-note {grid-column:1;margin-top:16px;}
-.view-store-disabled-wrapper:focus-visible {outline:2px solid var(--brand);outline-offset:4px;border-radius:8px;}
-.focus-secondary-grid {grid-template-columns:1fr;}
-@media(max-width:767px) {.focus-dashboard > .focus-storefront {display:flex;flex-direction:column;gap:12px;padding:20px;}.focus-dashboard > .focus-storefront .store-url-box {align-self:stretch;margin:4px 0;}.focus-dashboard > .focus-storefront .focus-storefront-actions {align-self:stretch;}.focus-dashboard > .focus-storefront .focus-shop-name {margin:0;}.focus-dashboard > .focus-storefront .focus-storefront-note {margin-top:0;}}
+.focus-dashboard > .focus-storefront {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+  column-gap: 40px;
+  margin-bottom: 24px;
+  border: 1px solid var(--border-default);
+  border-left: 3px solid var(--brand-secondary, #2d5b75);
+  background: var(--surface);
+}
+.focus-dashboard > .focus-storefront .focus-storefront-header {
+  grid-column: 1;
+}
+.focus-dashboard > .focus-storefront .focus-shop-name {
+  grid-column: 1;
+  font-size: 26px;
+  margin: 16px 0 8px;
+  letter-spacing: -0.8px;
+}
+.focus-dashboard > .focus-storefront .focus-storefront-desc {
+  grid-column: 1;
+  margin: 0;
+  max-width: 440px;
+}
+.focus-dashboard > .focus-storefront .store-url-box {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  align-self: center;
+  margin: 0;
+}
+.focus-dashboard > .focus-storefront .focus-storefront-actions {
+  grid-column: 2;
+  grid-row: 3 / span 2;
+  margin: 8px 0 0;
+  align-self: center;
+}
+.focus-dashboard > .focus-storefront .focus-storefront-note {
+  grid-column: 1;
+  margin-top: 16px;
+}
+.view-store-disabled-wrapper:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 4px;
+  border-radius: 8px;
+}
+.focus-secondary-grid {
+  grid-template-columns: 1fr;
+}
+@media (max-width: 767px) {
+  .focus-dashboard > .focus-storefront {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 20px;
+  }
+  .focus-dashboard > .focus-storefront .store-url-box {
+    align-self: stretch;
+    margin: 4px 0;
+  }
+  .focus-dashboard > .focus-storefront .focus-storefront-actions {
+    align-self: stretch;
+  }
+  .focus-dashboard > .focus-storefront .focus-shop-name {
+    margin: 0;
+  }
+  .focus-dashboard > .focus-storefront .focus-storefront-note {
+    margin-top: 0;
+  }
+}

@@ -31,6 +31,7 @@ export async function buildApp() {
         "passwordHash",
       ],
     },
+    bodyLimit: 15 * 1024 * 1024,
   });
   installAuth(app);
   app.setErrorHandler((error, _request, reply) => {

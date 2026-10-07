@@ -154,6 +154,7 @@ export type PublicProduct = {
   price: number;
   stock: number;
   imageUrl: string | null;
+  images?: string[];
   status?: string;
   variants: (
     | string
@@ -191,6 +192,7 @@ export type ProductDetail = {
   price: number;
   currency: string;
   imageUrl: string | null;
+  images?: string[];
   variants: {
     id: string;
     sku: string | null;
