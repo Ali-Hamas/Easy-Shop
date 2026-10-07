@@ -1,53 +1,5 @@
-# Backend Test Environment
+# Backend test environment
 
-Status: ready for local backend tests.
+npm run check runs API documentation coverage, TypeScript, database failure tests and real MongoDB API integration tests on an isolated local replica set. No PostgreSQL or JSON persistence remains active. npm run test:atlas performs the same integration checks against Atlas using a unique test database and guaranteed cleanup attempt; an unavailable database fails the suite instead of silently skipping it.
 
-## What Runs
-
-- TypeScript build.
-- API docs route coverage check.
-- Onboarding integration flow with Fastify `inject`.
-- No production database required yet; onboarding uses ignored local JSON test storage.
-
-## Commands
-
-```powershell
-cd backend
-npm run check
-```
-
-Single test command:
-
-```powershell
-cd backend
-npm test
-```
-
-## Test Env File
-
-Copy when needed:
-
-```powershell
-cd backend
-copy .env.test.example .env.test
-```
-
-Current integration test does not require `.env.test`; it boots the app in process and resets onboarding test data.
-
-## Guarantees
-
-- Active templates are internal `test_only` templates only.
-- No online template source code is copied.
-- No production credentials are used.
-- Test data is ignored by git through `data/`.
-- API route docs are required by `npm run check:api-docs`.
-
-## Not Ready Yet
-
-- PostgreSQL migrations.
-- Redis-backed queues.
-- VPS deployment smoke test.
-- Browser E2E.
-
-Add those after database module exists.
-
+Coverage: health/readiness/system/templates, onboarding creation, reads, shop update, normalized subdomains, unique-index races, transaction rollback, product/default variant/opening stock, Meta skip, AI mode, template selection, launch gates, template-only launch, launched-shop edit rejection, public shop and product reads, invalid IDs, missing shops/products, reconnect durability and sanitized database failure responses.

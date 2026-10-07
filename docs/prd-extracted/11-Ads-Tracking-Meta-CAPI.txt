@@ -1,0 +1,85 @@
+Human build spec - no code - F-commerce platform
+Page 1
+PDF 11
+ Ads Tracking and Meta CAPI
+Lightweight ads dashboard focused on correct tracking, product catalog, and delivered-order
+revenue.
+Why this exists
+Sellers want ads. Full Ads Manager clone is too much; tracking and simple insights bring value faster.
+Primary user
+Owner, marketer.
+Business value
+Improves ad decisions and creates premium plan reason.
+Build priority
+P1/P2 - after orders are reliable.
+1. Page Goal
+- Connect Meta pixel/CAPI and product catalog.
+- Send correct events from website and delivered orders.
+- Show spend, orders, delivered revenue, ROAS, and creative winners.
+- Avoid fake purchase tracking from unconfirmed COD orders.
+2. How It Should Look
+Ads overview: spend, orders, delivered revenue, ROAS, CPA, top products.
+Tracking setup: pixel, CAPI, catalog sync, event test.
+Campaign view: imported Meta campaign stats plus platform order data.
+Attribution note: placed order vs delivered order clearly separated.
+3. Main Sections
+Tracking setup
+Pixel/CAPI, event test, catalog feed.
+Ad stats
+Spend, clicks, messages, orders, delivered revenue.
+Catalog sync
+Products to Meta catalog with stock/price.
+Delivered ROAS
+Only delivered COD counted as real purchase value.
+Recommendations
+Simple AI suggestions, not auto-budget changes.
+4. User Actions
+Action
+Result
+Edge case
+Connect Meta ads
+Links ad account/page/pixel.
+If permission missing, show exact missing
+permission.
+Test event
+Sends test view/add-to-cart/purchase.
+Show result and troubleshooting.
+
+Human build spec - no code - F-commerce platform
+Page 2
+Action
+Result
+Edge case
+Sync catalog
+Updates product feed.
+Skip unpublished/out-of-stock if configured.
+View campaign
+Shows Meta stats matched with orders.
+If attribution unknown, label unknown.
+Create recommendation
+AI suggests budget/creative action.
+Never auto-change budget in V1.
+5. Data Fields
+- Meta: page, ad account, pixel ID, catalog ID, access status.
+- Events: view content, add to cart, initiate checkout, lead, purchase/delivered purchase.
+- Campaign: spend, impressions, clicks, messages, orders, revenue.
+- Attribution: click ID, channel, order ID, confidence.
+6. AI / Automation Behavior
+- AI explains ad performance in simple seller language.
+- AI suggests pause/scale/test based on delivered revenue, not vanity metrics only.
+- AI can create ad copy and audience ideas but owner launches manually.
+- AI flags tracking errors and missing catalog fields.
+7. Empty, Error, and Safety States
+- Empty state must show one clear next button, not a blank table.
+- Every destructive action needs confirm: delete, cancel order, disconnect account, refund mark.
+- If third-party API fails, keep local draft and show retry.
+- AI must never invent price, stock, delivery charge, delivery date, or policy.
+8. Acceptance Checklist
+- Never count every COD order as final purchase unless business chooses that metric.
+- Show tracking health and last event time.
+- If Meta API fails, keep local analytics visible.
+- Ads advice must show data period used.
+9. Do Not Build Yet
+- No full campaign creation/editing in V1.
+- No automatic budget changes.
+- No guaranteed ROAS claims.

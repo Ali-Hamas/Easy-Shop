@@ -1,0 +1,83 @@
+Human build spec - no code - F-commerce platform
+Page 1
+PDF 14
+ Analytics Dashboard
+Simple business intelligence for sales, operations, customers, delivery, and AI performance.
+Why this exists
+Owners need to know what happened today and what to fix tomorrow.
+Primary user
+Owner and manager.
+Business value
+Helps sellers see value and justify monthly payment.
+Build priority
+P1 - after reliable event data.
+1. Page Goal
+- Show sales, orders, conversion, delivery, RTO, product, channel, and AI metrics.
+- Separate placed orders, confirmed orders, shipped orders, delivered revenue.
+- Surface problems: low stock, high return product, courier delay, poor reply time.
+- Make reports exportable.
+2. How It Should Look
+Dashboard top: date range, gross sales, delivered revenue, orders, RTO, AI saved time.
+Charts: sales by day, orders by source, status funnel, top products.
+Problem cards: low stock, high RTO, failed delivery, unanswered chats.
+Report tabs: sales, products, channels, delivery, AI, staff.
+3. Main Sections
+Sales metrics
+Placed, confirmed, shipped, delivered, cancelled, returned.
+Product metrics
+Best sellers, low stock, return-heavy products.
+Channel metrics
+Facebook, Instagram, website, manual.
+Delivery metrics
+Courier success, average delivery time, RTO.
+AI metrics
+Auto replies, handoffs, confirmed orders, confidence issues.
+4. User Actions
+Action
+Result
+Edge case
+Change date
+Updates all charts and tables.
+Default to today and last 7 days.
+Export report
+Downloads filtered report.
+Permission required.
+Open insight
+Shows affected orders/products.
+Keep filters applied.
+
+Human build spec - no code - F-commerce platform
+Page 2
+Action
+Result
+Edge case
+Compare periods
+Shows this week vs previous week.
+Warn if data too small.
+Ask AI
+Explains trend in plain language.
+Show numbers used.
+5. Data Fields
+- Metrics: order counts, revenue types, delivery statuses, channel/source.
+- Time: created, confirmed, shipped, delivered, returned timestamps.
+- AI: message count, automation rate, handoff rate, correction rate.
+- Staff: assigned chats, confirmed orders, response time.
+6. AI / Automation Behavior
+- AI explains why sales changed using available data.
+- AI recommends low-risk actions: restock, follow up, update ad copy, pause bad product.
+- AI can generate weekly report summary.
+- AI avoids fake certainty when data is incomplete.
+7. Empty, Error, and Safety States
+- Empty state must show one clear next button, not a blank table.
+- Every destructive action needs confirm: delete, cancel order, disconnect account, refund mark.
+- If third-party API fails, keep local draft and show retry.
+- AI must never invent price, stock, delivery charge, delivery date, or policy.
+8. Acceptance Checklist
+- Metrics define placed vs delivered clearly.
+- Charts work with zero/low data and explain what to do next.
+- Exports match visible filters.
+- No vanity-only dashboard; every chart links to action.
+9. Do Not Build Yet
+- No complex BI builder in V1.
+- No predictive forecasting until enough historical data.
+- No fake AI insights without data backing.

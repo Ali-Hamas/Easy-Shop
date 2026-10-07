@@ -1,0 +1,84 @@
+Human build spec - no code - F-commerce platform
+Page 1
+PDF 05
+ Comment Automation and Lead
+ Capture
+Turns Facebook/Instagram comments like price, pp, details into inbox conversations and orders.
+Why this exists
+Comment sections create public interest. Fast private replies turn curiosity into sales.
+Primary user
+Owner, sales staff, buyer.
+Business value
+Increases lead capture from organic posts and ads.
+Build priority
+P1 - high attraction feature.
+1. Page Goal
+- Detect purchase-intent comments and reply/DM automatically.
+- Capture leads from post comments, reels, and ad comments.
+- Avoid spammy behavior that gets page restricted.
+- Let staff review hot leads and negative comments.
+2. How It Should Look
+Post list: connected posts/reels with comment volume, leads, reply rate.
+Rule builder: keyword, product match, public reply, private DM, delay.
+Comment moderation queue: negative, spam, urgent, unanswered.
+Lead board: interested, DM sent, replied, ordered.
+3. Main Sections
+Keyword rules
+price, pp, inbox, available, size, location, custom Banglish/Roman Urdu words.
+Product matching
+Links post/reel to product or collection.
+Public replies
+Short safe reply under comment.
+Private DM
+Sends product details and order link.
+Moderation
+Hide spam, flag complaints, assign urgent.
+4. User Actions
+Action
+Result
+Edge case
+Create rule
+Defines trigger and response.
+Warn if rule is too broad.
+
+Human build spec - no code - F-commerce platform
+Page 2
+Action
+Result
+Edge case
+Link product
+Connects post to catalog item.
+If no product, DM sends shop link.
+Send DM
+Starts private conversation.
+Respect platform limits and consent rules.
+Hide comment
+Hides spam/abuse from page.
+Keep audit trail for owner.
+Convert lead
+Creates customer lead from commenter.
+Merge if same buyer already exists.
+5. Data Fields
+- Post: platform, post ID, media, caption, linked product, status.
+- Rule: keywords, language, delay, public reply, DM template, limit per hour.
+- Lead: commenter ID, name, intent, product interest, DM status, order status.
+- Moderation: sentiment, hidden flag, staff action, reason.
+6. AI / Automation Behavior
+- AI detects intent beyond exact keyword, but rules control sending.
+- AI writes short natural public replies and product-specific DMs.
+- AI flags angry comments for human, not auto-reply.
+- AI avoids repeating same reply too many times under one post.
+7. Empty, Error, and Safety States
+- Empty state must show one clear next button, not a blank table.
+- Every destructive action needs confirm: delete, cancel order, disconnect account, refund mark.
+- If third-party API fails, keep local draft and show retry.
+- AI must never invent price, stock, delivery charge, delivery date, or policy.
+8. Acceptance Checklist
+- Must respect Meta messaging policies.
+- Rate-limit replies to avoid page restriction.
+- Seller can preview exactly what buyer receives.
+- Negative comments never get cheerful sales DM automatically.
+9. Do Not Build Yet
+- No mass scraping competitors' comments.
+- No fake engagement tools.
+- No auto-deleting all negative comments.

@@ -1,0 +1,86 @@
+Human build spec - no code - F-commerce platform
+Page 1
+PDF 00
+ Platform Overview and Roadmap
+Master plan for an AI-first platform for Facebook, Instagram, and online sellers.
+Why this exists
+Keeps founder, designer, and developer aligned. The platform is not a generic Shopify clone. It is an AI sales operator for
+social-commerce shops.
+Primary user
+Founder, product manager, designer, development team.
+Business value
+Defines what attracts signups and what keeps shops paying monthly.
+Build priority
+Read first. All other PDFs follow this direction.
+1. Page Goal
+- Main promise: website + AI inbox + inventory + order + delivery + ads tools in one dashboard.
+- Serve sellers doing 0-200 COD orders per day from Facebook and Instagram.
+- Make AI inbox and order confirmation the hero, because missed messages and manual orders cost money.
+- Keep V1 focused: fast setup, reliable AI replies, courier booking, COD tracking, customer retention.
+2. How It Should Look
+Left sidebar: Dashboard, Inbox, Orders, Products, Website, Delivery, Payments, Marketing, Ads, AI Studio, Settings.
+Top bar: shop switcher, connection status, alerts, help, owner profile.
+Home dashboard: today sales, pending chats, pending orders, courier issues, low stock.
+Global AI command bar: 'Ask AI to do work' visible on every page but never auto-runs risky actions.
+3. Main Sections
+Hero value
+AI replies to customer messages, recommends products, confirms order, and sends order to courier.
+Website
+Each shop gets shopname.ourdomain.com with catalog, checkout, tracking, and trust signals.
+Operations
+Inventory, orders, courier, payments, staff roles, and analytics.
+Growth
+Ad maker, customer CRM, coupons, broadcasts, delivered-order tracking.
+4. User Actions
+Action
+Result
+Edge case
+Create shop
+Starts onboarding wizard and reserves subdomain.
+If name taken, suggest 3 alternatives.
+Connect
+Facebook/Instagram
+Starts Meta permission flow for pages and messaging.
+If rejected, continue with website-only
+mode.
+
+Human build spec - no code - F-commerce platform
+Page 2
+Action
+Result
+Edge case
+Add first product
+Creates catalog item AI can use in replies.
+If no image, allow draft but warn before
+publish.
+Turn on AI
+Enables supervised AI replies for selected channels.
+Default mode: suggest-only until owner
+approves.
+Book courier
+Sends confirmed order to selected partner.
+If API down, create manual booking sheet.
+5. Data Fields
+- Shop: name, subdomain, owner, country, currency, language, timezone.
+- Connections: Facebook page, Instagram account, WhatsApp number, courier accounts.
+- Commercials: plan, monthly fee, order limit, AI message limit, staff seats.
+- Compliance: privacy policy, return policy, COD rules, message consent logs.
+6. AI / Automation Behavior
+- AI reads only approved product data, policies, order status, and customer chat history.
+- AI actions have levels: suggest, draft, ask approval, execute.
+- High-risk actions need human approval: cancel order, mark paid, refund, bulk message, courier booking.
+- AI must support Bangla, Banglish, English, Roman Urdu, and simple Urdu where possible.
+7. Empty, Error, and Safety States
+- Empty state must show one clear next button, not a blank table.
+- Every destructive action needs confirm: delete, cancel order, disconnect account, refund mark.
+- If third-party API fails, keep local draft and show retry.
+- AI must never invent price, stock, delivery charge, delivery date, or policy.
+8. Acceptance Checklist
+- Can a seller launch basic shop in under 5 minutes?
+- Can a customer go from message to confirmed order without staff typing details twice?
+- Can owner see money, orders, chats, courier issues on one screen?
+- Can staff undo or review AI work?
+9. Do Not Build Yet
+- Do not build full Shopify app store in V1.
+- Do not build full Meta Ads Manager clone in V1.
+- Do not build custom courier fleet.

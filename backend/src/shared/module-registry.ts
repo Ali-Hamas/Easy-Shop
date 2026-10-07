@@ -18,7 +18,7 @@ export const backendModules: BackendModule[] = [
     owns: ["liveness checks"],
     apiBase: "/api/v1/health",
     apiDoc: "health.md",
-    phase: "foundation"
+    phase: "foundation",
   },
   {
     key: "system",
@@ -27,24 +27,34 @@ export const backendModules: BackendModule[] = [
     owns: ["module map", "backend capability discovery"],
     apiBase: "/api/v1/system",
     apiDoc: "system.md",
-    phase: "foundation"
+    phase: "foundation",
   },
   {
     key: "onboarding",
     name: "Onboarding and store setup",
     status: "active",
-    owns: ["owner start", "shop draft", "subdomain reservation", "template selection", "launch checklist"],
+    owns: [
+      "owner start",
+      "shop draft",
+      "subdomain reservation",
+      "template selection",
+      "launch checklist",
+    ],
     apiBase: "/api/v1/onboarding",
     apiDoc: "onboarding.md",
-    phase: "p0"
+    phase: "p0",
   },
   {
     key: "storefront",
     name: "Public storefront",
     status: "active",
-    owns: ["published shop lookup", "public product reads", "template metadata"],
+    owns: [
+      "published shop lookup",
+      "public product reads",
+      "template metadata",
+    ],
     apiBase: "/api/v1/storefront",
     apiDoc: "storefront.md",
-    phase: "p0"
-  }
+    phase: "p0",
+  },
 ];

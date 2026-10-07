@@ -9,8 +9,9 @@ export const templateCatalog: StoreTemplate[] = [
     license: "Internal test-only, not for production",
     stack: ["Backend catalog metadata only"],
     bestFor: ["fashion", "clothing", "beauty"],
-    notes: "Basic test template for onboarding flow only. No external source code. Replace before production.",
-    status: "test_only"
+    notes:
+      "Basic test template for onboarding flow only. No external source code. Replace before production.",
+    status: "test_only",
   },
   {
     id: "test-gadget-basic",
@@ -20,7 +21,8 @@ export const templateCatalog: StoreTemplate[] = [
     license: "Internal test-only, not for production",
     stack: ["Backend catalog metadata only"],
     bestFor: ["gadgets", "electronics", "accessories"],
-    notes: "Basic test template for onboarding flow only. No external source code. Replace before production.",
-    status: "test_only"
-  }
+    notes:
+      "Basic test template for onboarding flow only. No external source code. Replace before production.",
+    status: "test_only",
+  },
 ];

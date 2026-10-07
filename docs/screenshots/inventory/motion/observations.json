@@ -1,0 +1,172 @@
+[
+  {
+    "scene": "hero",
+    "step": 0,
+    "scrollY": 180,
+    "transform": "matrix(0.950357, 0, 0, 0.950357, 0, 27.9582)",
+    "active": []
+  },
+  {
+    "scene": "hero",
+    "step": 1,
+    "scrollY": 360,
+    "transform": "matrix(0.969188, 0, 0, 0.969188, 0, 13.3366)",
+    "active": []
+  },
+  {
+    "scene": "hero",
+    "step": 2,
+    "scrollY": 540,
+    "transform": "matrix(0.988018, 0, 0, 0.988018, 0, -1.28492)",
+    "active": []
+  },
+  {
+    "scene": "hero",
+    "step": 3,
+    "scrollY": 720,
+    "transform": "matrix(1.00685, 0, 0, 1.00685, 0, -15.9065)",
+    "active": []
+  },
+  {
+    "scene": "hero",
+    "step": 4,
+    "scrollY": 900,
+    "transform": "matrix(1.02485, 0, 0, 1.02485, 0, -30.3714)",
+    "active": []
+  },
+  {
+    "scene": "storefront",
+    "step": 0,
+    "scrollY": 5956.7998046875,
+    "transform": null,
+    "active": [
+      "Preview your storefront"
+    ]
+  },
+  {
+    "scene": "storefront",
+    "step": 1,
+    "scrollY": 6316.7998046875,
+    "transform": null,
+    "active": [
+      "See the buyer view"
+    ]
+  },
+  {
+    "scene": "storefront",
+    "step": 2,
+    "scrollY": 6496.7998046875,
+    "transform": null,
+    "active": [
+      "See the buyer view"
+    ]
+  },
+  {
+    "scene": "storefront",
+    "step": 3,
+    "scrollY": 6676.7998046875,
+    "transform": null,
+    "active": [
+      "See the buyer view"
+    ]
+  },
+  {
+    "scene": "storefront",
+    "step": 4,
+    "scrollY": 6856.7998046875,
+    "transform": null,
+    "active": [
+      "See the buyer view"
+    ]
+  },
+  {
+    "scene": "inventory",
+    "step": 0,
+    "scrollY": 7062.39990234375,
+    "transform": null,
+    "active": [
+      "3Low stock"
+    ]
+  },
+  {
+    "scene": "inventory",
+    "step": 1,
+    "scrollY": 7242.39990234375,
+    "transform": null,
+    "active": [
+      "4Focus"
+    ]
+  },
+  {
+    "scene": "inventory",
+    "step": 2,
+    "scrollY": 7422.39990234375,
+    "transform": null,
+    "active": [
+      "5Review"
+    ]
+  },
+  {
+    "scene": "inventory",
+    "step": 3,
+    "scrollY": 7602.39990234375,
+    "transform": null,
+    "active": [
+      "5Review"
+    ]
+  },
+  {
+    "scene": "inventory",
+    "step": 4,
+    "scrollY": 7782.39990234375,
+    "transform": null,
+    "active": [
+      "5Review"
+    ]
+  },
+  {
+    "scene": "workflow",
+    "step": 0,
+    "scrollY": 9738.400390625,
+    "transform": null,
+    "active": [
+      "Storefront01"
+    ]
+  },
+  {
+    "scene": "workflow",
+    "step": 1,
+    "scrollY": 10068,
+    "transform": null,
+    "active": [
+      "Customer02"
+    ]
+  },
+  {
+    "scene": "workflow",
+    "step": 2,
+    "scrollY": 10398.400390625,
+    "transform": null,
+    "active": [
+      "Product / Inventory04"
+    ]
+  },
+  {
+    "scene": "workflow",
+    "step": 3,
+    "scrollY": 10728,
+    "transform": null,
+    "active": [
+      "Customer Record05"
+    ]
+  },
+  {
+    "scene": "workflow",
+    "step": 4,
+    "scrollY": 11058.400390625,
+    "transform": null,
+    "active": [
+      "Dashboard06"
+    ]
+  }
+]
