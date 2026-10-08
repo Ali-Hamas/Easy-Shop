@@ -14,7 +14,6 @@ import { rememberedShop, subscribeShop } from "@/adapters/commerce";
 import { inboxService } from "@/services/inbox";
 import { ConversationList } from "./conversation-list";
 import { ConversationThread } from "./conversation-thread";
-import { AiReplyPanel } from "./ai-reply-panel";
 import type {
   ConversationSummary,
   ConversationMessage,
@@ -461,28 +460,6 @@ export function InboxWorkspace() {
           isGenerating={isGenerating}
         />
 
-        {/* Right Column: AI Grounded Assistance & Customer Context */}
-        <AiReplyPanel
-          draft={
-            selectedConversation?.id === selectedId &&
-            selectedConversation.shopId === shopId
-              ? latestDraft
-              : null
-          }
-          customer={
-            selectedConversation?.id === selectedId &&
-            selectedConversation.shopId === shopId
-              ? customer
-              : null
-          }
-          onGenerate={handleGenerateDraft}
-          onEdit={handleEditDraft}
-          onApprove={handleApproveDraft}
-          onReject={handleRejectDraft}
-          onSendApproved={handleSendApprovedDraft}
-          isGenerating={isGenerating}
-          isSubmitting={isSubmittingDraft}
-        />
       </div>
     </div>
   );
