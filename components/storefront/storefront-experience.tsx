@@ -27,7 +27,7 @@ import {
 import { StorefrontChat } from "./storefront-chat";
 import { storefrontService } from "@/services/commerce";
 import { ApiError } from "@/lib/api/client";
-import { formatMoney, productPath } from "@/adapters/commerce";
+import { formatMoney, productPath, storefrontUrl } from "@/adapters/commerce";
 import type { PublicStore, ProductDetail } from "@/types/commerce";
 import "@/styles/storefront.css";
 
@@ -293,7 +293,7 @@ export default function StorefrontExperience({
       <header className="buyer-header">
         <div className="buyer-header-left">
           <Link
-            href={`/store/${encodeURIComponent(subdomain)}`}
+            href={storefrontUrl(subdomain)}
             className="buyer-brand-group"
           >
             <span className="buyer-brand-monogram">{shopInitials}</span>
@@ -335,7 +335,7 @@ export default function StorefrontExperience({
               )}
             </div>
           ) : (
-            <Link href={`/store/${encodeURIComponent(subdomain)}`} className="buyer-link">
+            <Link href={storefrontUrl(subdomain)} className="buyer-link">
               Browse products
             </Link>
           )}
@@ -410,7 +410,7 @@ export default function StorefrontExperience({
             )}
             {slug && (
               <Link
-                href={`/store/${encodeURIComponent(subdomain)}`}
+                href={storefrontUrl(subdomain)}
                 className="buyer-link"
               >
                 <ArrowLeft size={15} /> Back to shop
@@ -423,7 +423,7 @@ export default function StorefrontExperience({
              =================================================== */
           <div className="buyer-detail-container">
             <nav className="buyer-breadcrumb" aria-label="Breadcrumb">
-              <Link href={`/store/${subdomain}`}>
+              <Link href={storefrontUrl(subdomain)}>
                 <ArrowLeft size={14} /> All products
               </Link>
               <span aria-hidden>·</span>

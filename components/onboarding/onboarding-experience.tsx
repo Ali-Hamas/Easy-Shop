@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import { onboardingService as service } from "@/services/commerce";
 import { ApiError } from "@/lib/api/client";
-import { rememberShop, rememberedShop, formatMoney } from "@/adapters/commerce";
+import { rememberShop, rememberedShop, formatMoney, storefrontUrl } from "@/adapters/commerce";
 import type {
   OnboardingState,
   StoreTemplate,
@@ -657,7 +657,7 @@ export default function OnboardingExperience({
                   <Store size={36} />
                   <h2>{state.shop.displayName}</h2>
                   <Link
-                    href={`/store/${state.shop.subdomain}`}
+                    href={storefrontUrl(state.shop.subdomain)}
                     className="launch-button"
                   >
                     Open storefront <ArrowRight size={16} />
@@ -1082,7 +1082,7 @@ export default function OnboardingExperience({
                           </div>
                           <div>
                             <dt>Address</dt>
-                            <dd>/store/{state.shop.subdomain}</dd>
+                            <dd>{storefrontUrl(state.shop.subdomain)}</dd>
                           </div>
                           <div>
                             <dt>Catalog</dt>

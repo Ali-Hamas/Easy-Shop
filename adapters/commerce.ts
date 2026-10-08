@@ -1,4 +1,13 @@
 import type { PublicProduct } from "@/types/commerce";
+const storefrontRoot =
+  process.env.NEXT_PUBLIC_STOREFRONT_ROOT_DOMAIN ?? "easyshop.britsyncai.com";
+
+export function storefrontUrl(subdomain: string, path = "") {
+  const encoded = encodeURIComponent(subdomain);
+  if (typeof window === "undefined") return `/store/${encoded}${path}`;
+  return `${window.location.protocol}//${encoded}.${storefrontRoot}${path}`;
+}
+
 /** Prefer canonical slugs; normalization remains a compatibility fallback for older servers. */
 export function productPath(
   subdomain: string,
@@ -20,7 +29,7 @@ export function productPath(
   ) {
     return productUrl;
   }
-  return `/store/${encodeURIComponent(subdomain)}${productUrl}`;
+  return storefrontUrl(subdomain, productUrl);
 }
 export function formatMoney(value: number, currency: string) {
   try {

@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import { apiRequest } from "@/lib/api/client";
 import { onboardingService } from "@/services/commerce";
-import { rememberedShop, subscribeShop } from "@/adapters/commerce";
+import { rememberedShop, storefrontUrl, subscribeShop } from "@/adapters/commerce";
 import { useSession } from "@/components/auth/session-provider";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -66,7 +66,7 @@ export default function DashboardOverview() {
 
   async function copyStoreLink() {
     if (!data?.state.shop.subdomain) return;
-    const url = `${window.location.origin}/store/${data.state.shop.subdomain}`;
+    const url = storefrontUrl(data.state.shop.subdomain);
     try {
       setCopyError(false);
       await navigator.clipboard.writeText(url);
@@ -137,7 +137,7 @@ export default function DashboardOverview() {
         <div className="focus-masthead-actions">
           {launched && state?.shop.subdomain && (
             <Link
-              href={`/store/${state.shop.subdomain}`}
+              href={storefrontUrl(state.shop.subdomain)}
               className="button button-secondary quick-store-link"
             >
               <Store size={15} /> View Store <ArrowUpRight size={14} />
@@ -206,7 +206,7 @@ export default function DashboardOverview() {
                 <span className="store-url-label">Storefront address</span>
                 <code className="store-url-text">
                   {state?.shop.subdomain
-                    ? `/store/${state.shop.subdomain}`
+                    ? storefrontUrl(state.shop.subdomain)
                     : "No store address yet"}
                 </code>
               </div>
@@ -216,7 +216,7 @@ export default function DashboardOverview() {
                   <>
                     <Link
                       className="button button-primary view-store-button focus-storefront-btn"
-                      href={`/store/${state.shop.subdomain}`}
+                      href={storefrontUrl(state.shop.subdomain)}
                     >
                       View Store
                       <ArrowUpRight size={15} />
@@ -263,7 +263,7 @@ export default function DashboardOverview() {
                     {state?.shop?.subdomain && (
                       <Link
                         className="button button-secondary view-store-preview-button store-preview-action-btn"
-                        href={`/store/${state.shop.subdomain}?preview=true`}
+                        href={storefrontUrl(state.shop.subdomain, "?preview=true")}
                       >
                         Preview Store
                         <ArrowUpRight size={14} />
