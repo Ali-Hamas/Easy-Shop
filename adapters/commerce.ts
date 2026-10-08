@@ -12,9 +12,15 @@ export function productPath(
       .replace(/[^a-z0-9-]+/g, "-")
       .replace(/^-+|-+$/g, "")
       .replace(/-{2,}/g, "-");
-  return slug
-    ? `/store/${encodeURIComponent(subdomain)}/products/${encodeURIComponent(slug)}?productId=${encodeURIComponent(product.id)}`
-    : null;
+  if (!slug) return null;
+  const productUrl = `/products/${encodeURIComponent(slug)}?productId=${encodeURIComponent(product.id)}`;
+  if (
+    typeof window !== "undefined" &&
+    window.location.hostname.toLowerCase().startsWith(`${subdomain}.`)
+  ) {
+    return productUrl;
+  }
+  return `/store/${encodeURIComponent(subdomain)}${productUrl}`;
 }
 export function formatMoney(value: number, currency: string) {
   try {
