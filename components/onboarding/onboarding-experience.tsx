@@ -12,6 +12,8 @@ import {
   Package,
   RefreshCw,
   AlertCircle,
+  Upload,
+  Trash2,
 } from "lucide-react";
 import { onboardingService as service } from "@/services/commerce";
 import { ApiError } from "@/lib/api/client";
@@ -61,9 +63,12 @@ const initial = {
   productName: "",
   price: "",
   stock: "",
+  productImageUrl: "",
   aiMode: "suggest",
   templateId: "",
 };
+
+const MAX_PRODUCT_IMAGE_SIZE = 10 * 1024 * 1024;
 
 export default function OnboardingExperience({
   enabled,
@@ -268,6 +273,99 @@ export default function OnboardingExperience({
     }
   }
 
+  async function uploadCompressedImage(image: string) {
+    const response = await fetch("/api/uploads/product-images", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ image }),
+    });
+    const data = (await response.json().catch(() => ({}))) as {
+      url?: string;
+      message?: string;
+    };
+    if (!response.ok || !data.url) {
+      throw new ApiError(
+        response.status,
+        "IMAGE_UPLOAD_FAILED",
+        data.message || "Image upload failed.",
+      );
+    }
+    return data.url;
+  }
+
+  function compressImage(file: File) {
+    return new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const dataUrl = e.target?.result as string;
+        const img = new window.Image();
+        img.onload = () => {
+          const maxDim = 1200;
+          let width = img.width;
+          let height = img.height;
+          if (width > maxDim || height > maxDim) {
+            if (width > height) {
+              height = Math.round((height * maxDim) / width);
+              width = maxDim;
+            } else {
+              width = Math.round((width * maxDim) / height);
+              height = maxDim;
+            }
+          }
+          const canvas = document.createElement("canvas");
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext("2d");
+          if (!ctx) {
+            resolve(dataUrl);
+            return;
+          }
+          ctx.drawImage(img, 0, 0, width, height);
+          resolve(canvas.toDataURL("image/webp", 0.72));
+        };
+        img.onerror = () => reject(new Error("Could not read this image."));
+        img.src = dataUrl;
+      };
+      reader.onerror = () => reject(new Error("Could not read this image."));
+      reader.readAsDataURL(file);
+    });
+  }
+
+  async function handleProductImage(file: File) {
+    if (!file.type.startsWith("image/")) {
+      setError(
+        new ApiError(
+          400,
+          "INVALID_IMAGE",
+          "Please select a valid image file (PNG, JPG, WEBP).",
+        ),
+      );
+      return;
+    }
+    if (file.size > MAX_PRODUCT_IMAGE_SIZE) {
+      setError(
+        new ApiError(
+          413,
+          "IMAGE_TOO_LARGE",
+          "Each product image must be 10MB or smaller.",
+        ),
+      );
+      return;
+    }
+    setPending(true);
+    setError(null);
+    try {
+      change(
+        "productImageUrl",
+        await uploadCompressedImage(await compressImage(file)),
+      );
+    } catch (e) {
+      setError(e as ApiError);
+    } finally {
+      setPending(false);
+    }
+  }
+
   // Country selection with confirmation if dependent values were modified
   function handleCountrySelect(countryCodeOrName: string) {
     const target = findCountry(countryCodeOrName);
@@ -404,6 +502,9 @@ export default function OnboardingExperience({
           name: values.productName.trim(),
           price: Number(values.price),
           stock: Number(values.stock),
+          ...(values.productImageUrl
+            ? { imageUrl: values.productImageUrl }
+            : {}),
         });
       else if (step === 3) next = await service.skipMeta(state.shop.id);
       else if (step === 4)
@@ -426,7 +527,13 @@ export default function OnboardingExperience({
           : "Saved to your shop.",
       );
       if (step === 2)
-        setValues((v) => ({ ...v, productName: "", price: "", stock: "" }));
+        setValues((v) => ({
+          ...v,
+          productName: "",
+          price: "",
+          stock: "",
+          productImageUrl: "",
+        }));
       setStep(Math.min(6, step + 1));
       requestAnimationFrame(() => heading.current?.focus());
     } catch (e) {
@@ -895,10 +1002,43 @@ export default function OnboardingExperience({
                             step: "1",
                           })}
                         </div>
+                        <div className="setup-product-image-field">
+                          <span>Product image (optional)</span>
+                          {values.productImageUrl ? (
+                            <div className="setup-product-image-preview">
+                              <img
+                                src={values.productImageUrl}
+                                alt="Uploaded product"
+                              />
+                              <button
+                                type="button"
+                                className="launch-link"
+                                disabled={pending}
+                                onClick={() => change("productImageUrl", "")}
+                              >
+                                <Trash2 size={14} /> Remove image
+                              </button>
+                            </div>
+                          ) : (
+                            <label className="setup-product-image-dropzone">
+                              <Upload size={18} />
+                              Upload product image
+                              <small>PNG, JPG or WEBP. Max 10MB.</small>
+                              <input
+                                type="file"
+                                accept="image/*"
+                                disabled={pending}
+                                onChange={(e) => {
+                                  const file = e.target.files?.[0];
+                                  if (file) handleProductImage(file);
+                                }}
+                              />
+                            </label>
+                          )}
+                        </div>
                         <p className="setup-helper">
-                          This creates a default variant and opening stock.
-                          Import, images and variant editing are not connected
-                          by the current endpoint.
+                          This creates a default variant, opening stock and
+                          starter product image.
                         </p>
                         <button
                           type="button"
@@ -1206,7 +1346,18 @@ export default function OnboardingExperience({
               </p>
             </div>
             <div className="setup-preview-product">
-              <Package size={25} />
+              {values.productImageUrl || state?.products[0]?.imageUrl ? (
+                <img
+                  src={
+                    values.productImageUrl ||
+                    state?.products[0]?.imageUrl ||
+                    ""
+                  }
+                  alt=""
+                />
+              ) : (
+                <Package size={25} />
+              )}
               <strong>
                 {values.productName ||
                   state?.products[0]?.name ||

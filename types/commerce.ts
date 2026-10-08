@@ -144,7 +144,12 @@ export type ShopInput = Partial<
     | "language"
   >
 > & { policyDefaults?: Partial<PolicyDefaults> };
-export type ProductInput = { name: string; price: number; stock: number };
+export type ProductInput = {
+  name: string;
+  price: number;
+  stock: number;
+  imageUrl?: string;
+};
 export type PublicProduct = {
   slug?: string;
   id: string;

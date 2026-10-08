@@ -2,6 +2,13 @@ import { z } from "zod";
 import { aiModes, languages } from "./onboarding.types.js";
 
 const optionalText = z.string().trim().min(1).max(200).optional();
+const image = z
+  .string()
+  .trim()
+  .refine(
+    (v) => /^https?:\/\//.test(v) || /^\/uploads\//.test(v),
+    "Use an uploaded image or HTTP/HTTPS image URL.",
+  );
 
 export const checkSubdomainSchema = z.object({
   subdomain: z.string().trim().min(3).max(40),
@@ -43,7 +50,7 @@ export const addProductSchema = z.object({
   name: z.string().trim().min(2).max(160),
   price: z.number().positive().max(100000000),
   stock: z.number().int().min(0).max(1000000),
-  imageUrl: z.string().trim().url().optional(),
+  imageUrl: image.optional(),
   variants: z.array(z.string().trim().min(1).max(60)).max(50).optional(),
   deliveryNotes: optionalText,
 });

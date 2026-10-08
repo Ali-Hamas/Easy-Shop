@@ -251,6 +251,9 @@ export class OnboardingService {
         price: amount(product.price),
         stock: entries.reduce((sum, e) => sum + e.deltaQuantity, 0),
         status: product.status as FirstProduct["status"],
+        imageUrl:
+          product.imageUrl ??
+          (Array.isArray(product.images) ? product.images[0] : undefined),
         createdAt: product.createdAt,
       });
     }
@@ -374,6 +377,9 @@ export class OnboardingService {
             name: input.name,
             slug: normalizeSubdomain(input.name),
             status: "active",
+            ...(input.imageUrl
+              ? { imageUrl: input.imageUrl, images: [input.imageUrl] }
+              : {}),
             price: money(input.price),
             currency: shop.currency,
             createdAt,
