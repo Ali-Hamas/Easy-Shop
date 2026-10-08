@@ -215,6 +215,7 @@
 .inbox-thread-col {
   display: flex;
   flex-direction: column;
+  grid-column: 2 / 4;
   background: var(--surface);
   border: 1px solid var(--border-default);
   border-radius: var(--radius-lg, 10px);
