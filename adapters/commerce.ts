@@ -1,6 +1,6 @@
 import type { PublicProduct } from "@/types/commerce";
 const storefrontRoot =
-  process.env.NEXT_PUBLIC_STOREFRONT_ROOT_DOMAIN ?? "easyshop.britsyncai.com";
+  process.env.NEXT_PUBLIC_STOREFRONT_ROOT_DOMAIN ?? "nobleshop.uk";
 
 export function storefrontUrl(subdomain: string, path = "") {
   const encoded = encodeURIComponent(subdomain);
