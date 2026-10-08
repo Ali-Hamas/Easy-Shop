@@ -10,7 +10,7 @@ function storefrontRoot() {
   return origin ? new URL(origin).hostname.toLowerCase() : "";
 }
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const root = storefrontRoot();
   const host = (request.headers.get("host") ?? "")
     .split(":")[0]
