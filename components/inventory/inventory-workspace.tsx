@@ -654,7 +654,7 @@ export default function InventoryWorkspace() {
           if (!open) setEditor(null);
         }}
         title={editor === "new" ? "Add a product" : "Edit product"}
-        description="Structured facts for your storefront and future AI replies."
+        description="Simple product details for your storefront."
         className="inventory-editor-drawer"
       >
         {editor && shopId && (
@@ -662,6 +662,7 @@ export default function InventoryWorkspace() {
             key={editor === "new" ? "new" : editor.id}
             shopId={shopId}
             currency={data?.currency ?? ""}
+            categories={data?.categories ?? []}
             product={editor === "new" ? undefined : editor}
             onSaved={saved}
             onCancel={() => setEditor(null)}

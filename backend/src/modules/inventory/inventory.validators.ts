@@ -14,14 +14,13 @@ const image = z
 const sku = z
   .string()
   .trim()
-  .min(1)
   .max(80)
   .transform((v) => v.toUpperCase());
 export const variantSchema = z
   .object({
     id: z.string().uuid().optional(),
     title: z.string().trim().min(1).max(120),
-    sku,
+    sku: sku.default(""),
     size: z.string().trim().max(80).default(""),
     color: z.string().trim().max(80).default(""),
     material: z.string().trim().max(120).default(""),
@@ -34,39 +33,54 @@ export const variantSchema = z
 export const productSchema = z
   .object({
     name: z.string().trim().min(1).max(180),
-    sku,
+    sku: sku.default(""),
     category: z.string().trim().max(100).default(""),
     description: text.default(""),
     price: money,
     comparePrice: money.nullable().default(null),
     cost: money.nullable().default(null),
-    images: z.array(image).max(3).default([]),
+    images: z.array(image).max(10).default([]),
     status: z.enum(["draft", "active", "archived"]).default("active"),
     variants: z.array(variantSchema).min(1).max(50),
     aiFacts: z
       .object({
-        sellingPoints: text,
-        audience: text,
-        care: text,
-        policyExceptions: text,
+        sellingPoints: text.default(""),
+        audience: text.default(""),
+        care: text.default(""),
+        policyExceptions: text.default(""),
       })
-      .strict(),
+      .strict()
+      .default({
+        sellingPoints: "",
+        audience: "",
+        care: "",
+        policyExceptions: "",
+      }),
     seo: z
       .object({
-        title: z.string().trim().max(160),
-        description: z.string().trim().max(320),
+        title: z.string().trim().max(160).default(""),
+        description: z.string().trim().max(320).default(""),
       })
-      .strict(),
+      .strict()
+      .default({ title: "", description: "" }),
     delivery: z
       .object({
-        weightGrams: z.number().int().min(0).max(1000000).nullable(),
-        note: text,
+        weightGrams: z
+          .number()
+          .int()
+          .min(0)
+          .max(1000000)
+          .nullable()
+          .default(null),
+        note: text.default(""),
       })
-      .strict(),
+      .strict()
+      .default({ weightGrams: null, note: "" }),
   })
   .strict()
   .superRefine((v, c) => {
-    if (new Set(v.variants.map((x) => x.sku)).size !== v.variants.length)
+    const variantSkus = v.variants.map((x) => x.sku).filter(Boolean);
+    if (new Set(variantSkus).size !== variantSkus.length)
       c.addIssue({
         code: "custom",
         path: ["variants"],

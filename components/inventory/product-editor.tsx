@@ -1,6 +1,5 @@
 "use client";
 import { useState, useRef } from "react";
-import Image from "next/image";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import {
   Package,
@@ -8,7 +7,6 @@ import {
   Check,
   AlertCircle,
   Upload,
-  Link as LinkIcon,
   Trash2,
 } from "lucide-react";
 import { Input, Textarea, Select } from "@/components/ui/fields";
@@ -25,6 +23,9 @@ import {
   type ProductFieldError,
 } from "@/lib/validation/product-errors";
 import { cn } from "@/lib/utils";
+
+const IMAGE_SLOT_COUNT = 10;
+const MAX_IMAGE_SIZE = 10 * 1024 * 1024;
 
 function EditorImage({ url }: { url: string }) {
   const [failed, setFailed] = useState(false);
@@ -56,12 +57,14 @@ export function ProductEditor({
   shopId,
   product,
   currency,
+  categories = [],
   onSaved,
   onCancel,
 }: {
   shopId: string;
   product?: InventoryProduct;
   currency: string;
+  categories?: string[];
   onSaved: (p: InventoryProduct) => void;
   onCancel: () => void;
 }) {
@@ -71,15 +74,10 @@ export function ProductEditor({
   const [section, setSection] = useState(0);
   const [imagesList, setImagesList] = useState<string[]>(() => {
     const initial = product?.images ?? [];
-    return [initial[0] || "", initial[1] || "", initial[2] || ""];
-  });
-  const [slotModes, setSlotModes] = useState<("upload" | "url")[]>(() => {
-    const initial = product?.images ?? [];
-    return [
-      initial[0]?.startsWith("http") ? "url" : "upload",
-      initial[1]?.startsWith("http") ? "url" : "upload",
-      initial[2]?.startsWith("http") ? "url" : "upload",
-    ];
+    return Array.from(
+      { length: IMAGE_SLOT_COUNT },
+      (_, i) => initial[i] || "",
+    );
   });
   const [archiveConfirmed, setArchiveConfirmed] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -92,8 +90,6 @@ export function ProductEditor({
     1: 0,
     2: 0,
     3: 0,
-    4: 0,
-    5: 0,
   });
   const [summaryError, setSummaryError] = useState<string | null>(null);
   const [requestId] = useState(() => crypto.randomUUID());
@@ -111,8 +107,6 @@ export function ProductEditor({
         1: 0,
         2: 0,
         3: 0,
-        4: 0,
-        5: 0,
       };
       Object.values(next).forEach((err) => {
         nextSecErrors[err.sectionIndex] =
@@ -131,44 +125,78 @@ export function ProductEditor({
     });
   }
 
-  function handleFileUpload(slotIndex: number, file: File) {
+  async function uploadCompressedImage(image: string) {
+    const response = await fetch("/api/uploads/product-images", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ image }),
+    });
+    const data = (await response.json().catch(() => ({}))) as {
+      url?: string;
+      message?: string;
+    };
+    if (!response.ok || !data.url) {
+      throw new Error(data.message || "Image upload failed.");
+    }
+    return data.url;
+  }
+
+  function compressImage(file: File) {
+    return new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const dataUrl = e.target?.result as string;
+        const img = new window.Image();
+        img.onload = () => {
+          const maxDim = 1200;
+          let width = img.width;
+          let height = img.height;
+          if (width > maxDim || height > maxDim) {
+            if (width > height) {
+              height = Math.round((height * maxDim) / width);
+              width = maxDim;
+            } else {
+              width = Math.round((width * maxDim) / height);
+              height = maxDim;
+            }
+          }
+          const canvas = document.createElement("canvas");
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext("2d");
+          if (!ctx) {
+            resolve(dataUrl);
+            return;
+          }
+          ctx.drawImage(img, 0, 0, width, height);
+          resolve(canvas.toDataURL("image/webp", 0.72));
+        };
+        img.onerror = () => reject(new Error("Could not read this image."));
+        img.src = dataUrl;
+      };
+      reader.onerror = () => reject(new Error("Could not read this image."));
+      reader.readAsDataURL(file);
+    });
+  }
+
+  async function handleFileUpload(slotIndex: number, file: File) {
     if (!file.type.startsWith("image/")) {
       setGeneralError("Please select a valid image file (PNG, JPG, WEBP).");
       return;
     }
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const dataUrl = e.target?.result as string;
-      const img = new window.Image();
-      img.onload = () => {
-        const maxDim = 1200;
-        let width = img.width;
-        let height = img.height;
-        if (width > maxDim || height > maxDim) {
-          if (width > height) {
-            height = Math.round((height * maxDim) / width);
-            width = maxDim;
-          } else {
-            width = Math.round((width * maxDim) / height);
-            height = maxDim;
-          }
-        }
-        const canvas = document.createElement("canvas");
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext("2d");
-        if (ctx) {
-          ctx.drawImage(img, 0, 0, width, height);
-          const compressed = canvas.toDataURL("image/jpeg", 0.88);
-          updateImageSlot(slotIndex, compressed);
-        } else {
-          updateImageSlot(slotIndex, dataUrl);
-        }
-      };
-      img.onerror = () => updateImageSlot(slotIndex, dataUrl);
-      img.src = dataUrl;
-    };
-    reader.readAsDataURL(file);
+    if (file.size > MAX_IMAGE_SIZE) {
+      setGeneralError("Each product image must be 10MB or smaller.");
+      return;
+    }
+    try {
+      setGeneralError("");
+      updateImageSlot(
+        slotIndex,
+        await uploadCompressedImage(await compressImage(file)),
+      );
+    } catch (e) {
+      setGeneralError((e as Error).message || "Image upload failed.");
+    }
   }
 
   function updateImageSlot(slotIndex: number, val: string) {
@@ -190,14 +218,6 @@ export function ProductEditor({
     });
   }
 
-  function setSlotMode(slotIndex: number, mode: "upload" | "url") {
-    setSlotModes((prev) => {
-      const next = [...prev];
-      next[slotIndex] = mode;
-      return next;
-    });
-  }
-
   function set<K extends keyof InventoryInput>(
     key: K,
     value: InventoryInput[K],
@@ -215,7 +235,6 @@ export function ProductEditor({
     } else if (
       key === "sku" &&
       typeof value === "string" &&
-      value.trim().length > 0 &&
       value.trim().length <= 80
     ) {
       clearFieldError("sku");
@@ -413,6 +432,7 @@ export function ProductEditor({
                   <Input
                     id="field-product-name"
                     label="Product name"
+                    help="The public product name customers see in the shop."
                     value={draft.name}
                     error={fieldErrors["name"]?.message}
                     onChange={(e) => set("name", e.target.value)}
@@ -421,24 +441,32 @@ export function ProductEditor({
                   />
                   <Input
                     id="field-product-sku"
-                    label="Product SKU"
+                    label="Product SKU (optional)"
+                    help="Leave this blank and the system will create a unique SKU automatically."
                     value={draft.sku}
                     error={fieldErrors["sku"]?.message}
                     onChange={(e) => set("sku", e.target.value)}
                     maxLength={80}
-                    required
                   />
                   <Input
                     id="field-product-category"
                     label="Category"
+                    help="Type a new category or choose an existing one from the suggestions."
                     value={draft.category}
                     error={fieldErrors["category"]?.message}
                     onChange={(e) => set("category", e.target.value)}
                     maxLength={100}
+                    list="product-category-options"
                   />
+                  <datalist id="product-category-options">
+                    {categories.filter(Boolean).map((category) => (
+                      <option key={category} value={category} />
+                    ))}
+                  </datalist>
                   <Textarea
                     id="field-product-description"
                     label="Description"
+                    help="Short customer-facing details for this product."
                     value={draft.description}
                     error={fieldErrors["description"]?.message}
                     onChange={(e) => set("description", e.target.value)}
@@ -447,6 +475,7 @@ export function ProductEditor({
                   <Select
                     id="field-product-status"
                     label="Product status"
+                    help="Only active products appear in the live storefront."
                     value={draft.status}
                     error={fieldErrors["status"]?.message}
                     onChange={(e) =>
@@ -458,8 +487,7 @@ export function ProductEditor({
                     <option value="archived">Inactive / archived</option>
                   </Select>
                   <p className="field-hint">
-                    Only active products appear in the published storefront.
-                    Existing stock history is retained.
+                    Active products appear in the shop. Drafts stay hidden.
                   </p>
                 </>
               )}
@@ -469,7 +497,9 @@ export function ProductEditor({
                   <div className="product-media-intro">
                     <h4 className="product-media-heading">Product Images</h4>
                     <p className="field-hint">
-                      Add up to 3 images. Image 1 is <strong>mandatory</strong> and serves as the primary storefront image. Images 2 and 3 are <strong>optional</strong>. You can choose to upload an image from your device or paste an image URL for each slot.
+                      Upload up to 10 images. Image 1 is the main storefront
+                      image. Each file must be 10MB or smaller and is saved as a
+                      compressed web image on this VPS for testing.
                     </p>
                   </div>
 
@@ -481,10 +511,9 @@ export function ProductEditor({
                   )}
 
                   <div className="product-slots-container">
-                    {[0, 1, 2].map((slotIdx) => {
+                    {Array.from({ length: IMAGE_SLOT_COUNT }, (_, slotIdx) => {
                       const isRequired = slotIdx === 0;
                       const val = imagesList[slotIdx] || "";
-                      const mode = slotModes[slotIdx] || "upload";
                       const slotError =
                         fieldErrors[`field-product-image-${slotIdx}`]?.message ||
                         (isRequired && !val.trim() && fieldErrors["images"]?.message);
@@ -509,31 +538,16 @@ export function ProductEditor({
                               )}
                             </div>
 
-                            <div className="slot-mode-selector" role="radiogroup">
-                              <button
-                                type="button"
-                                role="radio"
-                                aria-checked={mode === "upload"}
-                                className={`slot-toggle-tab ${mode === "upload" ? "active" : ""}`}
-                                onClick={() => setSlotMode(slotIdx, "upload")}
-                              >
-                                <Upload size={12} /> Upload File
-                              </button>
-                              <button
-                                type="button"
-                                role="radio"
-                                aria-checked={mode === "url"}
-                                className={`slot-toggle-tab ${mode === "url" ? "active" : ""}`}
-                                onClick={() => setSlotMode(slotIdx, "url")}
-                              >
-                                <LinkIcon size={12} /> Paste URL
-                              </button>
-                            </div>
+                            <span
+                              className="slot-help"
+                              title="Images are compressed before saving to local VPS storage."
+                            >
+                              ?
+                            </span>
                           </div>
 
                           <div className="slot-card-content">
-                            {mode === "upload" ? (
-                              val ? (
+                            {val ? (
                                 <div className="slot-preview-card">
                                   <div className="slot-preview-thumb">
                                     <img
@@ -594,58 +608,11 @@ export function ProductEditor({
                                         : `Upload image ${slotIdx + 1}`}
                                     </span>
                                     <span className="slot-dropzone-hint">
-                                      Click to choose file from device (PNG, JPG, WEBP)
+                                      Click to choose PNG, JPG or WEBP. Max 10MB.
                                     </span>
                                   </div>
                                 </label>
-                              )
-                            ) : (
-                              <div className="slot-url-block">
-                                <div className="slot-url-field-wrap">
-                                  <input
-                                    id={`field-product-image-${slotIdx}`}
-                                    type="url"
-                                    className="slot-url-input"
-                                    placeholder="https://example.com/product-image.jpg"
-                                    value={val}
-                                    onChange={(e) =>
-                                      updateImageSlot(slotIdx, e.target.value)
-                                    }
-                                  />
-                                  {val && (
-                                    <button
-                                      type="button"
-                                      className="slot-clear-btn"
-                                      onClick={() => removeImageSlot(slotIdx)}
-                                      title="Clear URL"
-                                    >
-                                      <Trash2 size={13} />
-                                    </button>
-                                  )}
-                                </div>
-                                {val ? (
-                                  <div className="slot-url-preview-card">
-                                    <img
-                                      src={val}
-                                      alt={`Slot ${slotIdx + 1} Preview`}
-                                      className="slot-url-preview-thumb"
-                                      onError={(e) => {
-                                        (e.target as HTMLElement).style.display =
-                                          "none";
-                                      }}
-                                    />
-                                    <span className="slot-url-preview-note">
-                                      Direct link preview
-                                    </span>
-                                  </div>
-                                ) : (
-                                  <span className="field-hint">
-                                    Enter a secure public link (https://...)
-                                  </span>
-                                )}
-                              </div>
-                            )}
-
+                              )}
                             {slotError && (
                               <p className="slot-error-msg" role="alert">
                                 {slotError}
@@ -664,6 +631,7 @@ export function ProductEditor({
                   <Input
                     id="field-product-price"
                     label="Selling price"
+                    help="The price customers pay."
                     type="number"
                     min={0.01}
                     step="0.01"
@@ -680,6 +648,7 @@ export function ProductEditor({
                   <Input
                     id="field-product-comparePrice"
                     label="Compare price (optional)"
+                    help="Use this for a crossed-out old price or sale comparison."
                     type="number"
                     min={0}
                     step="0.01"
@@ -695,6 +664,7 @@ export function ProductEditor({
                   <Input
                     id="field-product-cost"
                     label="Cost (optional)"
+                    help="Private internal cost. Customers do not see this."
                     type="number"
                     min={0}
                     step="0.01"
@@ -737,6 +707,7 @@ export function ProductEditor({
                         <Input
                           id={`field-variant-${i}-title`}
                           label={`Variant name ${i + 1}`}
+                          help="Use one variant for a simple product, or add more for sizes/colors."
                           value={v.title}
                           error={fieldErrors[`variant-${i}-title`]?.message}
                           onChange={(e) => {
@@ -755,7 +726,8 @@ export function ProductEditor({
                         />
                         <Input
                           id={`field-variant-${i}-sku`}
-                          label={`Variant SKU ${i + 1}`}
+                          label={`Variant SKU ${i + 1} (optional)`}
+                          help="Leave blank and the system will generate one."
                           value={v.sku}
                           error={fieldErrors[`variant-${i}-sku`]?.message}
                           onChange={(e) => {
@@ -770,11 +742,11 @@ export function ProductEditor({
                               clearFieldError(`variant-${i}-sku`);
                             }
                           }}
-                          required
                         />
                         <Input
                           id={`field-variant-${i}-size`}
                           label={`Size ${i + 1}`}
+                          help="Optional size label, for example S, M, L."
                           value={v.size}
                           onChange={(e) =>
                             set(
@@ -790,6 +762,7 @@ export function ProductEditor({
                         <Input
                           id={`field-variant-${i}-color`}
                           label={`Color ${i + 1}`}
+                          help="Optional color label."
                           value={v.color}
                           onChange={(e) =>
                             set(
@@ -805,6 +778,7 @@ export function ProductEditor({
                         <Input
                           id={`field-variant-${i}-material`}
                           label={`Material ${i + 1}`}
+                          help="Optional material label."
                           value={v.material}
                           onChange={(e) =>
                             set(
@@ -820,6 +794,7 @@ export function ProductEditor({
                         <Input
                           id={`field-variant-${i}-image`}
                           label={`Variant image URL ${i + 1}`}
+                          help="Optional image link for this exact variant."
                           value={v.image}
                           error={fieldErrors[`variant-${i}-image`]?.message}
                           onChange={(e) => {
@@ -838,6 +813,7 @@ export function ProductEditor({
                         <Input
                           id={`field-variant-${i}-priceOverride`}
                           label={`Price override ${i + 1}`}
+                          help="Optional separate price for this variant."
                           type="number"
                           min={0}
                           step="0.01"
@@ -865,6 +841,7 @@ export function ProductEditor({
                         <Input
                           id={`field-variant-${i}-lowStockThreshold`}
                           label={`Low-stock threshold ${i + 1}`}
+                          help="When available stock reaches this number, it is marked low."
                           type="number"
                           min={0}
                           step={1}
@@ -893,6 +870,7 @@ export function ProductEditor({
                         <Input
                           id={`field-variant-${i}-openingStock`}
                           label={`Opening stock ${i + 1}`}
+                          help="Starting stock for a new variant. Existing stock is changed from Adjust stock."
                           type="number"
                           min={0}
                           step={1}
@@ -954,91 +932,6 @@ export function ProductEditor({
                 </>
               )}
 
-              {section === 4 && (
-                <>
-                  <Input
-                    id="field-delivery-weightGrams"
-                    label="Weight in grams (optional)"
-                    type="number"
-                    min={0}
-                    step={1}
-                    value={draft.delivery.weightGrams ?? ""}
-                    error={fieldErrors["delivery-weightGrams"]?.message}
-                    onChange={(e) =>
-                      set("delivery", {
-                        ...draft.delivery,
-                        weightGrams:
-                          e.target.value === "" ? null : Number(e.target.value),
-                      })
-                    }
-                  />
-                  <Textarea
-                    id="field-delivery-note"
-                    label="Delivery information"
-                    value={draft.delivery.note}
-                    error={fieldErrors["delivery-note"]?.message}
-                    onChange={(e) =>
-                      set("delivery", {
-                        ...draft.delivery,
-                        note: e.target.value,
-                      })
-                    }
-                    maxLength={5000}
-                  />
-                  <Input
-                    id="field-seo-title"
-                    label="SEO title"
-                    maxLength={160}
-                    value={draft.seo.title}
-                    error={fieldErrors["seo-title"]?.message}
-                    onChange={(e) =>
-                      set("seo", { ...draft.seo, title: e.target.value })
-                    }
-                  />
-                  <Textarea
-                    id="field-seo-description"
-                    label="SEO description"
-                    maxLength={320}
-                    value={draft.seo.description}
-                    error={fieldErrors["seo-description"]?.message}
-                    onChange={(e) =>
-                      set("seo", { ...draft.seo, description: e.target.value })
-                    }
-                  />
-                </>
-              )}
-
-              {section === 5 && (
-                <>
-                  <p className="field-hint">
-                    Enter approved facts only. These are saved for future AI
-                    use; no AI generates or sends replies here.
-                  </p>
-                  {(
-                    [
-                      ["sellingPoints", "Selling points"],
-                      ["audience", "Who it is for"],
-                      ["care", "Care instructions"],
-                      ["policyExceptions", "Policy exceptions"],
-                    ] as const
-                  ).map(([k, label]) => (
-                    <Textarea
-                      key={k}
-                      id={`field-aiFacts-${k}`}
-                      label={label}
-                      value={draft.aiFacts[k]}
-                      error={fieldErrors[`aiFacts-${k}`]?.message}
-                      onChange={(e) =>
-                        set("aiFacts", {
-                          ...draft.aiFacts,
-                          [k]: e.target.value,
-                        })
-                      }
-                      maxLength={5000}
-                    />
-                  ))}
-                </>
-              )}
             </motion.section>
           </AnimatePresence>
         </div>

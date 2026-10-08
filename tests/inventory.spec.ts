@@ -38,7 +38,7 @@ test("inventory real API editor, safe adjustment, ledger and responsive views", 
   await page
     .getByLabel("Product name", { exact: true })
     .fill("Everyday Canvas Tote");
-  await page.getByLabel("Product SKU", { exact: true }).fill("BAG-001");
+  await page.getByLabel("Product SKU (optional)", { exact: true }).fill("BAG-001");
   await page.getByLabel("Category", { exact: true }).last().fill("Bags");
   await page
     .getByLabel("Product status", { exact: true })
@@ -51,7 +51,9 @@ test("inventory real API editor, safe adjustment, ledger and responsive views", 
   await page
     .getByRole("tab", { name: "Variants & stock", exact: true })
     .click();
-  await page.getByLabel("Variant SKU 1", { exact: true }).fill("BAG-001-OLIVE");
+  await page
+    .getByLabel("Variant SKU 1 (optional)", { exact: true })
+    .fill("BAG-001-OLIVE");
   await page
     .getByLabel("Variant name 1", { exact: true })
     .fill("Olive / One size");
@@ -118,8 +120,7 @@ test("inventory real API editor, safe adjustment, ledger and responsive views", 
   await page
     .getByLabel("Description", { exact: true })
     .fill("A durable canvas carryall.");
-  await page.getByRole("tab", { name: "AI facts" }).click();
-  await page.getByLabel("Care instructions").fill("Hand wash cold.");
+  await page.getByRole("tab", { name: "Variants & stock" }).click();
   for (const width of [1440, 1280, 1024, 768, 430, 390]) {
     await page.setViewportSize({ width, height: 1000 });
     await page.screenshot({

@@ -10,9 +10,35 @@ import {
 import { Search, Check, X } from "lucide-react";
 import { Switch as S } from "radix-ui";
 import { cn } from "@/lib/utils";
-type Field = { label: string; hint?: string; error?: string; success?: string };
+type Field = {
+  label: string;
+  help?: string;
+  hint?: string;
+  error?: string;
+  success?: string;
+};
+
+function FieldHelp({ text }: { text?: string }) {
+  const [open, setOpen] = useState(false);
+  if (!text) return null;
+  return (
+    <span className="field-help-wrap">
+      <button
+        type="button"
+        className="field-help-button"
+        aria-label={text}
+        aria-expanded={open}
+        onClick={() => setOpen((v) => !v)}
+      >
+        ?
+      </button>
+      {open && <span className="field-help-popover">{text}</span>}
+    </span>
+  );
+}
 export function Input({
   label,
+  help,
   hint,
   error,
   success,
@@ -25,7 +51,10 @@ export function Input({
   const message = error ?? success ?? hint;
   return (
     <div className="field">
-      <label htmlFor={id}>{label}</label>
+      <div className="field-label-row">
+        <label htmlFor={id}>{label}</label>
+        <FieldHelp text={help} />
+      </div>
       <input
         {...props}
         id={id}
@@ -99,6 +128,7 @@ export function SearchInput({
 }
 export function Textarea({
   label,
+  help,
   hint,
   error,
   success,
@@ -111,7 +141,10 @@ export function Textarea({
   const message = error ?? success ?? hint;
   return (
     <div className="field">
-      <label htmlFor={id}>{label}</label>
+      <div className="field-label-row">
+        <label htmlFor={id}>{label}</label>
+        <FieldHelp text={help} />
+      </div>
       <textarea
         {...props}
         id={id}
@@ -136,6 +169,7 @@ export function Textarea({
 }
 export function Select({
   label,
+  help,
   id: provided,
   children,
   error,
@@ -149,7 +183,10 @@ export function Select({
   const message = error ?? success ?? hint;
   return (
     <div className="field">
-      <label htmlFor={id}>{label}</label>
+      <div className="field-label-row">
+        <label htmlFor={id}>{label}</label>
+        <FieldHelp text={help} />
+      </div>
       <select
         {...props}
         id={id}

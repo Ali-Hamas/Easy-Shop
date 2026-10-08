@@ -227,7 +227,9 @@ test.describe("Onboarding and Product Validation UX", () => {
 
     // Provide SKU so only product name is invalid in Basics
     const nameField = page.getByLabel("Product name", { exact: true });
-    const skuField = page.getByLabel("Product SKU", { exact: true });
+    const skuField = page.getByLabel("Product SKU (optional)", {
+      exact: true,
+    });
     await skuField.fill("SILK-001");
     await nameField.fill("");
 

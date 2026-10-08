@@ -257,6 +257,29 @@ async function conflict<T>(run: () => Promise<T>): Promise<T> {
     throw e;
   }
 }
+function autoSku(name: string, productId: string, suffix = "") {
+  const base =
+    name
+      .toUpperCase()
+      .replace(/[^A-Z0-9]+/g, "-")
+      .replace(/^-|-$/g, "")
+      .slice(0, 36) || "PRODUCT";
+  return `${base}-${productId.replace(/-/g, "").slice(0, 8)}${suffix}`.slice(
+    0,
+    80,
+  );
+}
+function withGeneratedSkus(input: ProductInput, productId: string) {
+  const productSku = input.sku.trim() || autoSku(input.name, productId);
+  return {
+    ...input,
+    sku: productSku,
+    variants: input.variants.map((v, i) => ({
+      ...v,
+      sku: v.sku.trim() || autoSku(input.name, productId, `-${i + 1}`),
+    })),
+  };
+}
 export const inventoryService = {
   async list(
     shopId: string,
@@ -367,16 +390,21 @@ export const inventoryService = {
             "Product changed. Reload before saving.",
           );
         const productId = id ?? randomUUID(),
-          now = new Date().toISOString();
+          now = new Date().toISOString(),
+          normalized = withGeneratedSkus(input, productId);
         const current = old
           ? await vcol(db).find({ shopId, productId }, { session }).toArray()
           : [];
-        if (current.some((v) => !input.variants.some((i) => i.id === v._id)))
+        if (
+          current.some(
+            (v) => !normalized.variants.some((i) => i.id === v._id),
+          )
+        )
           throw new InventoryError(
             "VARIANT_HISTORY_REQUIRED",
             "Existing variants cannot be removed. Their stock history must be retained.",
           );
-        for (const v of input.variants) {
+        for (const v of normalized.variants) {
           if (v.id && !current.some((c) => c._id === v.id))
             throw new InventoryError(
               "VARIANT_NOT_FOUND",
@@ -391,10 +419,10 @@ export const inventoryService = {
             );
         }
         const shop = await c.shops.findOne({ _id: shopId }, { session });
-        const { variants, ...fields } = input;
+        const { variants, ...fields } = normalized;
         const record = {
           ...fields,
-          price: money(input.price),
+          price: money(normalized.price),
           updatedAt: now,
           version: version + 1,
         };
@@ -411,7 +439,7 @@ export const inventoryService = {
               _id: productId,
               shopId,
               slug:
-                input.name
+                normalized.name
                   .toLowerCase()
                   .replace(/[^a-z0-9]+/g, "-")
                   .replace(/^-|-$/g, "") || `product-${productId}`,
@@ -427,7 +455,7 @@ export const inventoryService = {
           const { id: _, openingStock, ...rest } = v;
           const data = {
             ...rest,
-            price: money(v.priceOverride ?? input.price),
+            price: money(v.priceOverride ?? normalized.price),
           };
           if (v.id)
             await vcol(db).updateOne(
@@ -472,7 +500,7 @@ export const inventoryService = {
             );
           }
         }
-        await saveImages(db, session, shopId, productId, input.images);
+        await saveImages(db, session, shopId, productId, normalized.images);
         await audit(
           db,
           session,

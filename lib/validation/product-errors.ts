@@ -21,8 +21,6 @@ export const PRODUCT_SECTIONS = [
   "Media",
   "Pricing",
   "Variants & stock",
-  "Delivery & SEO",
-  "AI facts",
 ] as const;
 
 export function sanitizePath(path: (string | number)[]): string[] {
@@ -61,7 +59,7 @@ export function humanizeProductError(
       sectionIndex: 0,
       fieldKey: "sku",
       inputId: "field-product-sku",
-      message: "Product SKU is required.",
+      message: "Product SKU must be 80 characters or fewer.",
     };
   }
   if (first === "category") {
@@ -102,7 +100,7 @@ export function humanizeProductError(
       message:
         typeof idx !== "undefined"
           ? `Image #${Number(idx) + 1} must be a valid uploaded file or HTTP/HTTPS address.`
-          : "Main product image is required (upload file or paste URL, up to 3 images).",
+          : "Main product image is required (upload up to 10 images).",
     };
   }
 
@@ -156,7 +154,7 @@ export function humanizeProductError(
         sectionIndex: 3,
         fieldKey: `variant-${vIndex}-sku`,
         inputId: `field-variant-${vIndex}-sku`,
-        message: `Variant ${vIndex + 1} SKU is required.`,
+        message: `Variant ${vIndex + 1} SKU must be 80 characters or fewer.`,
       };
     }
     if (vField === "title") {
@@ -208,19 +206,19 @@ export function humanizeProductError(
     };
   }
 
-  // 4. Delivery & SEO
+  // 4. Hidden delivery and SEO fields kept for older saved products.
   if (first === "delivery") {
     const sub = parts[1];
     if (sub === "weightGrams") {
       return {
-        sectionIndex: 4,
+        sectionIndex: 0,
         fieldKey: "delivery-weightGrams",
         inputId: "field-delivery-weightGrams",
         message: "Weight must be 0 or more grams.",
       };
     }
     return {
-      sectionIndex: 4,
+      sectionIndex: 0,
       fieldKey: "delivery-note",
       inputId: "field-delivery-note",
       message: "Delivery notes cannot exceed 5000 characters.",
@@ -231,38 +229,17 @@ export function humanizeProductError(
     const sub = parts[1];
     if (sub === "title") {
       return {
-        sectionIndex: 4,
+        sectionIndex: 0,
         fieldKey: "seo-title",
         inputId: "field-seo-title",
         message: "SEO title cannot exceed 160 characters.",
       };
     }
     return {
-      sectionIndex: 4,
+      sectionIndex: 0,
       fieldKey: "seo-description",
       inputId: "field-seo-description",
       message: "SEO description cannot exceed 320 characters.",
-    };
-  }
-
-  // 5. AI Facts
-  if (first === "aiFacts") {
-    const sub = String(parts[1] ?? "");
-    const friendlyName =
-      sub === "sellingPoints"
-        ? "Selling points"
-        : sub === "audience"
-          ? "Who it is for"
-          : sub === "care"
-            ? "Care instructions"
-            : sub === "policyExceptions"
-              ? "Policy exceptions"
-              : "AI fact";
-    return {
-      sectionIndex: 5,
-      fieldKey: `aiFacts-${sub}`,
-      inputId: `field-aiFacts-${sub}`,
-      message: `${friendlyName} cannot exceed 5000 characters.`,
     };
   }
 
@@ -284,8 +261,6 @@ export function mapBackendIssuesToErrors(
     1: 0,
     2: 0,
     3: 0,
-    4: 0,
-    5: 0,
   };
   let firstError: ProductFieldError | null = null;
 
@@ -336,8 +311,6 @@ export function validateProductDraft(
     1: 0,
     2: 0,
     3: 0,
-    4: 0,
-    5: 0,
   };
   let firstError: ProductFieldError | null = null;
 
@@ -374,9 +347,7 @@ export function validateProductDraft(
     );
   }
 
-  if (!draft.sku || draft.sku.trim().length === 0) {
-    addError(0, "sku", "field-product-sku", "Product SKU is required.");
-  } else if (draft.sku.trim().length > 80) {
+  if (draft.sku && draft.sku.trim().length > 80) {
     addError(
       0,
       "sku",
@@ -403,7 +374,7 @@ export function validateProductDraft(
     );
   }
 
-  // 1. Media: 1 image is mandatory, 2-3 images total allowed
+  // 1. Media: 1 image is mandatory, up to 10 images total allowed
   const rawLines: string[] = Array.isArray(mediaUrls)
     ? mediaUrls.map((l) => (typeof l === "string" ? l.trim() : ""))
     : mediaUrls.split("\n").map((l) => l.trim());
@@ -416,12 +387,12 @@ export function validateProductDraft(
       "field-product-image-0",
       "Main product image is required. Upload an image file or paste an image URL.",
     );
-  } else if (validImages.length > 3) {
+  } else if (validImages.length > 10) {
     addError(
       1,
       "images",
       "field-product-image-0",
-      "You can add up to 3 product images (1 required, 2 optional).",
+      "You can add up to 10 product images.",
     );
   } else {
     for (let i = 0; i < validImages.length; i++) {
@@ -504,14 +475,7 @@ export function validateProductDraft(
         );
       }
       const vSku = (v.sku || "").trim().toUpperCase();
-      if (!vSku) {
-        addError(
-          3,
-          `variant-${idx}-sku`,
-          `field-variant-${idx}-sku`,
-          `Variant ${idx + 1} SKU is required.`,
-        );
-      } else if (seenSkus.has(vSku)) {
+      if (vSku && seenSkus.has(vSku)) {
         addError(
           3,
           `variant-${idx}-sku`,
@@ -519,7 +483,7 @@ export function validateProductDraft(
           `Variant SKU "${vSku}" is duplicated. Each variant SKU must be unique.`,
         );
       } else {
-        seenSkus.add(vSku);
+        if (vSku) seenSkus.add(vSku);
       }
 
       if (v.openingStock !== undefined && v.openingStock !== null) {
@@ -614,23 +578,6 @@ export function validateProductDraft(
       "field-seo-description",
       "SEO description cannot exceed 320 characters.",
     );
-  }
-
-  // 5. AI Facts
-  if (draft.aiFacts) {
-    (
-      ["sellingPoints", "audience", "care", "policyExceptions"] as const
-    ).forEach((key) => {
-      const val = draft.aiFacts[key];
-      if (val && val.length > 5000) {
-        addError(
-          5,
-          `aiFacts-${key}`,
-          `field-aiFacts-${key}`,
-          "Cannot exceed 5000 characters.",
-        );
-      }
-    });
   }
 
   const count = Object.keys(errors).length;
