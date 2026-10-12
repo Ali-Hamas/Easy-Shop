@@ -192,10 +192,17 @@ try {
   await call("POST", `/api/v1/onboarding/${second.shop.id}/template`, {
     templateId: templates.templates[0].id,
   });
+  await call("POST", `/api/v1/onboarding/${second.shop.id}/launch`, undefined, 409);
+  await call(
+    "POST",
+    `/api/v1/onboarding/${second.shop.id}/products`,
+    { name: "Second Store Product", price: 500, stock: 2 },
+    201,
+  );
   await call("POST", `/api/v1/onboarding/${second.shop.id}/launch`);
   assert.equal(
     (await call("GET", "/api/v1/storefront/second-store")).products.length,
-    0,
+    1,
   );
   const concurrent = await Promise.all(
     [1, 2].map(() =>
