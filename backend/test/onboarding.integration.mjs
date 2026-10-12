@@ -40,6 +40,15 @@ async function call(method, url, payload, expected = 200) {
   checks++;
   return r.json();
 }
+async function anonymousCall(method, url, payload, expected = 200) {
+  const previousCookie = cookie;
+  cookie = "";
+  try {
+    return await call(method, url, payload, expected);
+  } finally {
+    cookie = previousCookie;
+  }
+}
 try {
   db = await connectDb();
   await ensureIndexes(db);
@@ -78,7 +87,8 @@ try {
   assert.equal(state.shop.aiMode, "suggest");
   assert.equal(state.shop.status, "draft");
   await call("GET", prefix);
-  await call("GET", "/api/v1/storefront/migration-store", undefined, 404);
+  await anonymousCall("GET", "/api/v1/storefront/migration-store", undefined, 404);
+  await call("GET", "/api/v1/storefront/migration-store");
   await call("POST", `${prefix}/launch`, undefined, 409);
   const taken = await call("POST", "/api/v1/onboarding/subdomain/check", {
     subdomain: "Migration Store",
