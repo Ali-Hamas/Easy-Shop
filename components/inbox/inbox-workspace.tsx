@@ -8,7 +8,7 @@ import {
   useCallback,
 } from "react";
 import { useRouter } from "next/navigation";
-import { Inbox, RefreshCw, AlertCircle, Instagram, Link2 } from "lucide-react";
+import { Inbox, RefreshCw, AlertCircle, Camera, Link2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { rememberedShop, subscribeShop } from "@/adapters/commerce";
 import { inboxService } from "@/services/inbox";
@@ -417,7 +417,7 @@ export function InboxWorkspace() {
 
         <div className="inbox-header-meta">
           <div className="inbox-channel-status" data-status={metaStatus}>
-            <Instagram size={15} />
+            <Camera size={15} />
             <span>Facebook + Instagram</span>
             <strong>{metaStatus}</strong>
           </div>
