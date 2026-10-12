@@ -537,22 +537,14 @@ try {
   );
   checks++;
 
-  // 15. Verify Production Loopback Guard
-  const { config } = await import("../dist/shared/config.js");
-  const origEnv = config.nodeEnv;
-  config.nodeEnv = "production";
-  const blockedReq = await app.inject({
-    method: "GET",
-    url: `/api/v1/inbox/${shopId}/conversations`,
-    headers: { cookie },
-  });
-  assert.equal(
-    blockedReq.statusCode,
+  // 15. Meta connection fails closed when credentials are not configured.
+  const metaConnect = await call(
+    "POST",
+    `/api/v1/inbox/${shopId}/channels/meta/connect`,
+    undefined,
     503,
-    "Production mode must trigger 503 guard",
   );
-  checks++;
-  config.nodeEnv = origEnv;
+  assert.equal(metaConnect.code, "META_NOT_CONFIGURED");
 
   console.log(
     `AI Reply & Inbox Atlas verification passed: ${checks} checks covering lifecycle, selective product retrieval, separate approval from send, audit/customerEvents synchronization, escalation handling, and tenant isolation.`,
