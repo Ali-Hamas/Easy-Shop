@@ -30,6 +30,16 @@ export async function registerAiReplyRoutes(app: FastifyInstance) {
     throw error;
   });
 
+  app.get("/:shopId/channels", async (req) => {
+    const { shopId } = paramsSchema.parse(req.params);
+    return aiReplyService.listChannels(shopId);
+  });
+
+  app.post("/:shopId/channels/meta/connect", async (req) => {
+    const { shopId } = paramsSchema.parse(req.params);
+    return aiReplyService.requestMetaConnection(shopId);
+  });
+
   // 1. List conversations
   app.get("/:shopId/conversations", async (req) => {
     const { shopId } = paramsSchema.parse(req.params);

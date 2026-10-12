@@ -410,6 +410,57 @@ export const aiReplyService = {
     this.provider = newProvider;
   },
 
+  async listChannels(shopId: string) {
+    const db = await connectDb();
+    await checkShop(db, shopId);
+    const channels = await db
+      .collection<{
+        _id: string;
+        shopId: string;
+        provider: string;
+        status: string;
+        reason?: string;
+        createdAt: string;
+        updatedAt?: string;
+      }>("shopChannels")
+      .find({ shopId })
+      .sort({ createdAt: 1, _id: 1 })
+      .toArray();
+    return { channels: channels.map(publicDocument) };
+  },
+
+  async requestMetaConnection(shopId: string) {
+    await transaction(async (db, session) => {
+      await checkShop(db, shopId, session);
+      const now = new Date().toISOString();
+      await db.collection("shopChannels").updateOne(
+        { shopId, provider: "meta" },
+        {
+          $set: {
+            status: "pending",
+            reason: "facebook-instagram-connection-requested",
+            updatedAt: now,
+          },
+          $setOnInsert: {
+            _id: randomUUID(),
+            shopId,
+            provider: "meta",
+            createdAt: now,
+          },
+        },
+        { upsert: true, session },
+      );
+      await appendAuditEvent(db, session, {
+        shopId,
+        action: "channel.meta_connection_requested",
+        entityType: "channel",
+        entityId: "meta",
+        createdAt: now,
+      });
+    });
+    return this.listChannels(shopId);
+  },
+
   async listConversations(
     shopId: string,
     query: {

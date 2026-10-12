@@ -37,6 +37,12 @@ function permitted(path: string, method: string) {
         : method === "PATCH" && new RegExp(`/products/${uuid}$`).test(path);
   }
   if (path.startsWith("inbox/")) {
+    if (new RegExp(`^inbox/${uuid}/channels$`).test(path)) {
+      return method === "GET";
+    }
+    if (new RegExp(`^inbox/${uuid}/channels/meta/connect$`).test(path)) {
+      return method === "POST";
+    }
     if (new RegExp(`^inbox/${uuid}/conversations$`).test(path)) {
       return method === "GET" || method === "POST";
     }

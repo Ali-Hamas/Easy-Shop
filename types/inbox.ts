@@ -1,5 +1,15 @@
 export type ConversationChannel = "messenger" | "instagram" | "storefront";
 
+export interface ChannelConnection {
+  id: string;
+  shopId: string;
+  provider: "meta" | "instagram" | "whatsapp" | "courier";
+  status: "skipped" | "pending" | "connected" | "failed";
+  reason?: string;
+  createdAt: string;
+  updatedAt?: string;
+}
+
 export type ConversationStatus = "open" | "needs_attention" | "resolved";
 
 export type ConversationAiStatus =

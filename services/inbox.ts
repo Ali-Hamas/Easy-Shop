@@ -6,11 +6,23 @@ import type {
   ConversationMessage,
   AiDraft,
   ConversationChannel,
+  ChannelConnection,
 } from "@/types/inbox";
 
 const base = (shopId: string) => `inbox/${encodeURIComponent(shopId)}`;
 
 export const inboxService = {
+  listChannels: (shopId: string, signal?: AbortSignal) =>
+    apiRequest<{ channels: ChannelConnection[] }>(`${base(shopId)}/channels`, {
+      signal,
+    }),
+
+  requestMetaConnection: (shopId: string) =>
+    apiRequest<{ channels: ChannelConnection[] }>(
+      `${base(shopId)}/channels/meta/connect`,
+      { method: "POST" },
+    ),
+
   listConversations: (
     shopId: string,
     query: Record<string, string | number>,

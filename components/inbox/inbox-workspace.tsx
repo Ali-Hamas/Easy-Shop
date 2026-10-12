@@ -8,7 +8,7 @@ import {
   useCallback,
 } from "react";
 import { useRouter } from "next/navigation";
-import { Inbox, RefreshCw, AlertCircle } from "lucide-react";
+import { Inbox, RefreshCw, AlertCircle, Instagram, Link2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { rememberedShop, subscribeShop } from "@/adapters/commerce";
 import { inboxService } from "@/services/inbox";
@@ -19,6 +19,7 @@ import type {
   ConversationMessage,
   ConversationCustomerContext,
   AiDraft,
+  ChannelConnection,
 } from "@/types/inbox";
 
 export function InboxWorkspace() {
@@ -44,6 +45,7 @@ export function InboxWorkspace() {
   );
   const [messages, setMessages] = useState<ConversationMessage[]>([]);
   const [latestDraft, setLatestDraft] = useState<AiDraft | null>(null);
+  const [channels, setChannels] = useState<ChannelConnection[]>([]);
 
   const [panel, setPanel] = useState("list");
   const [search, setSearch] = useState("");
@@ -54,6 +56,7 @@ export function InboxWorkspace() {
   const [isSending, setIsSending] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSubmittingDraft, setIsSubmittingDraft] = useState(false);
+  const [isConnectingMeta, setIsConnectingMeta] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   // Load conversation list
@@ -97,6 +100,20 @@ export function InboxWorkspace() {
       clearTimeout(timer);
     };
   }, [shopId, search, channelFilter, aiStatusFilter]);
+
+  useEffect(() => {
+    if (!shopId) return;
+    const ac = new AbortController();
+    inboxService
+      .listChannels(shopId, ac.signal)
+      .then((res) => {
+        if (!ac.signal.aborted) setChannels(res.channels);
+      })
+      .catch(() => {
+        if (!ac.signal.aborted) setChannels([]);
+      });
+    return () => ac.abort();
+  }, [shopId]);
 
   // Load selected conversation details
   useEffect(() => {
@@ -362,6 +379,27 @@ export function InboxWorkspace() {
     router.push(`/customers?id=${encodeURIComponent(customerId)}`);
   };
 
+  const metaChannel = channels.find((c) => c.provider === "meta");
+  const metaStatus = metaChannel?.status ?? "skipped";
+
+  const handleConnectMeta = async () => {
+    if (!shopId) return;
+    setIsConnectingMeta(true);
+    setErrorMessage(null);
+    try {
+      const res = await inboxService.requestMetaConnection(shopId);
+      setChannels(res.channels);
+    } catch (err: unknown) {
+      setErrorMessage(
+        err instanceof Error
+          ? err.message
+          : "Failed to request Facebook and Instagram connection.",
+      );
+    } finally {
+      setIsConnectingMeta(false);
+    }
+  };
+
   return (
     <div className="inbox-workspace" data-panel={panel}>
       {/* Workspace Header */}
@@ -378,6 +416,11 @@ export function InboxWorkspace() {
         </div>
 
         <div className="inbox-header-meta">
+          <div className="inbox-channel-status" data-status={metaStatus}>
+            <Instagram size={15} />
+            <span>Facebook + Instagram</span>
+            <strong>{metaStatus}</strong>
+          </div>
           <Button
             variant="ghost"
             onClick={() => reloadConversations(selectedId ?? undefined)}
@@ -417,6 +460,31 @@ export function InboxWorkspace() {
           </button>
         </div>
       )}
+
+      <section className="inbox-connect-panel" aria-label="Channel connection">
+        <div>
+          <span className="inbox-connect-eyebrow">
+            Combined social inbox
+          </span>
+          <h2>Connect Facebook pages and Instagram</h2>
+          <p>
+            Messenger, Instagram DM and storefront chats appear together in this
+            inbox. Use filters when you need one channel.
+          </p>
+        </div>
+        <Button
+          variant={metaStatus === "connected" ? "secondary" : "primary"}
+          disabled={!shopId || isConnectingMeta || metaStatus === "connected"}
+          onClick={handleConnectMeta}
+        >
+          <Link2 size={15} />
+          {metaStatus === "connected"
+            ? "Connected"
+            : metaStatus === "pending"
+              ? "Connection pending"
+              : "Connect Facebook & Instagram"}
+        </Button>
+      </section>
 
       <nav className="inbox-mobile-panels" aria-label="Inbox view">
         {[["list", "Conversations"], ["thread", "Messages"], ["draft", "AI review"]].map(([value, label]) => <Button key={value} variant={panel === value ? "primary" : "secondary"} aria-pressed={panel === value} disabled={value !== "list" && !selectedId} onClick={() => setPanel(value)}>{label}</Button>)}
