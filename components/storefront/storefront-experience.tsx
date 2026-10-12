@@ -115,6 +115,9 @@ export default function StorefrontExperience({
   const [ordering, setOrdering] = useState(false);
   const [orderNotice, setOrderNotice] = useState<string | null>(null);
   const [orderError, setOrderError] = useState<string | null>(null);
+  const [checkoutRequestId, setCheckoutRequestId] = useState(() =>
+    crypto.randomUUID(),
+  );
 
   const isPreview = useMemo(() => {
     if (typeof window === "undefined") return false;
@@ -205,6 +208,8 @@ export default function StorefrontExperience({
   const cartSubtotal = useMemo(() => {
     return cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
   }, [cartItems]);
+  const deliveryCharge = store?.shop.policyDefaults.deliveryCharge ?? 0;
+  const cartTotal = cartSubtotal + deliveryCharge;
 
   function addToCart(
     item: {
@@ -231,12 +236,16 @@ export default function StorefrontExperience({
       }
       return [...prev, { ...item, quantity: qty }];
     });
+    setCheckoutRequestId(crypto.randomUUID());
+    setOrderNotice(null);
     setAddedNotice(`Added "${item.productName}" to your bag.`);
     setTimeout(() => setAddedNotice(null), 3500);
     setCartOpen(true);
   }
 
   function updateCartQuantity(productId: string, variantId: string | undefined, delta: number) {
+    setCheckoutRequestId(crypto.randomUUID());
+    setOrderNotice(null);
     setCartItems((prev) =>
       prev
         .map((i) => {
@@ -251,6 +260,8 @@ export default function StorefrontExperience({
   }
 
   function removeFromCart(productId: string, variantId?: string) {
+    setCheckoutRequestId(crypto.randomUUID());
+    setOrderNotice(null);
     setCartItems((prev) =>
       prev.filter(
         (i) => !(i.productId === productId && i.variantId === variantId),
@@ -259,13 +270,13 @@ export default function StorefrontExperience({
   }
 
   async function placeOrder() {
-    if (!cartItems.length) return;
+    if (!cartItems.length || ordering) return;
     setOrdering(true);
     setOrderError(null);
     setOrderNotice(null);
     try {
       const order = await storefrontService.checkout(subdomain, {
-        requestId: crypto.randomUUID(),
+        requestId: checkoutRequestId,
         buyer: {
           name: orderForm.name.trim(),
           phone: orderForm.phone.trim(),
@@ -279,6 +290,7 @@ export default function StorefrontExperience({
         })),
       });
       setCartItems([]);
+      setCheckoutRequestId(crypto.randomUUID());
       setOrderNotice(`Order ${order.orderNumber} received.`);
     } catch (err) {
       setOrderError(
@@ -1331,6 +1343,20 @@ export default function StorefrontExperience({
                         cartSubtotal,
                         store?.shop.currency ?? "BDT",
                       )}
+                    </strong>
+                  </div>
+                  <div className="buyer-cart-subtotal-row">
+                    <span>Delivery</span>
+                    <strong className="buyer-cart-subtotal-val">
+                      {deliveryCharge === 0
+                        ? "Free"
+                        : formatMoney(deliveryCharge, store?.shop.currency ?? "BDT")}
+                    </strong>
+                  </div>
+                  <div className="buyer-cart-subtotal-row">
+                    <span>Total</span>
+                    <strong className="buyer-cart-subtotal-val">
+                      {formatMoney(cartTotal, store?.shop.currency ?? "BDT")}
                     </strong>
                   </div>
 

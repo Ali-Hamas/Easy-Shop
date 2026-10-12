@@ -228,5 +228,7 @@ export type StorefrontOrder = {
   orderNumber: string;
   status: string;
   currency: string;
-  total: { $numberDecimal?: string } | string | number;
+  subtotal: number;
+  deliveryCharge: number;
+  total: number;
 };

@@ -194,6 +194,8 @@ async function forward(
         SHOP_NOT_FOUND:
           "This shop could not be found. Check the saved shop ID.",
         PRODUCT_NOT_FOUND: "This product is not available.",
+        INSUFFICIENT_STOCK:
+          "One product does not have enough stock. Adjust your bag and try again.",
         SUBDOMAIN_TAKEN: "That address is already in use. Choose another.",
         SUBDOMAIN_TOO_SHORT:
           "Use at least three letters or numbers for the address.",

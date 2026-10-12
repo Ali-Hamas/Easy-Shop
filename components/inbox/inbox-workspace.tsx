@@ -61,11 +61,14 @@ export function InboxWorkspace() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const result = params.get("meta");
-    if (result === "failed")
-      setErrorMessage("Facebook and Instagram connection did not finish.");
-    if (result) router.replace("/inbox");
+    const timer = setTimeout(() => {
+      const params = new URLSearchParams(window.location.search);
+      const result = params.get("meta");
+      if (result === "failed")
+        setErrorMessage("Facebook and Instagram connection did not finish.");
+      if (result) router.replace("/inbox");
+    }, 0);
+    return () => clearTimeout(timer);
   }, [router]);
 
   // Load conversation list
