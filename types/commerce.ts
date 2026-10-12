@@ -207,3 +207,26 @@ export type ProductDetail = {
     stock: number;
   }[];
 };
+
+export type CheckoutInput = {
+  requestId: string;
+  buyer: {
+    name: string;
+    phone: string;
+    address: string;
+    notes?: string;
+  };
+  items: {
+    productId: string;
+    variantId: string;
+    quantity: number;
+  }[];
+};
+
+export type StorefrontOrder = {
+  id: string;
+  orderNumber: string;
+  status: string;
+  currency: string;
+  total: { $numberDecimal?: string } | string | number;
+};

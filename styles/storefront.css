@@ -1354,6 +1354,39 @@
   color: var(--buyer-muted);
   margin: 0 0 16px;
 }
+.buyer-checkout-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.buyer-checkout-fields input,
+.buyer-checkout-fields textarea {
+  width: 100%;
+  border: 1px solid var(--buyer-line);
+  border-radius: var(--buyer-radius-sm);
+  padding: 10px 12px;
+  font: inherit;
+  font-size: 13px;
+  color: var(--buyer-ink);
+  background: var(--buyer-surface);
+}
+.buyer-checkout-fields textarea {
+  min-height: 72px;
+  resize: vertical;
+}
+.buyer-checkout-error,
+.buyer-checkout-success {
+  font-size: 12px;
+  line-height: 1.4;
+  margin: 0 0 10px;
+}
+.buyer-checkout-error {
+  color: #dc2626;
+}
+.buyer-checkout-success {
+  color: #15803d;
+}
 .buyer-cart-order-btn {
   width: 100%;
   height: 48px;

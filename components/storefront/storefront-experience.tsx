@@ -22,7 +22,6 @@ import {
   Plus,
   Minus,
   Check,
-  MessageCircle,
 } from "lucide-react";
 import { StorefrontChat } from "./storefront-chat";
 import { storefrontService } from "@/services/commerce";
@@ -107,6 +106,15 @@ export default function StorefrontExperience({
   const [cartOpen, setCartOpen] = useState(false);
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [addedNotice, setAddedNotice] = useState<string | null>(null);
+  const [orderForm, setOrderForm] = useState({
+    name: "",
+    phone: "",
+    address: "",
+    notes: "",
+  });
+  const [ordering, setOrdering] = useState(false);
+  const [orderNotice, setOrderNotice] = useState<string | null>(null);
+  const [orderError, setOrderError] = useState<string | null>(null);
 
   const isPreview = useMemo(() => {
     if (typeof window === "undefined") return false;
@@ -248,6 +256,37 @@ export default function StorefrontExperience({
         (i) => !(i.productId === productId && i.variantId === variantId),
       ),
     );
+  }
+
+  async function placeOrder() {
+    if (!cartItems.length) return;
+    setOrdering(true);
+    setOrderError(null);
+    setOrderNotice(null);
+    try {
+      const order = await storefrontService.checkout(subdomain, {
+        requestId: crypto.randomUUID(),
+        buyer: {
+          name: orderForm.name.trim(),
+          phone: orderForm.phone.trim(),
+          address: orderForm.address.trim(),
+          ...(orderForm.notes.trim() ? { notes: orderForm.notes.trim() } : {}),
+        },
+        items: cartItems.map((item) => ({
+          productId: item.productId,
+          variantId: item.variantId ?? item.productId,
+          quantity: item.quantity,
+        })),
+      });
+      setCartItems([]);
+      setOrderNotice(`Order ${order.orderNumber} received.`);
+    } catch (err) {
+      setOrderError(
+        err instanceof Error ? err.message : "Order could not be placed.",
+      );
+    } finally {
+      setOrdering(false);
+    }
   }
 
   const shopInitials = store?.shop.displayName
@@ -1296,22 +1335,55 @@ export default function StorefrontExperience({
                   </div>
 
                   <p className="buyer-cart-disclaimer">
-                    Your bag is a selection, not a placed order. Confirm availability, payment and delivery with the seller.
+                    Confirm your details. The seller will review availability, payment and delivery.
                   </p>
+
+                  <div className="buyer-checkout-fields">
+                    <input
+                      value={orderForm.name}
+                      onChange={(e) =>
+                        setOrderForm((v) => ({ ...v, name: e.target.value }))
+                      }
+                      placeholder="Your name"
+                      maxLength={120}
+                    />
+                    <input
+                      value={orderForm.phone}
+                      onChange={(e) =>
+                        setOrderForm((v) => ({ ...v, phone: e.target.value }))
+                      }
+                      placeholder="Phone number"
+                      maxLength={30}
+                    />
+                    <textarea
+                      value={orderForm.address}
+                      onChange={(e) =>
+                        setOrderForm((v) => ({ ...v, address: e.target.value }))
+                      }
+                      placeholder="Delivery address"
+                      maxLength={400}
+                    />
+                    <input
+                      value={orderForm.notes}
+                      onChange={(e) =>
+                        setOrderForm((v) => ({ ...v, notes: e.target.value }))
+                      }
+                      placeholder="Notes (optional)"
+                      maxLength={1000}
+                    />
+                  </div>
+
+                  {orderError && <p className="buyer-checkout-error">{orderError}</p>}
+                  {orderNotice && <p className="buyer-checkout-success">{orderNotice}</p>}
 
                   <button
                     type="button"
-                    onClick={() => {
-                      setCartOpen(false);
-                      const chatLauncher = document.querySelector(
-                        ".storefront-chat-launcher",
-                      ) as HTMLButtonElement | null;
-                      chatLauncher?.click();
-                    }}
+                    onClick={placeOrder}
+                    disabled={ordering}
                     className="buyer-cart-order-btn"
                   >
-                    <MessageCircle size={18} />
-                    <span>Ask about your bag</span>
+                    <Check size={18} />
+                    <span>{ordering ? "Placing order..." : "Place order"}</span>
                   </button>
                 </div>
               )}

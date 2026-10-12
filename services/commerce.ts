@@ -7,6 +7,8 @@ import type {
   StoreTemplate,
   PublicStore,
   ProductDetail,
+  CheckoutInput,
+  StorefrontOrder,
 } from "@/types/commerce";
 import { apiRequest } from "@/lib/api/client";
 const base = "onboarding";
@@ -72,4 +74,9 @@ export const storefrontService = {
       { signal },
     );
   },
+  checkout: (subdomain: string, body: CheckoutInput) =>
+    apiRequest<StorefrontOrder>(
+      `orders/storefront/${encodeURIComponent(subdomain)}/orders`,
+      { method: "POST", body },
+    ),
 };

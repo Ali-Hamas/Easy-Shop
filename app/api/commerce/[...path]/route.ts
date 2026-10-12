@@ -2,6 +2,9 @@ import type { NextRequest } from "next/server";
 const uuid = "[a-fA-F0-9-]{36}";
 function permitted(path: string, method: string) {
   if (new RegExp(`^dashboard/${uuid}$`).test(path)) return method === "GET";
+  if (new RegExp(`^orders/${uuid}$`).test(path)) return method === "GET";
+  if (new RegExp(`^orders/storefront/[A-Za-z0-9-]+/orders$`).test(path))
+    return method === "POST";
   if (/^storefront\/[A-Za-z0-9-]+\/chat\/(session|messages)$/.test(path))
     return (
       method === "POST" || (method === "GET" && path.endsWith("/messages"))

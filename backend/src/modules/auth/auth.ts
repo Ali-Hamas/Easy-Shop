@@ -111,8 +111,10 @@ export function installAuth(app: FastifyInstance) {
     const protectedRoute =
       /^\/api\/v1\/(onboarding|inventory|customers|inbox|dashboard)(\/|$)/.test(
         path,
-      );
-    const publicSessionRoute = path.startsWith("/api/v1/storefront/");
+      ) || /^\/api\/v1\/orders\/[a-fA-F0-9-]{36}(\/|$)/.test(path);
+    const publicSessionRoute =
+      path.startsWith("/api/v1/storefront/") ||
+      path.startsWith("/api/v1/orders/storefront/");
     const authRoute = path.startsWith("/api/v1/auth/");
     if (!protectedRoute && !authRoute && !publicSessionRoute) return;
     reply.header("Cache-Control", "no-store");
