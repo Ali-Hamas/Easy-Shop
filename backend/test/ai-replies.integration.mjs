@@ -20,7 +20,12 @@ let app;
 let checks = 0;
 
 async function call(method, url, payload, status = 200) {
-  const r = await app.inject({ method, url, payload });
+  const r = await app.inject({
+    method,
+    url,
+    payload,
+    headers: { origin: process.env.APP_ORIGIN ?? "http://localhost:3000" },
+  });
   assert.equal(
     r.statusCode,
     status,
@@ -309,6 +314,7 @@ try {
     method: "POST",
     url: `/api/v1/inbox/${shopId}/conversations/${conv.id}/drafts/${draft.id}/send`,
     payload: { requestId: randomUUID() },
+    headers: { origin: process.env.APP_ORIGIN ?? "http://localhost:3000" },
   });
   assert.equal(
     sendEarlyReq.statusCode,
@@ -463,6 +469,7 @@ try {
     method: "POST",
     url: `/api/v1/inbox/${shopId}/conversations/${conv.id}/drafts/${escalationDraft.id}/send`,
     payload: { requestId: randomUUID() },
+    headers: { origin: process.env.APP_ORIGIN ?? "http://localhost:3000" },
   });
   assert.equal(
     sendRejected.statusCode,
