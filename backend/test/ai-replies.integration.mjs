@@ -370,7 +370,7 @@ try {
     200,
   );
   assert.equal(approvedDraft.status, "approved");
-  assert.equal(approvedDraft.reviewedBy, "local-development");
+  assert.match(approvedDraft.reviewedBy, /^[a-f0-9-]{36}$/);
   assert.ok(approvedDraft.reviewedAt);
 
   // Verify draft is approved, but message is STILL not sent!
