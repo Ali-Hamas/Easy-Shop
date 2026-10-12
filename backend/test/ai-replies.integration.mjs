@@ -211,12 +211,13 @@ try {
     {
       requestId: convReqId,
       customerId,
-      channel: "messenger",
+      channel: "storefront",
+      channelThreadId: "buyer:inbox-test",
     },
     201,
   );
   assert.equal(conv.customerId, customerId);
-  assert.equal(conv.channel, "messenger");
+  assert.equal(conv.channel, "storefront");
   assert.equal(conv.status, "open");
   assert.equal(conv.aiStatus, "idle");
   assert.equal(conv.unreadCount, 0);
@@ -228,7 +229,8 @@ try {
     {
       requestId: convReqId,
       customerId,
-      channel: "messenger",
+      channel: "storefront",
+      channelThreadId: "buyer:inbox-test",
     },
     201,
   );
