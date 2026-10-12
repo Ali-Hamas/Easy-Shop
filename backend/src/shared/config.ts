@@ -24,7 +24,7 @@ const result = z
     META_OAUTH_SCOPES: z
       .string()
       .default(
-        "pages_show_list,pages_manage_metadata,pages_messaging,instagram_basic,instagram_manage_messages",
+        "pages_show_list,pages_manage_metadata,pages_messaging,pages_read_engagement,pages_read_user_content,pages_manage_posts,pages_manage_engagement,read_insights,business_management,instagram_basic,instagram_manage_messages,instagram_content_publish,instagram_manage_comments,instagram_manage_insights",
       ),
   })
   .safeParse(process.env);
