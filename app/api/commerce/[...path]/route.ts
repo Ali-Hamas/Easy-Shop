@@ -43,6 +43,9 @@ function permitted(path: string, method: string) {
     if (new RegExp(`^inbox/${uuid}/channels/meta/connect$`).test(path)) {
       return method === "POST";
     }
+    if (path === "inbox/channels/meta/callback") {
+      return method === "GET";
+    }
     if (new RegExp(`^inbox/${uuid}/conversations$`).test(path)) {
       return method === "GET" || method === "POST";
     }
@@ -158,6 +161,12 @@ async function forward(
           "AI is turned off for this shop. Change the supported AI option in shop setup.",
         CHANNEL_UNAVAILABLE:
           "This customer channel is not connected. Nothing was sent.",
+        META_NOT_CONFIGURED:
+          "Meta app credentials are not configured yet.",
+        META_NO_PAGES:
+          "Meta did not grant access to a Facebook Page. Try connecting again and choose a Page.",
+        META_REQUEST_FAILED:
+          "Meta could not complete the connection request.",
         BUYER_SESSION_REQUIRED:
           "Your chat session has ended. Reopen the chat to continue.",
         INVALID_CREDENTIALS: "Email or password is incorrect.",

@@ -37,6 +37,13 @@ export const listConversationsSchema = z
   })
   .strict();
 
+export const metaCallbackSchema = z
+  .object({
+    code: z.string().min(1),
+    state: z.string().min(20).max(200),
+  })
+  .strict();
+
 export const createConversationSchema = z
   .object({
     customerId: z.string().uuid("Invalid customer ID."),

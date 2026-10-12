@@ -18,7 +18,7 @@ export const inboxService = {
     }),
 
   requestMetaConnection: (shopId: string) =>
-    apiRequest<{ channels: ChannelConnection[] }>(
+    apiRequest<{ channels: ChannelConnection[]; authUrl: string }>(
       `${base(shopId)}/channels/meta/connect`,
       { method: "POST" },
     ),

@@ -189,6 +189,7 @@ export async function ensureIndexes(db: Db) {
   await c.ledger.createIndex({ shopId: 1, variantId: 1, createdAt: 1 });
   await c.audit.createIndex({ shopId: 1, createdAt: 1 });
   await c.channels.createIndex({ shopId: 1, provider: 1 }, { unique: true });
+  await db.collection("metaOAuthStates").createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 });
   await db
     .collection("conversations")
     .createIndex({ shopId: 1, lastActivityAt: -1, _id: 1 });

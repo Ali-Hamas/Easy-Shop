@@ -18,6 +18,14 @@ const result = z
     OPENAI_API_KEY: z.string().default(""),
     OPENAI_MODEL: z.string().default("gpt-4o-mini"),
     AI_REPLY_PROVIDER: z.enum(["openai", "rule"]).default("openai"),
+    META_APP_ID: z.string().default(""),
+    META_APP_SECRET: z.string().default(""),
+    META_GRAPH_VERSION: z.string().default("v25.0"),
+    META_OAUTH_SCOPES: z
+      .string()
+      .default(
+        "pages_show_list,pages_manage_metadata,pages_messaging,instagram_basic,instagram_manage_messages",
+      ),
   })
   .safeParse(process.env);
 if (!result.success)
@@ -36,4 +44,8 @@ export const config = {
   openaiApiKey: env.OPENAI_API_KEY,
   openaiModel: env.OPENAI_MODEL,
   aiReplyProvider: env.AI_REPLY_PROVIDER,
+  metaAppId: env.META_APP_ID,
+  metaAppSecret: env.META_APP_SECRET,
+  metaGraphVersion: env.META_GRAPH_VERSION,
+  metaOAuthScopes: env.META_OAUTH_SCOPES,
 };

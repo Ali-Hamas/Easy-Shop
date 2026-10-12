@@ -59,6 +59,14 @@ export function InboxWorkspace() {
   const [isConnectingMeta, setIsConnectingMeta] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const result = params.get("meta");
+    if (result === "failed")
+      setErrorMessage("Facebook and Instagram connection did not finish.");
+    if (result) router.replace("/inbox");
+  }, [router]);
+
   // Load conversation list
   useEffect(() => {
     if (!shopId) return;
@@ -389,6 +397,7 @@ export function InboxWorkspace() {
     try {
       const res = await inboxService.requestMetaConnection(shopId);
       setChannels(res.channels);
+      window.location.assign(res.authUrl);
     } catch (err: unknown) {
       setErrorMessage(
         err instanceof Error
@@ -474,7 +483,7 @@ export function InboxWorkspace() {
         </div>
         <Button
           variant={metaStatus === "connected" ? "secondary" : "primary"}
-          disabled={!shopId || isConnectingMeta || metaStatus === "connected"}
+          disabled={!shopId || isConnectingMeta}
           onClick={handleConnectMeta}
         >
           <Link2 size={15} />

@@ -4,6 +4,7 @@ import { ZodError } from "zod";
 import { AiReplyError, aiReplyService } from "./ai-replies.service.js";
 import {
   paramsSchema,
+  metaCallbackSchema,
   listConversationsSchema,
   createConversationSchema,
   addMessageSchema,
@@ -38,6 +39,11 @@ export async function registerAiReplyRoutes(app: FastifyInstance) {
   app.post("/:shopId/channels/meta/connect", async (req) => {
     const { shopId } = paramsSchema.parse(req.params);
     return aiReplyService.requestMetaConnection(shopId);
+  });
+
+  app.get("/channels/meta/callback", async (req) => {
+    const { code, state } = metaCallbackSchema.parse(req.query);
+    return aiReplyService.completeMetaConnection(code, state);
   });
 
   // 1. List conversations

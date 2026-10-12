@@ -1,6 +1,6 @@
 import { inventoryService } from "../inventory/inventory.service.js";
 import { currentActor } from "../auth/auth.js";
-import { randomUUID, createHash } from "node:crypto";
+import { randomUUID, createHash, randomBytes } from "node:crypto";
 import type { Db, ClientSession, Filter } from "mongodb";
 import { connectDb, transaction } from "../../shared/db.js";
 import { publicDocument } from "../../shared/models.js";
@@ -138,6 +138,14 @@ const messages = (db: Db) => db.collection<MessageDocument>("messages");
 const drafts = (db: Db) => db.collection<AiDraftDocument>("aiDrafts");
 const customerEventsCol = (db: Db) =>
   db.collection<CustomerTimelineEvent>("customerEvents");
+const metaStates = (db: Db) =>
+  db.collection<{
+    _id: string;
+    shopId: string;
+    actorId: string;
+    createdAt: Date;
+    expiresAt: Date;
+  }>("metaOAuthStates");
 
 const digest = (value: unknown) =>
   createHash("sha256").update(JSON.stringify(value)).digest("hex");
@@ -223,6 +231,151 @@ async function appendAuditEvent(
       },
       { session },
     );
+}
+
+type MetaPage = {
+  id: string;
+  name?: string;
+  access_token?: string;
+  instagram_business_account?: { id: string; username?: string };
+};
+
+type MetaConversation = {
+  id: string;
+  updated_time?: string;
+  senders?: { data?: Array<{ id: string; name?: string }> };
+  messages?: {
+    data?: Array<{
+      id: string;
+      message?: string;
+      created_time?: string;
+      from?: { id: string; name?: string };
+    }>;
+  };
+};
+
+async function metaGraph<T>(
+  path: string,
+  token?: string,
+  init: RequestInit = {},
+): Promise<T> {
+  const url = new URL(
+    `https://graph.facebook.com/${config.metaGraphVersion}/${path}`,
+  );
+  if (token) url.searchParams.set("access_token", token);
+  const response = await fetch(url, init);
+  const data = (await response.json()) as { error?: { message?: string } };
+  if (!response.ok)
+    throw new AiReplyError(
+      502,
+      "META_REQUEST_FAILED",
+      data.error?.message ?? "Meta could not complete the request.",
+    );
+  return data as T;
+}
+
+async function syncMetaConversations(
+  db: Db,
+  shopId: string,
+  page: MetaPage,
+  channel: ChannelType,
+) {
+  if (!page.access_token) return;
+  const response = await metaGraph<{ data?: MetaConversation[] }>(
+    `${page.id}/conversations?${new URLSearchParams({
+      ...(channel === "instagram" ? { platform: "instagram" } : {}),
+      fields:
+        "id,updated_time,senders,messages.limit(1){id,message,created_time,from}",
+      limit: "25",
+    })}`,
+    page.access_token,
+  );
+  for (const item of response.data ?? []) {
+    const latest = item.messages?.data?.[0];
+    if (!latest?.message) continue;
+    const sender =
+      item.senders?.data?.find((s) => s.id !== page.id) ?? latest.from;
+    const senderId = sender?.id ?? item.id;
+    const now = new Date().toISOString();
+    const customer = await db
+      .collection<{ _id: string }>("customers")
+      .findOneAndUpdate(
+        { shopId, "externalRefs.metaSenderId": senderId },
+        {
+          $set: {
+            name: sender?.name ?? `${channel} customer`,
+            source: channel === "instagram" ? "instagram" : "facebook",
+            status: "active",
+            lastActivityAt: latest.created_time ?? item.updated_time ?? now,
+            updatedAt: now,
+          },
+          $setOnInsert: {
+            _id: randomUUID(),
+            shopId,
+            phone: "",
+            email: "",
+            addresses: [],
+            language: "unspecified",
+            tags: [channel],
+            version: 1,
+            createdAt: now,
+            requestId: randomUUID(),
+            fingerprint: digest({ shopId, senderId }),
+            externalRefs: { metaSenderId: senderId },
+          },
+        },
+        { upsert: true, returnDocument: "after" },
+      );
+    if (!customer) continue;
+    const customerId = String(customer._id);
+    const conversation = await conversations(db).findOneAndUpdate(
+      { shopId, channelThreadId: item.id },
+      {
+        $set: {
+          customerId,
+          channel,
+          status: "open",
+          aiStatus: "idle",
+          unreadCount: 0,
+          lastMessage: {
+            text: latest.message,
+            sender: "customer",
+            createdAt: latest.created_time ?? now,
+          },
+          lastActivityAt: latest.created_time ?? item.updated_time ?? now,
+          updatedAt: now,
+        },
+        $setOnInsert: {
+          _id: randomUUID(),
+          shopId,
+          channelThreadId: item.id,
+          createdAt: now,
+          requestId: randomUUID(),
+          fingerprint: digest({ shopId, thread: item.id }),
+        },
+      },
+      { upsert: true, returnDocument: "after" },
+    );
+    if (!conversation) continue;
+    await messages(db).updateOne(
+      { shopId, requestId: latest.id },
+      {
+        $setOnInsert: {
+          _id: randomUUID(),
+          shopId,
+          conversationId: String(conversation._id),
+          customerId,
+          sender: "customer",
+          text: latest.message,
+          source: "incoming",
+          createdAt: latest.created_time ?? now,
+          requestId: latest.id,
+          fingerprint: digest({ shopId, message: latest.id }),
+        },
+      },
+      { upsert: true },
+    );
+  }
 }
 
 // -------------------------------------------------------------
@@ -430,22 +583,39 @@ export const aiReplyService = {
   },
 
   async requestMetaConnection(shopId: string) {
+    if (!config.metaAppId || !config.metaAppSecret)
+      throw new AiReplyError(
+        503,
+        "META_NOT_CONFIGURED",
+        "Meta app credentials are not configured.",
+      );
+    const db = await connectDb();
+    await checkShop(db, shopId);
+    const state = randomBytes(24).toString("hex");
+    const now = new Date();
+    await metaStates(db).insertOne({
+      _id: state,
+      shopId,
+      actorId: currentActor(),
+      createdAt: now,
+      expiresAt: new Date(now.getTime() + 10 * 60 * 1000),
+    });
     await transaction(async (db, session) => {
       await checkShop(db, shopId, session);
-      const now = new Date().toISOString();
+      const timestamp = now.toISOString();
       await db.collection("shopChannels").updateOne(
         { shopId, provider: "meta" },
         {
           $set: {
             status: "pending",
-            reason: "facebook-instagram-connection-requested",
-            updatedAt: now,
+            reason: "waiting-for-meta-oauth",
+            updatedAt: timestamp,
           },
           $setOnInsert: {
             _id: randomUUID(),
             shopId,
             provider: "meta",
-            createdAt: now,
+            createdAt: timestamp,
           },
         },
         { upsert: true, session },
@@ -455,10 +625,124 @@ export const aiReplyService = {
         action: "channel.meta_connection_requested",
         entityType: "channel",
         entityId: "meta",
-        createdAt: now,
+        createdAt: timestamp,
       });
     });
-    return this.listChannels(shopId);
+    const redirectUri = `${config.appOrigin}/api/meta/oauth/callback`;
+    const url = new URL(
+      `https://www.facebook.com/${config.metaGraphVersion}/dialog/oauth`,
+    );
+    url.searchParams.set("client_id", config.metaAppId);
+    url.searchParams.set("redirect_uri", redirectUri);
+    url.searchParams.set("state", state);
+    url.searchParams.set("response_type", "code");
+    url.searchParams.set("scope", config.metaOAuthScopes);
+    return { ...(await this.listChannels(shopId)), authUrl: url.toString() };
+  },
+
+  async completeMetaConnection(code: string, state: string) {
+    const db = await connectDb();
+    const saved = await metaStates(db).findOneAndDelete({
+      _id: state,
+      expiresAt: { $gt: new Date() },
+    });
+    if (!saved)
+      throw new AiReplyError(
+        400,
+        "META_STATE_INVALID",
+        "Meta connection expired. Start again from the inbox.",
+      );
+    if (saved.actorId !== currentActor())
+      throw new AiReplyError(
+        403,
+        "META_STATE_INVALID",
+        "Meta connection expired. Start again from the inbox.",
+      );
+    await checkShop(db, saved.shopId);
+    const redirectUri = `${config.appOrigin}/api/meta/oauth/callback`;
+    const tokenUrl = new URL(
+      `https://graph.facebook.com/${config.metaGraphVersion}/oauth/access_token`,
+    );
+    tokenUrl.searchParams.set("client_id", config.metaAppId);
+    tokenUrl.searchParams.set("client_secret", config.metaAppSecret);
+    tokenUrl.searchParams.set("redirect_uri", redirectUri);
+    tokenUrl.searchParams.set("code", code);
+    const shortToken = await fetch(tokenUrl);
+    const shortData = (await shortToken.json()) as {
+      access_token?: string;
+      error?: { message?: string };
+    };
+    if (!shortToken.ok || !shortData.access_token)
+      throw new AiReplyError(
+        502,
+        "META_TOKEN_FAILED",
+        shortData.error?.message ?? "Meta did not return an access token.",
+      );
+    const longToken = await metaGraph<{ access_token?: string }>(
+      `oauth/access_token?${new URLSearchParams({
+        grant_type: "fb_exchange_token",
+        client_id: config.metaAppId,
+        client_secret: config.metaAppSecret,
+        fb_exchange_token: shortData.access_token,
+      })}`,
+    );
+    const userToken = longToken.access_token ?? shortData.access_token;
+    const pages = await metaGraph<{ data?: MetaPage[] }>(
+      `me/accounts?${new URLSearchParams({
+        fields: "id,name,access_token,instagram_business_account{id,username}",
+        limit: "25",
+      })}`,
+      userToken,
+    );
+    const connectedPages = (pages.data ?? []).filter((p) => p.access_token);
+    if (!connectedPages.length)
+      throw new AiReplyError(
+        422,
+        "META_NO_PAGES",
+        "No Facebook Page was granted. Choose a Page during Meta authorization.",
+      );
+    const now = new Date().toISOString();
+    for (const page of connectedPages) {
+      if (page.access_token) {
+        await metaGraph(
+          `${page.id}/subscribed_apps?${new URLSearchParams({
+            subscribed_fields: "messages,messaging_postbacks",
+          })}`,
+          page.access_token,
+          { method: "POST" },
+        ).catch(() => undefined);
+        await syncMetaConversations(db, saved.shopId, page, "messenger");
+        if (page.instagram_business_account)
+          await syncMetaConversations(db, saved.shopId, page, "instagram").catch(
+            () => undefined,
+          );
+      }
+    }
+    await db.collection("shopChannels").updateOne(
+      { shopId: saved.shopId, provider: "meta" },
+      {
+        $set: {
+          status: "connected",
+          reason: "facebook-instagram-connected",
+          updatedAt: now,
+          metadata: {
+            pages: connectedPages.map((p) => ({
+              id: p.id,
+              name: p.name,
+              instagramBusinessAccount: p.instagram_business_account,
+            })),
+          },
+        },
+        $setOnInsert: {
+          _id: randomUUID(),
+          shopId: saved.shopId,
+          provider: "meta",
+          createdAt: now,
+        },
+      },
+      { upsert: true },
+    );
+    return { shopId: saved.shopId };
   },
 
   async listConversations(

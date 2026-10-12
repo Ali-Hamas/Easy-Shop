@@ -6,6 +6,7 @@ export interface ChannelConnection {
   provider: "meta" | "instagram" | "whatsapp" | "courier";
   status: "skipped" | "pending" | "connected" | "failed";
   reason?: string;
+  metadata?: Record<string, unknown>;
   createdAt: string;
   updatedAt?: string;
 }
