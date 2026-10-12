@@ -280,7 +280,8 @@ try {
   );
   assert.equal(draft.status, "ready");
   assert.equal(draft.conversationId, conv.id);
-  assert.equal(draft.confidence, "high");
+  assert.equal(draft.confidence, "review");
+  assert.equal(draft.needsHumanAttention, true);
   assert.ok(
     draft.groundingSummary,
     "Draft must have a groundingSummary explanation",
