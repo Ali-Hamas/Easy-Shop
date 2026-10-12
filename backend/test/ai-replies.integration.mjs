@@ -17,6 +17,7 @@ const { ensureIndexes } = await import("../dist/shared/models.js");
 
 let db;
 let app;
+let cookie = "";
 let checks = 0;
 
 async function call(method, url, payload, status = 200) {
@@ -24,7 +25,10 @@ async function call(method, url, payload, status = 200) {
     method,
     url,
     payload,
-    headers: { origin: process.env.APP_ORIGIN ?? "http://localhost:3000" },
+    headers: {
+      origin: process.env.APP_ORIGIN ?? "http://localhost:3000",
+      cookie,
+    },
   });
   assert.equal(
     r.statusCode,
@@ -39,6 +43,22 @@ try {
   db = await connectDb();
   await ensureIndexes(db);
   app = await buildApp();
+
+  const account = await app.inject({
+    method: "POST",
+    url: "/api/v1/auth/register",
+    headers: {
+      origin: process.env.APP_ORIGIN ?? "http://localhost:3000",
+      cookie,
+    },
+    payload: {
+      name: "Inbox Test Owner",
+      email: `inbox-owner-${randomUUID()}@example.test`,
+      password: `Test-only-${randomUUID()}`,
+    },
+  });
+  assert.equal(account.statusCode, 201);
+  cookie = account.headers["set-cookie"].split(";")[0];
 
   // 1. Setup Shop via onboarding
   const setup = await call(
@@ -314,7 +334,10 @@ try {
     method: "POST",
     url: `/api/v1/inbox/${shopId}/conversations/${conv.id}/drafts/${draft.id}/send`,
     payload: { requestId: randomUUID() },
-    headers: { origin: process.env.APP_ORIGIN ?? "http://localhost:3000" },
+    headers: {
+      origin: process.env.APP_ORIGIN ?? "http://localhost:3000",
+      cookie,
+    },
   });
   assert.equal(
     sendEarlyReq.statusCode,
@@ -469,7 +492,10 @@ try {
     method: "POST",
     url: `/api/v1/inbox/${shopId}/conversations/${conv.id}/drafts/${escalationDraft.id}/send`,
     payload: { requestId: randomUUID() },
-    headers: { origin: process.env.APP_ORIGIN ?? "http://localhost:3000" },
+    headers: {
+      origin: process.env.APP_ORIGIN ?? "http://localhost:3000",
+      cookie,
+    },
   });
   assert.equal(
     sendRejected.statusCode,
@@ -499,6 +525,7 @@ try {
   const crossShopConv = await app.inject({
     method: "GET",
     url: `/api/v1/inbox/${shop2Id}/conversations/${conv.id}`,
+    headers: { cookie },
   });
   assert.equal(
     crossShopConv.statusCode,
@@ -514,6 +541,7 @@ try {
   const blockedReq = await app.inject({
     method: "GET",
     url: `/api/v1/inbox/${shopId}/conversations`,
+    headers: { cookie },
   });
   assert.equal(
     blockedReq.statusCode,
