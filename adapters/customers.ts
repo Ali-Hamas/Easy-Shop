@@ -47,8 +47,10 @@ export const languageLabels = {
   "roman-urdu": "Roman Urdu",
 };
 export function customerDate(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "Unknown date";
   return new Intl.DateTimeFormat("en", {
     dateStyle: "medium",
     timeStyle: "short",
-  }).format(new Date(value));
+  }).format(date);
 }

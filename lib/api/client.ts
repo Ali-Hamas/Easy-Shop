@@ -4,6 +4,7 @@ export class ApiError extends Error {
     public code: string,
     message: string,
     public issues: { path: (string | number)[]; message: string }[] = [],
+    public meta: Record<string, unknown> = {},
   ) {
     super(message);
     this.name = "ApiError";
@@ -31,13 +32,23 @@ export async function apiRequest<T>(
         ? AbortSignal.any([options.signal, AbortSignal.timeout(20000)])
         : AbortSignal.timeout(20000),
     });
-    const data = await response.json();
+    const text = await response.text();
+    const data = text
+      ? (() => {
+          try {
+            return JSON.parse(text);
+          } catch {
+            return {};
+          }
+        })()
+      : {};
     if (!response.ok)
       throw new ApiError(
         response.status,
         data.code ?? "REQUEST_FAILED",
         data.message ?? "The request could not be completed.",
         data.issues ?? [],
+        data,
       );
     return data as T;
   } catch (error) {

@@ -33,6 +33,7 @@ export async function buildApp() {
       ],
     },
     bodyLimit: 15 * 1024 * 1024,
+    trustProxy: true,
   });
   installAuth(app);
   app.setErrorHandler((error, _request, reply) => {
@@ -64,7 +65,7 @@ export async function buildApp() {
 
   app.addHook("onRequest", requestContextHook);
   await app.register(helmet);
-  await app.register(cors, { origin: config.appOrigin });
+  await app.register(cors, { origin: config.appOrigin, credentials: true });
   await app.register(rateLimit, { max: 120, timeWindow: "1 minute" });
   await app.register(swagger, {
     openapi: { info: { title: "Easy Shop Backend API", version: "0.1.0" } },

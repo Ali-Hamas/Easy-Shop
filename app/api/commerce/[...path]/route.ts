@@ -2,7 +2,7 @@ import type { NextRequest } from "next/server";
 const uuid = "[a-fA-F0-9-]{36}";
 function permitted(path: string, method: string) {
   if (new RegExp(`^dashboard/${uuid}$`).test(path)) return method === "GET";
-  if (/^storefront\/[a-z0-9-]+\/chat\/(session|messages)$/.test(path))
+  if (/^storefront\/[A-Za-z0-9-]+\/chat\/(session|messages)$/.test(path))
     return (
       method === "POST" || (method === "GET" && path.endsWith("/messages"))
     );
@@ -82,7 +82,7 @@ function permitted(path: string, method: string) {
   }
   return method === "GET"
     ? new RegExp(
-        `^(onboarding/(templates|${uuid})|storefront/[a-z0-9-]+(?:/products/[a-z0-9-]+)?)$`,
+        `^(onboarding/(templates|${uuid})|storefront/[A-Za-z0-9-]+(?:/products/[A-Za-z0-9-]+)?)$`,
       ).test(path)
     : method === "POST"
       ? new RegExp(
@@ -218,6 +218,10 @@ async function forward(
           "No account found with this email address.",
         RESET_TOKEN_INVALID:
           "Password reset session has expired or is invalid. Please request a new code.",
+        CURRENCY_LOCKED:
+          "Currency cannot be changed after products exist.",
+        TEMPLATE_NOT_LAUNCHABLE:
+          "Choose a production-ready template or add a real product before launch.",
       };
       return Response.json(
         {
@@ -237,18 +241,29 @@ async function forward(
                       : "Check this field.",
                 }))
               : [],
+          ...(typeof data.retryAfter === "number"
+            ? { retryAfter: data.retryAfter }
+            : {}),
+          ...(typeof data.remainingAttempts === "number"
+            ? { remainingAttempts: data.remainingAttempts }
+            : {}),
         },
         { status: response.status, headers: { "Cache-Control": "no-store" } },
       );
     }
+    const getSetCookie = (
+      response.headers as Headers & { getSetCookie?: () => string[] }
+    ).getSetCookie;
+    const setCookies = getSetCookie
+      ? getSetCookie.call(response.headers)
+      : response.headers.get("set-cookie")
+        ? [response.headers.get("set-cookie")!]
+        : [];
+    const headers = new Headers({ "Cache-Control": "no-store" });
+    for (const cookie of setCookies) headers.append("Set-Cookie", cookie);
     return Response.json(data, {
       status: response.status,
-      headers: {
-        "Cache-Control": "no-store",
-        ...(response.headers.get("set-cookie")
-          ? { "Set-Cookie": response.headers.get("set-cookie")! }
-          : {}),
-      },
+      headers,
     });
   } catch {
     return fail(

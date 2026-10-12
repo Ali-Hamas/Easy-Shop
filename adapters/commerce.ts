@@ -32,14 +32,15 @@ export function productPath(
   return storefrontUrl(subdomain, productUrl);
 }
 export function formatMoney(value: number, currency: string) {
+  const amount = Number.isFinite(value) ? value : 0;
   try {
     return new Intl.NumberFormat("en", {
       style: "currency",
       currency,
       maximumFractionDigits: 2,
-    }).format(value);
+    }).format(amount);
   } catch {
-    return `${currency} ${value.toFixed(2)}`;
+    return `${currency} ${amount.toFixed(2)}`;
   }
 }
 export const draftKey = "easy-shop:onboarding-id";

@@ -141,7 +141,11 @@ export default function OnboardingExperience({
   }
 
   async function retrieve(id: string) {
-    if (!/^[a-f0-9-]{36}$/i.test(id)) {
+    if (
+      !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+        id,
+      )
+    ) {
       setError(
         new ApiError(
           400,
@@ -489,7 +493,7 @@ export default function OnboardingExperience({
       else if (step === 1)
         next = await service.updateShop(state.shop.id, {
           displayName: values.displayName.trim(),
-          subdomain: values.subdomain,
+          subdomain: values.subdomain.trim(),
           ...(values.address.trim() ? { address: values.address.trim() } : {}),
           policyDefaults: {
             deliveryCharge: Number(values.deliveryCharge),

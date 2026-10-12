@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 
 const label = /^[a-z0-9-]{3,40}$/;
-const ignored = new Set(["www"]);
+const ignored = new Set(["www", "api", "admin", "app", "assets", "static"]);
 
 function storefrontRoot() {
   const configured = process.env.STOREFRONT_ROOT_DOMAIN;
   if (configured) return configured.toLowerCase();
   const origin = process.env.APP_ORIGIN;
-  return origin ? new URL(origin).hostname.toLowerCase() : "";
+  return origin ? new URL(origin).hostname.toLowerCase() : "nobleshop.uk";
 }
 
 export function proxy(request: NextRequest) {
@@ -27,7 +27,6 @@ export function proxy(request: NextRequest) {
     url.pathname === "/"
       ? `/store/${subdomain}`
       : `/store/${subdomain}${url.pathname}`;
-  url.protocol = "http:";
   return NextResponse.rewrite(url);
 }
 

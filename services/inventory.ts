@@ -19,7 +19,7 @@ export const inventoryService = {
       { signal },
     ),
   get: (shopId: string, id: string) =>
-    apiRequest<InventoryProduct>(`${base(shopId)}/${id}`),
+    apiRequest<InventoryProduct>(`${base(shopId)}/${encodeURIComponent(id)}`),
   create: (shopId: string, product: InventoryInput, requestId: string) =>
     apiRequest<InventoryProduct>(base(shopId), {
       method: "POST",
@@ -31,17 +31,20 @@ export const inventoryService = {
     product: InventoryInput,
     version: number,
   ) =>
-    apiRequest<InventoryProduct>(`${base(shopId)}/${id}`, {
+    apiRequest<InventoryProduct>(`${base(shopId)}/${encodeURIComponent(id)}`, {
       method: "PATCH",
       body: { product, version },
     }),
   adjust: (shopId: string, id: string, input: StockAdjustment) =>
-    apiRequest<InventoryProduct>(`${base(shopId)}/${id}/adjustments`, {
+    apiRequest<InventoryProduct>(
+      `${base(shopId)}/${encodeURIComponent(id)}/adjustments`,
+      {
       method: "POST",
       body: input,
-    }),
+      },
+    ),
   history: (shopId: string, id: string, page = 1) =>
     apiRequest<{ entries: StockEntry[]; total: number; page: number }>(
-      `${base(shopId)}/${id}/history?page=${page}`,
+      `${base(shopId)}/${encodeURIComponent(id)}/history?page=${page}`,
     ),
 };

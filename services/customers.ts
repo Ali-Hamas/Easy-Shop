@@ -17,7 +17,7 @@ export const customerService = {
       { signal },
     ),
   get: (shop: string, id: string, signal?: AbortSignal) =>
-    apiRequest<Customer>(`${base(shop)}/${id}`, { signal }),
+    apiRequest<Customer>(`${base(shop)}/${encodeURIComponent(id)}`, { signal }),
   create: (shop: string, customer: CustomerInput, requestId: string) =>
     apiRequest<Customer>(base(shop), {
       method: "POST",
@@ -29,16 +29,17 @@ export const customerService = {
     customer: CustomerInput,
     version: number,
   ) =>
-    apiRequest<Customer>(`${base(shop)}/${id}`, {
+    apiRequest<Customer>(`${base(shop)}/${encodeURIComponent(id)}`, {
       method: "PATCH",
       body: { customer, version },
     }),
   history: (shop: string, id: string, page = 1, signal?: AbortSignal) =>
-    apiRequest<CustomerHistory>(`${base(shop)}/${id}/history?page=${page}`, {
-      signal,
-    }),
+    apiRequest<CustomerHistory>(
+      `${base(shop)}/${encodeURIComponent(id)}/history?page=${page}`,
+      { signal },
+    ),
   note: (shop: string, id: string, text: string, requestId: string) =>
-    apiRequest<{ id: string }>(`${base(shop)}/${id}/notes`, {
+    apiRequest<{ id: string }>(`${base(shop)}/${encodeURIComponent(id)}/notes`, {
       method: "POST",
       body: { text, requestId },
     }),
