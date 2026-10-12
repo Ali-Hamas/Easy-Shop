@@ -7,13 +7,16 @@ async function forward(request: NextRequest) {
   const destination = new URL("/api/v1/meta/webhook", upstream);
   destination.search = request.nextUrl.search;
   const body = request.method === "GET" ? undefined : await request.text();
-  return fetch(destination, {
+  const init: RequestInit = {
     method: request.method,
-    body,
-    headers: body ? { "content-type": "application/json" } : {},
     cache: "no-store",
     signal: AbortSignal.timeout(15000),
-  });
+  };
+  if (body) {
+    init.body = body;
+    init.headers = { "content-type": "application/json" };
+  }
+  return fetch(destination, init);
 }
 
 export const GET = forward;
