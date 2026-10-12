@@ -1,7 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { connectDb } from "../../shared/db.js";
-import { inventoryService } from "../inventory/inventory.service.js";
 export async function registerDashboardRoutes(app: FastifyInstance) {
   app.get("/:shopId", async (request) => {
     const { shopId } = z
@@ -9,21 +8,90 @@ export async function registerDashboardRoutes(app: FastifyInstance) {
       .parse(request.params);
     const db = await connectDb();
     const [
-      inventory,
+      products,
+      balanceTotals,
+      stockSignals,
       customers,
       openConversations,
       pendingDrafts,
       sentReplies,
       activity,
     ] = await Promise.all([
-      inventoryService.list(shopId, {
-        q: "",
-        status: "all",
-        stock: "all",
-        category: "",
-        page: 1,
-        limit: 1,
-      }),
+      db.collection("products").countDocuments({ shopId }),
+      db
+        .collection("inventoryBalances")
+        .aggregate<{ available: number; reserved: number }>([
+          { $match: { shopId } },
+          {
+            $group: {
+              _id: null,
+              available: { $sum: { $subtract: ["$onHand", "$reserved"] } },
+              reserved: { $sum: "$reserved" },
+            },
+          },
+        ])
+        .next(),
+      db
+        .collection("productVariants")
+        .aggregate<{ low: number; out: number }>([
+          { $match: { shopId, status: "active" } },
+          {
+            $lookup: {
+              from: "inventoryBalances",
+              localField: "_id",
+              foreignField: "_id",
+              as: "balance",
+            },
+          },
+          {
+            $set: {
+              balance: { $first: "$balance" },
+              lowStockThreshold: { $ifNull: ["$lowStockThreshold", 5] },
+            },
+          },
+          {
+            $set: {
+              available: {
+                $subtract: [
+                  { $ifNull: ["$balance.onHand", 0] },
+                  { $ifNull: ["$balance.reserved", 0] },
+                ],
+              },
+            },
+          },
+          {
+            $group: {
+              _id: "$productId",
+              anyAvailable: {
+                $max: { $cond: [{ $gt: ["$available", 0] }, 1, 0] },
+              },
+              anyLow: {
+                $max: {
+                  $cond: [
+                    {
+                      $and: [
+                        { $gt: ["$available", 0] },
+                        { $lte: ["$available", "$lowStockThreshold"] },
+                      ],
+                    },
+                    1,
+                    0,
+                  ],
+                },
+              },
+            },
+          },
+          {
+            $group: {
+              _id: null,
+              low: { $sum: "$anyLow" },
+              out: {
+                $sum: { $cond: [{ $eq: ["$anyAvailable", 0] }, 1, 0] },
+              },
+            },
+          },
+        ])
+        .next(),
       db.collection("customers").countDocuments({ shopId }),
       db
         .collection("conversations")
@@ -49,7 +117,13 @@ export async function registerDashboardRoutes(app: FastifyInstance) {
     ]);
     return {
       shopId,
-      inventory: inventory.summary,
+      inventory: {
+        products,
+        available: balanceTotals?.available ?? 0,
+        reserved: balanceTotals?.reserved ?? 0,
+        low: stockSignals?.low ?? 0,
+        out: stockSignals?.out ?? 0,
+      },
       customers,
       openConversations,
       pendingDrafts,

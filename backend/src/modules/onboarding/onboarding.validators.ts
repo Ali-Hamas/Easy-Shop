@@ -51,8 +51,15 @@ export const addProductSchema = z.object({
   price: z.number().positive().max(100000000),
   stock: z.number().int().min(0).max(1000000),
   imageUrl: image.optional(),
-  variants: z.array(z.string().trim().min(1).max(60)).max(50).optional(),
-  deliveryNotes: optionalText,
+  variants: z
+    .array(z.string().trim().min(1).max(60))
+    .max(0, "Add variants from Products after onboarding.")
+    .optional(),
+  deliveryNotes: z
+    .string()
+    .trim()
+    .max(0, "Add delivery notes from shop settings after onboarding.")
+    .optional(),
 });
 
 export const updateAiModeSchema = z.object({

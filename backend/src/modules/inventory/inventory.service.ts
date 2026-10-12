@@ -595,10 +595,19 @@ export const inventoryService = {
             "INVALID_STOCK",
             "This change would make stock invalid. Check available, reserved and sold quantities.",
           );
-        await bcol(db).replaceOne({ _id: after._id, shopId }, after, {
-          upsert: true,
-          session,
-        });
+        const saved = await bcol(db).replaceOne(
+          { _id: after._id, shopId, version: before.version },
+          after,
+          {
+            upsert: true,
+            session,
+          },
+        );
+        if (saved.modifiedCount !== 1 && saved.upsertedCount !== 1)
+          throw new InventoryError(
+            "VERSION_CONFLICT",
+            "Stock changed. Reload the latest quantity before adjusting.",
+          );
         await writeLedger(
           db,
           session,

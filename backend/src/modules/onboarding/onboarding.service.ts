@@ -293,11 +293,17 @@ export class OnboardingService {
           "SHOP_LAUNCHED",
         );
       // Every mutation takes the same document write lock; transaction retries re-read launch status.
-      await c.shops.updateOne(
-        { _id: shopId },
+      const lock = await c.shops.updateOne(
+        draftOnly ? { _id: shopId, status: "draft" } : { _id: shopId },
         { $inc: { revision: 1 }, $set: { updatedAt: now() } },
         { session },
       );
+      if (lock.modifiedCount !== 1)
+        throw new OnboardingError(
+          "Use the relevant module after launch.",
+          409,
+          "SHOP_LAUNCHED",
+        );
       await run(db, session, shop);
     });
     return this.getState(shopId);
@@ -340,7 +346,22 @@ export class OnboardingService {
           if (input[key] !== undefined)
             Object.assign(fields, { [key]: input[key] });
         }
-        if (input.currency) fields.currency = input.currency.toUpperCase();
+        if (input.currency) {
+          const currency = input.currency.toUpperCase();
+          if (
+            currency !== shop.currency &&
+            (await collections(db).products.countDocuments(
+              { shopId },
+              { session },
+            ))
+          )
+            throw new OnboardingError(
+              "Currency cannot be changed after products exist.",
+              409,
+              "CURRENCY_LOCKED",
+            );
+          fields.currency = currency;
+        }
         if (input.subdomain)
           fields.subdomain = normalizeSubdomain(input.subdomain);
         await collections(db).shops.updateOne(
@@ -505,6 +526,17 @@ export class OnboardingService {
           409,
           "LAUNCH_BLOCKED",
         );
+      if (!product && shop.selectedTemplateId) {
+        const template = templateCatalog.find(
+          (t) => t.id === shop.selectedTemplateId,
+        );
+        if (!template || template.status !== "candidate")
+          throw new OnboardingError(
+            "Choose a production-ready template or add a real product before launch.",
+            409,
+            "TEMPLATE_NOT_LAUNCHABLE",
+          );
+      }
       await c.shops.updateOne(
         { _id: shopId },
         { $set: { status: "launched", launchedAt: now() } },
