@@ -322,6 +322,7 @@ try {
     `/api/v1/inbox/${shopId}/conversations/${conv.id}/drafts/${draft.id}`,
     {
       requestId: editReqId,
+      version: draft.version,
       text: "জি, আমাদের কাছে কটন পাঞ্জাবি স্টকে আছে (১৫ পিস)। আপনি কি সাইজ M নিতে আগ্রহী?",
     },
     200,
@@ -363,6 +364,7 @@ try {
     `/api/v1/inbox/${shopId}/conversations/${conv.id}/drafts/${draft.id}/review`,
     {
       requestId: approveReqId,
+      version: editedDraft.version,
       action: "approve",
     },
     200,
@@ -480,6 +482,7 @@ try {
     `/api/v1/inbox/${shopId}/conversations/${conv.id}/drafts/${escalationDraft.id}/review`,
     {
       requestId: randomUUID(),
+      version: escalationDraft.version,
       action: "reject",
       reason: "Handling via phone support",
     },
