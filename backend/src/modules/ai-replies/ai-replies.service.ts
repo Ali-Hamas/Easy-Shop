@@ -601,7 +601,7 @@ async function verifyDraftContext(
   shopId: string,
   conversationId: string,
   draft: AiDraftDocument,
-  session: ClientSession,
+  session?: ClientSession,
 ) {
   const latest = await messages(db)
     .find({ shopId, conversationId, sender: "customer" }, { session })
@@ -1759,43 +1759,40 @@ export const aiReplyService = {
     const prior = await replay();
     if (prior) return prior;
 
+    const conv = await getConversationRecord(db, shopId, conversationId);
+    const draft = await drafts(db).findOne({
+      _id: draftId,
+      shopId,
+      conversationId,
+    });
+
+    if (!draft)
+      throw new AiReplyError(404, "DRAFT_NOT_FOUND", "AI draft not found.");
+
+    if (draft.status !== "approved" && draft.status !== "send_failed")
+      throw new AiReplyError(
+        400,
+        "DRAFT_NOT_APPROVED",
+        `Only approved drafts can be sent. Current status is "${draft.status}".`,
+      );
+
+    if (
+      conv.channel === "storefront" &&
+      !conv.channelThreadId?.startsWith("buyer:")
+    )
+      throw new AiReplyError(
+        409,
+        "CHANNEL_UNAVAILABLE",
+        "This customer channel is not connected. Nothing was sent.",
+      );
+    await verifyDraftContext(db, shopId, conversationId, draft);
+    const replyText = draft.editedText ?? draft.originalText;
+    const externalMessageId =
+      conv.channel === "storefront" ? null : await sendMetaReply(db, conv, replyText);
+
     return await transaction(async (db, session) => {
-      const conv = await getConversationRecord(
-        db,
-        shopId,
-        conversationId,
-        session,
-      );
-      const draft = await drafts(db).findOne(
-        { _id: draftId, shopId, conversationId },
-        { session },
-      );
-
-      if (!draft)
-        throw new AiReplyError(404, "DRAFT_NOT_FOUND", "AI draft not found.");
-
-      if (draft.status !== "approved" && draft.status !== "send_failed")
-        throw new AiReplyError(
-          400,
-          "DRAFT_NOT_APPROVED",
-          `Only approved drafts can be sent. Current status is "${draft.status}".`,
-        );
-
-      if (
-        conv.channel === "storefront" &&
-        !conv.channelThreadId?.startsWith("buyer:")
-      )
-        throw new AiReplyError(
-          409,
-          "CHANNEL_UNAVAILABLE",
-          "This customer channel is not connected. Nothing was sent.",
-        );
-      await verifyDraftContext(db, shopId, conversationId, draft, session);
-      const replyText = draft.editedText ?? draft.originalText;
-      const externalMessageId =
-        conv.channel === "storefront"
-          ? null
-          : await sendMetaReply(db, conv, replyText);
+      const completed = await replay();
+      if (completed) return completed;
       const now = new Date().toISOString();
       const messageId = randomUUID();
 

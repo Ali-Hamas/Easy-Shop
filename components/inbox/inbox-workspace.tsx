@@ -14,6 +14,7 @@ import { rememberedShop, subscribeShop } from "@/adapters/commerce";
 import { inboxService } from "@/services/inbox";
 import { ConversationList } from "./conversation-list";
 import { ConversationThread } from "./conversation-thread";
+import { AiReplyPanel } from "./ai-reply-panel";
 import type {
   ConversationSummary,
   ConversationMessage,
@@ -217,7 +218,7 @@ export function InboxWorkspace() {
         shopId,
         selectedId,
         { sender: "staff", text },
-        requestFor(`${shopId}:${selectedId}:manual:${text}`),
+        crypto.randomUUID(),
       );
       setMessages((prev) => [...prev, newMsg]);
       reloadConversations(selectedId);
@@ -300,12 +301,14 @@ export function InboxWorkspace() {
     setIsSubmittingDraft(true);
     setErrorMessage(null);
     try {
+      const draft = latestDraft?.id === draftId ? latestDraft : null;
+      if (!draft) return;
       const approved = await inboxService.approveDraft(
         shopId,
         selectedId,
         draftId,
         crypto.randomUUID(),
-        latestDraft!.version,
+        draft.version,
       );
       setLatestDraft(approved);
       reloadConversations(selectedId);
@@ -366,7 +369,7 @@ export function InboxWorkspace() {
         requestFor(`${shopId}:${selectedId}:send:${draftId}`),
       );
       setMessages((prev) => [...prev, res.message]);
-      if (latestDraft) {
+      if (latestDraft?.id === draftId) {
         setLatestDraft({
           ...latestDraft,
           status: "sent",
@@ -537,6 +540,17 @@ export function InboxWorkspace() {
           isGenerating={isGenerating}
         />
 
+        <AiReplyPanel
+          draft={latestDraft}
+          customer={customer}
+          onGenerate={handleGenerateDraft}
+          onEdit={handleEditDraft}
+          onApprove={handleApproveDraft}
+          onReject={handleRejectDraft}
+          onSendApproved={handleSendApprovedDraft}
+          isGenerating={isGenerating}
+          isSubmitting={isSubmittingDraft}
+        />
       </div>
     </div>
   );
