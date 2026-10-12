@@ -25,13 +25,13 @@ export async function registerStorefrontRoutes(app: FastifyInstance) {
     const isOwner = Boolean(
       request.authUser && request.authUser.id === shop.ownerId,
     );
-    const isPreview = Boolean(
+    const wantsPreview = Boolean(
       (request.query as { preview?: string })?.preview === "true" ||
-        request.headers["x-preview-mode"] === "true" ||
-        isOwner,
+        request.headers["x-preview-mode"] === "true",
     );
+    const isPreview = isOwner && wantsPreview;
 
-    if (shop.status !== "launched" && !isPreview) {
+    if (shop.status !== "launched" && !isOwner) {
       return reply
         .code(404)
         .send({ code: "SHOP_NOT_FOUND", message: "Published shop not found." });
@@ -158,13 +158,13 @@ export async function registerStorefrontRoutes(app: FastifyInstance) {
     const isOwner = Boolean(
       request.authUser && request.authUser.id === shop.ownerId,
     );
-    const isPreview = Boolean(
+    const wantsPreview = Boolean(
       (request.query as { preview?: string })?.preview === "true" ||
-        request.headers["x-preview-mode"] === "true" ||
-        isOwner,
+        request.headers["x-preview-mode"] === "true",
     );
+    const isPreview = isOwner && wantsPreview;
 
-    if (shop.status !== "launched" && !isPreview) {
+    if (shop.status !== "launched" && !isOwner) {
       return reply
         .code(404)
         .send({ code: "SHOP_NOT_FOUND", message: "Published shop not found." });

@@ -65,7 +65,6 @@ async function forgotPasswordRequest(
         email: data.email ?? input.email,
         expiresInSeconds: data.expiresInSeconds ?? 600,
         resendAvailableInSeconds: data.resendAvailableInSeconds ?? 60,
-        devOtp: data.devOtp,
       };
     }
     return {

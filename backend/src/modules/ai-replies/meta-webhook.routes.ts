@@ -19,5 +19,13 @@ export async function registerMetaWebhookRoutes(app: FastifyInstance) {
     return reply.code(403).send({ code: "META_VERIFY_FAILED" });
   });
 
-  app.post("/webhook", async (request) => aiReplyService.handleMetaWebhook(request.body));
+  app.post(
+    "/webhook",
+    { config: { rateLimit: { max: 60, timeWindow: "1 minute" } } },
+    async (request, reply) => {
+      if (request.headers["x-easyshop-meta-verified"] !== "1")
+        return reply.code(403).send({ code: "META_SIGNATURE_INVALID" });
+      return aiReplyService.handleMetaWebhook(request.body);
+    },
+  );
 }

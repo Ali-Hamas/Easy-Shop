@@ -49,7 +49,6 @@ type PasswordResetOtp = {
   verified: boolean;
   resetTokenHash?: string;
   resetExpiresAt?: Date;
-  devOtp?: string;
 };
 export const actorContext = new AsyncLocalStorage<{ actorId: string }>();
 export const currentActor = () => actorContext.getStore()?.actorId ?? "system";
@@ -113,8 +112,9 @@ export function installAuth(app: FastifyInstance) {
       /^\/api\/v1\/(onboarding|inventory|customers|inbox|dashboard)(\/|$)/.test(
         path,
       );
+    const publicSessionRoute = path.startsWith("/api/v1/storefront/");
     const authRoute = path.startsWith("/api/v1/auth/");
-    if (!protectedRoute && !authRoute) return;
+    if (!protectedRoute && !authRoute && !publicSessionRoute) return;
     reply.header("Cache-Control", "no-store");
     if (
       !["GET", "HEAD", "OPTIONS"].includes(request.method) &&
@@ -328,9 +328,13 @@ export async function registerAuthRoutes(app: FastifyInstance) {
       .collection<User>("users")
       .findOne({ email: input.email });
     if (!user) {
-      return reply.code(404).send({
-        code: "ACCOUNT_NOT_FOUND",
-        message: "No account found with this email address.",
+      return reply.code(200).send({
+        ok: true,
+        message:
+          "If an account uses this email, a 6-digit verification code has been sent.",
+        email: input.email,
+        expiresInSeconds: 600,
+        resendAvailableInSeconds: 60,
       });
     }
 
@@ -364,7 +368,6 @@ export async function registerAuthRoutes(app: FastifyInstance) {
           expiresAt,
           attempts: 0,
           verified: false,
-          devOtp: config.nodeEnv !== "production" ? otp : undefined,
         },
         $unset: {
           resetTokenHash: "",
@@ -374,18 +377,13 @@ export async function registerAuthRoutes(app: FastifyInstance) {
       { upsert: true },
     );
 
-    console.log(
-      `\n==================================================\n[AUTH OTP] Password Reset Verification Code\nTo: ${input.email}\nCode: ${otp}\nValid for 10 minutes.\n==================================================\n`,
-    );
-
     return reply.code(200).send({
       ok: true,
       message:
-        "A 6-digit verification code has been sent to your email. It is valid for 10 minutes.",
+        "If an account uses this email, a 6-digit verification code has been sent.",
       email: input.email,
       expiresInSeconds: 600,
       resendAvailableInSeconds: 60,
-      ...(config.nodeEnv !== "production" ? { devOtp: otp } : {}),
     });
   };
 
@@ -429,17 +427,19 @@ export async function registerAuthRoutes(app: FastifyInstance) {
       return reply.code(400).send({
         code: "OTP_INVALID",
         message: "Incorrect verification code. Please check and try again.",
-        remainingAttempts: Math.max(0, 4 - record.attempts),
+        remainingAttempts: Math.max(0, 4 - (record.attempts + 1)),
       });
     }
     const resetToken = randomBytes(32).toString("hex");
+    const resetExpiresAt = new Date(Date.now() + 15 * 60 * 1000);
     await db.collection<PasswordResetOtp>("passwordResetOtps").updateOne(
       { email: input.email },
       {
         $set: {
           verified: true,
           resetTokenHash: digest(resetToken),
-          resetExpiresAt: new Date(Date.now() + 15 * 60 * 1000),
+          resetExpiresAt,
+          expiresAt: resetExpiresAt,
         },
       },
     );

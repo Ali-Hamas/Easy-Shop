@@ -61,7 +61,6 @@ export default function AuthExperience({
   const [otpValue, setOtpValue] = useState("");
   const [resetToken, setResetToken] = useState("");
   const [resendCountdown, setResendCountdown] = useState(0);
-  const [devOtp, setDevOtp] = useState<string | undefined>();
 
   // 1-minute countdown timer for resend option
   useEffect(() => {
@@ -156,11 +155,6 @@ export default function AuthExperience({
         setForgotStep("otp");
         setOtpValue("");
         setResendCountdown(60); // 1-minute countdown
-        setDevOtp(response.devOtp);
-        if (typeof window !== "undefined" && response.devOtp) {
-          (window as unknown as { __DEV_OTP__?: string }).__DEV_OTP__ =
-            response.devOtp;
-        }
         setResult({
           ok: true,
           message:
@@ -198,11 +192,6 @@ export default function AuthExperience({
       const response = await service.forgotPassword({ email: sentEmail });
       if (response.ok) {
         setResendCountdown(60); // Reset 1-minute countdown
-        setDevOtp(response.devOtp);
-        if (typeof window !== "undefined" && response.devOtp) {
-          (window as unknown as { __DEV_OTP__?: string }).__DEV_OTP__ =
-            response.devOtp;
-        }
         setResult({
           ok: true,
           message:
@@ -571,7 +560,6 @@ export default function AuthExperience({
                   noValidate
                   onSubmit={handleVerifyOtp}
                   aria-busy={busy}
-                  data-dev-otp={devOtp}
                 >
                   <div className="auth-field">
                     <label htmlFor="otp">Verification code</label>

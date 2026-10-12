@@ -22,7 +22,6 @@ export type ForgotPasswordResult =
       email: string;
       expiresInSeconds: number;
       resendAvailableInSeconds: number;
-      devOtp?: string;
     }
   | { ok: false; code: string; message: string; retryAfter?: number };
 
