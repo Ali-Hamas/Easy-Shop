@@ -39,7 +39,7 @@ export interface AiContextInput {
 }
 
 export interface AiReplyOutput {
-  provider?: "openai" | "fallback";
+  provider?: "openai" | "groq" | "fallback";
   replyText: string;
   confidence: "high" | "review" | "missing";
   groundingSummary: string;

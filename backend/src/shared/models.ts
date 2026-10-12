@@ -233,6 +233,13 @@ export async function ensureIndexes(db: Db) {
       partialFilterExpression: { requestId: { $type: "string" } },
     },
   );
+  await db.collection("productImageEmbeddings").createIndex(
+    { shopId: 1, productId: 1, imageUrl: 1 },
+    { unique: true },
+  );
+  await db
+    .collection("productImageEmbeddings")
+    .createIndex({ shopId: 1, status: 1, updatedAt: -1 });
   await db
     .collection("passwordResetOtps")
     .createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 });

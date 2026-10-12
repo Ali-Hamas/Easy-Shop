@@ -10,6 +10,7 @@ import {
   type VariantDocument,
 } from "../../shared/models.js";
 import type { ProductInput, AdjustmentInput } from "./inventory.validators.js";
+import { indexProductImages } from "../ai-replies/product-visual-index.service.js";
 type Product = ProductDocument &
   Omit<ProductInput, "price" | "variants" | "status"> & {
     version: number;
@@ -356,7 +357,7 @@ export const inventoryService = {
     version = 0,
     requestId?: string,
   ) {
-    return conflict(() =>
+    const saved = await conflict(() =>
       transaction(async (db, session) => {
         await shopExists(db, shopId, session);
         const c = collections(db);
@@ -511,6 +512,10 @@ export const inventoryService = {
         return detail(db, shopId, productId, session);
       }),
     );
+    await indexProductImages(shopId, saved.id).catch((error) =>
+      console.warn("Product visual index failed:", error),
+    );
+    return saved;
   },
   async adjust(shopId: string, productId: string, input: AdjustmentInput) {
     return conflict(() =>

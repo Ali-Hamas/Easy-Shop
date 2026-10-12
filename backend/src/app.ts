@@ -16,6 +16,7 @@ import { registerSystemRoutes } from "./modules/system/system.routes.js";
 import { registerInventoryRoutes } from "./modules/inventory/inventory.routes.js";
 import { registerCustomerRoutes } from "./modules/customers/customers.routes.js";
 import { registerAiReplyRoutes } from "./modules/ai-replies/ai-replies.routes.js";
+import { registerMetaWebhookRoutes } from "./modules/ai-replies/meta-webhook.routes.js";
 import { isDatabaseError } from "./shared/db.js";
 import { OnboardingError } from "./modules/onboarding/onboarding.service.js";
 
@@ -76,6 +77,7 @@ export async function buildApp() {
   await app.register(registerInventoryRoutes, { prefix: "/api/v1/inventory" });
   await app.register(registerCustomerRoutes, { prefix: "/api/v1/customers" });
   await app.register(registerAiReplyRoutes, { prefix: "/api/v1/inbox" });
+  await app.register(registerMetaWebhookRoutes, { prefix: "/api/v1/meta" });
   await app.register(registerSystemRoutes, { prefix: "/api/v1/system" });
   await app.register(registerOnboardingRoutes, {
     prefix: "/api/v1/onboarding",

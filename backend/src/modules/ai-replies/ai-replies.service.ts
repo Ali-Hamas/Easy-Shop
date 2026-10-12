@@ -5,6 +5,7 @@ import type { Db, ClientSession, Filter } from "mongodb";
 import { connectDb, transaction } from "../../shared/db.js";
 import { publicDocument } from "../../shared/models.js";
 import { config } from "../../shared/config.js";
+import { fetchWithRetry } from "../../shared/fetch-retry.js";
 import {
   GroundedRuleAiProvider,
   OpenAiReplyProvider,
@@ -12,6 +13,11 @@ import {
   type AiContextProduct,
   type AiReplyProvider,
 } from "./ai-provider.js";
+import { GroqReplyProvider } from "./groq-provider.js";
+import {
+  activeVisualCandidates,
+} from "./product-visual-index.service.js";
+import { matchProductImageWithGemini } from "./gemini-vision.service.js";
 
 export class AiReplyError extends Error {
   constructor(
@@ -73,7 +79,9 @@ export interface MessageDocument {
   customerId: string;
   sender: "customer" | "staff";
   text: string;
+  attachmentUrl?: string;
   source: "incoming" | "staff_manual" | "staff_approved_ai";
+  externalMessageId?: string;
   draftId?: string;
   createdAt: string;
   requestId: string;
@@ -87,7 +95,7 @@ export interface AiDraftDocument {
   customerId: string;
   triggerMessageId?: string;
   originalText: string;
-  provider?: "openai" | "fallback";
+  provider?: "openai" | "groq" | "fallback";
   version: number;
   contextFingerprint: string;
   editedText?: string;
@@ -240,6 +248,13 @@ type MetaPage = {
   instagram_business_account?: { id: string; username?: string };
 };
 
+type StoredMetaPage = {
+  id: string;
+  name?: string;
+  accessToken?: string;
+  instagramBusinessAccount?: { id: string; username?: string };
+};
+
 type MetaConversation = {
   id: string;
   updated_time?: string;
@@ -272,6 +287,58 @@ async function metaGraph<T>(
       data.error?.message ?? "Meta could not complete the request.",
     );
   return data as T;
+}
+
+async function sendMetaReply(
+  db: Db,
+  conv: ConversationDocument,
+  text: string,
+) {
+  if (conv.channel !== "messenger" && conv.channel !== "instagram") return null;
+  const channel = await db
+    .collection<{ metadata?: { pages?: StoredMetaPage[] } }>("shopChannels")
+    .findOne({ shopId: conv.shopId, provider: "meta", status: "connected" });
+  const pages = channel?.metadata?.pages ?? [];
+  const page =
+    conv.channel === "instagram"
+      ? pages.find((p) => p.instagramBusinessAccount?.id && p.accessToken)
+      : pages.find((p) => p.accessToken);
+  const customer = await db
+    .collection<{ _id: string; externalRefs?: { metaSenderId?: string } }>("customers")
+    .findOne({ _id: conv.customerId, shopId: conv.shopId });
+  const recipientId = customer?.externalRefs?.metaSenderId;
+  if (!page?.accessToken || !recipientId)
+    throw new AiReplyError(
+      409,
+      "CHANNEL_UNAVAILABLE",
+      "Meta recipient or page token is missing.",
+    );
+  const senderNode =
+    conv.channel === "instagram" ? page.instagramBusinessAccount!.id : page.id;
+  const response = await fetchWithRetry(
+    `https://graph.facebook.com/${config.metaGraphVersion}/${senderNode}/messages`,
+    {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        recipient: { id: recipientId },
+        message: { text },
+        access_token: page.accessToken,
+      }),
+    },
+    { maxRetries: 3, timeoutMs: 12000, actionName: "metaSendMessage" },
+  );
+  const data = (await response.json()) as {
+    message_id?: string;
+    error?: { message?: string };
+  };
+  if (!response.ok)
+    throw new AiReplyError(
+      502,
+      "META_SEND_FAILED",
+      data.error?.message ?? "Meta could not send the reply.",
+    );
+  return data.message_id ?? null;
 }
 
 async function syncMetaConversations(
@@ -401,7 +468,24 @@ async function retrieveRelevantProducts(
   db: Db,
   shopId: string,
   messageText: string,
+  attachmentUrl?: string,
 ): Promise<AiContextProduct[]> {
+  if (attachmentUrl) {
+    try {
+      const candidates = await activeVisualCandidates(shopId);
+      const match = await matchProductImageWithGemini(attachmentUrl, candidates);
+      if (
+        match.productId &&
+        match.confidence >= config.aiVisualConfidenceThreshold
+      ) {
+        const p = await inventoryService.get(shopId, match.productId);
+        return [inventoryProductToAiContext(p)];
+      }
+    } catch (error) {
+      console.warn("Visual product match failed:", error);
+    }
+  }
+
   const rawWords = messageText
     .toLowerCase()
     .replace(/[^\w\s\u0980-\u09FF-]/g, " ")
@@ -488,24 +572,28 @@ async function retrieveRelevantProducts(
   return Promise.all(
     matchedProducts.map(async (candidate) => {
       const p = await inventoryService.get(shopId, candidate._id);
-      return {
-        id: p.id,
-        name: p.name,
-        price: p.price,
-        currency: p.currency,
-        inStock: p.available > 0,
-        availableQuantity: p.available,
-        variants: p.variants.map((v) => ({
-          id: v.id,
-          name: v.title,
-          sku: v.sku,
-          price: v.price,
-          availableQuantity: v.available,
-          inStock: v.available > 0,
-        })),
-      };
+      return inventoryProductToAiContext(p);
     }),
   );
+}
+
+function inventoryProductToAiContext(p: Awaited<ReturnType<typeof inventoryService.get>>): AiContextProduct {
+  return {
+    id: p.id,
+    name: p.name,
+    price: p.price,
+    currency: p.currency,
+    inStock: p.available > 0,
+    availableQuantity: p.available,
+    variants: p.variants.map((v) => ({
+      id: v.id,
+      name: v.title,
+      sku: v.sku,
+      price: v.price,
+      availableQuantity: v.available,
+      inStock: v.available > 0,
+    })),
+  };
 }
 
 async function verifyDraftContext(
@@ -530,6 +618,7 @@ async function verifyDraftContext(
     db,
     shopId,
     latest.text,
+    latest.attachmentUrl,
   );
   if (
     !draft.contextFingerprint ||
@@ -546,6 +635,9 @@ async function verifyDraftContext(
 // AI Reply Service
 // -------------------------------------------------------------
 export function createConfiguredAiProvider(): AiReplyProvider {
+  if (config.aiReplyProvider === "groq" && config.groqApiKey) {
+    return new GroqReplyProvider();
+  }
   if (config.aiReplyProvider === "openai" && config.openaiApiKey) {
     return new OpenAiReplyProvider({
       apiKey: config.openaiApiKey,
@@ -729,6 +821,7 @@ export const aiReplyService = {
             pages: connectedPages.map((p) => ({
               id: p.id,
               name: p.name,
+              accessToken: p.access_token,
               instagramBusinessAccount: p.instagram_business_account,
             })),
           },
@@ -866,7 +959,7 @@ export const aiReplyService = {
     const prior = await replay();
     if (prior) return prior;
 
-    return await transaction(async (db, session) => {
+    const created = await transaction(async (db, session) => {
       await checkShop(db, shopId, session);
       await checkCustomer(db, shopId, input.customerId, session);
 
@@ -932,6 +1025,12 @@ export const aiReplyService = {
       if (completed) return completed;
       throw error;
     });
+    if (input.initialMessage) {
+      await this.processAutoReply(shopId, created.id).catch((error) =>
+        console.warn("Auto reply failed:", error),
+      );
+    }
+    return created;
   },
 
   async getConversation(shopId: string, conversationId: string) {
@@ -981,6 +1080,7 @@ export const aiReplyService = {
     input: {
       sender: "customer" | "staff";
       text: string;
+      attachmentUrl?: string;
     },
     requestId: string,
   ) {
@@ -1004,7 +1104,7 @@ export const aiReplyService = {
     const prior = await replay();
     if (prior) return prior;
 
-    return await transaction(async (db, session) => {
+    const saved = await transaction(async (db, session) => {
       const conv = await getConversationRecord(
         db,
         shopId,
@@ -1023,6 +1123,7 @@ export const aiReplyService = {
           "This customer channel is not connected. Nothing was sent.",
         );
       const messageId = randomUUID();
+      const messageText = input.text || (input.attachmentUrl ? "[Image]" : "");
 
       const msgDoc: MessageDocument = {
         _id: messageId,
@@ -1030,7 +1131,8 @@ export const aiReplyService = {
         conversationId,
         customerId: conv.customerId,
         sender: input.sender,
-        text: input.text,
+        text: messageText,
+        ...(input.attachmentUrl ? { attachmentUrl: input.attachmentUrl } : {}),
         source: input.sender === "staff" ? "staff_manual" : "incoming",
         createdAt: now,
         requestId,
@@ -1041,7 +1143,7 @@ export const aiReplyService = {
 
       const convUpdates: Partial<ConversationDocument> = {
         lastMessage: {
-          text: input.text,
+          text: messageText,
           sender: input.sender,
           createdAt: now,
         },
@@ -1100,6 +1202,160 @@ export const aiReplyService = {
       if (completed) return completed;
       throw error;
     });
+    if (input.sender === "customer") {
+      await this.processAutoReply(shopId, conversationId, saved.id).catch(
+        (error) => console.warn("Auto reply failed:", error),
+      );
+    }
+    return saved;
+  },
+
+  async processAutoReply(
+    shopId: string,
+    conversationId: string,
+    triggerMessageId?: string,
+  ) {
+    if (!config.aiAutoReplyEnabled) return { skipped: true, reason: "disabled" };
+    const db = await connectDb();
+    const shop = await db
+      .collection<{ _id: string; aiMode: string }>("shops")
+      .findOne({ _id: shopId });
+    if (!shop || shop.aiMode === "off")
+      return { skipped: true, reason: "shop_ai_disabled" };
+    const draft = await this.generateDraft(
+      shopId,
+      conversationId,
+      triggerMessageId,
+      randomUUID(),
+    );
+    if (
+      shop.aiMode !== "auto_low_risk" ||
+      draft.confidence !== "high" ||
+      draft.needsHumanAttention
+    )
+      return { draft, sent: false };
+    const approved = await this.approveDraft(
+      shopId,
+      conversationId,
+      draft.id,
+      randomUUID(),
+      draft.version,
+    );
+    return {
+      draft: approved,
+      sent: await this.sendApprovedDraft(
+        shopId,
+        conversationId,
+        draft.id,
+        randomUUID(),
+      ),
+    };
+  },
+
+  async handleMetaWebhook(payload: unknown) {
+    const body = payload as {
+      object?: string;
+      entry?: Array<{
+        id?: string;
+        messaging?: Array<{
+          sender?: { id?: string };
+          recipient?: { id?: string };
+          message?: {
+            mid?: string;
+            text?: string;
+            attachments?: Array<{ type?: string; payload?: { url?: string } }>;
+          };
+        }>;
+      }>;
+    };
+    const db = await connectDb();
+    let processed = 0;
+    for (const entry of body.entry ?? []) {
+      const pageId = entry.id;
+      if (!pageId) continue;
+      const channel = await db.collection<{
+        shopId: string;
+        metadata?: { pages?: StoredMetaPage[] };
+      }>("shopChannels").findOne({
+        provider: "meta",
+        status: "connected",
+        $or: [
+          { "metadata.pages.id": pageId },
+          { "metadata.pages.instagramBusinessAccount.id": pageId },
+        ],
+      });
+      if (!channel) continue;
+      for (const event of entry.messaging ?? []) {
+        const senderId = event.sender?.id;
+        const mid = event.message?.mid;
+        if (!senderId || !mid) continue;
+        const attachmentUrl = event.message?.attachments?.find((a) =>
+          a.payload?.url,
+        )?.payload?.url;
+        const text = event.message?.text?.trim() || "";
+        const now = new Date().toISOString();
+        const customer = await db.collection<{ _id: string }>("customers").findOneAndUpdate(
+          { shopId: channel.shopId, "externalRefs.metaSenderId": senderId },
+          {
+            $set: {
+              name: "Meta customer",
+              source: body.object === "instagram" ? "instagram" : "facebook",
+              status: "active",
+              lastActivityAt: now,
+              updatedAt: now,
+            },
+            $setOnInsert: {
+              _id: randomUUID(),
+              shopId: channel.shopId,
+              phone: "",
+              email: "",
+              addresses: [],
+              language: "unspecified",
+              tags: [body.object === "instagram" ? "instagram" : "messenger"],
+              version: 1,
+              createdAt: now,
+              requestId: randomUUID(),
+              fingerprint: digest({ shopId: channel.shopId, senderId }),
+              externalRefs: { metaSenderId: senderId },
+            },
+          },
+          { upsert: true, returnDocument: "after" },
+        );
+        if (!customer) continue;
+        const conversation = await conversations(db).findOneAndUpdate(
+          { shopId: channel.shopId, channelThreadId: `${pageId}:${senderId}` },
+          {
+            $set: {
+              customerId: String(customer._id),
+              channel: body.object === "instagram" ? "instagram" : "messenger",
+              status: "open",
+              lastActivityAt: now,
+              updatedAt: now,
+            },
+            $setOnInsert: {
+              _id: randomUUID(),
+              shopId: channel.shopId,
+              channelThreadId: `${pageId}:${senderId}`,
+              aiStatus: "idle",
+              unreadCount: 0,
+              createdAt: now,
+              requestId: randomUUID(),
+              fingerprint: digest({ pageId, senderId }),
+            },
+          },
+          { upsert: true, returnDocument: "after" },
+        );
+        if (!conversation) continue;
+        await this.addMessage(
+          channel.shopId,
+          String(conversation._id),
+          { sender: "customer", text, ...(attachmentUrl ? { attachmentUrl } : {}) },
+          mid,
+        );
+        processed += 1;
+      }
+    }
+    return { ok: true, processed };
   },
 
   async generateDraft(
@@ -1179,6 +1435,7 @@ export const aiReplyService = {
       db,
       shopId,
       messageText,
+      latestCustomerMsg.attachmentUrl,
     );
 
     // 2. Build structured provider input
@@ -1525,7 +1782,7 @@ export const aiReplyService = {
         );
 
       if (
-        conv.channel !== "storefront" ||
+        conv.channel === "storefront" &&
         !conv.channelThreadId?.startsWith("buyer:")
       )
         throw new AiReplyError(
@@ -1535,6 +1792,10 @@ export const aiReplyService = {
         );
       await verifyDraftContext(db, shopId, conversationId, draft, session);
       const replyText = draft.editedText ?? draft.originalText;
+      const externalMessageId =
+        conv.channel === "storefront"
+          ? null
+          : await sendMetaReply(db, conv, replyText);
       const now = new Date().toISOString();
       const messageId = randomUUID();
 
@@ -1546,6 +1807,7 @@ export const aiReplyService = {
         sender: "staff",
         text: replyText,
         source: "staff_approved_ai",
+        ...(externalMessageId ? { externalMessageId } : {}),
         draftId: draft._id,
         createdAt: now,
         requestId,

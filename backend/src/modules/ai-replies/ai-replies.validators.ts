@@ -56,11 +56,15 @@ export const createConversationSchema = z
 
 export const addMessageSchema = z
   .object({
-    sender: z.literal("staff"),
-    text: z.string().trim().min(1, "Message text cannot be empty.").max(4000),
+    sender: z.enum(["customer", "staff"]).default("staff"),
+    text: z.string().trim().max(4000).default(""),
+    attachmentUrl: z.string().trim().url().optional(),
     requestId: z.string().uuid("Valid request ID is required."),
   })
-  .strict();
+  .strict()
+  .refine((data) => data.text.length > 0 || data.attachmentUrl, {
+    message: "Message text or attachment is required.",
+  });
 
 export const generateDraftSchema = z
   .object({
