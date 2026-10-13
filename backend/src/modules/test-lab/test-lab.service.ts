@@ -100,7 +100,16 @@ export async function chatSimulate(userId: string, input: { text?: string | null
       if (judged.productId && judged.confidence >= config.aiVisualConfidenceThreshold) match = { productId: judged.productId, confidence: judged.confidence, source: "gemini_vision", reason: judged.reason };
     }
   }
-  const product = match ? await matchedProductContext(shop._id, match.productId) : null;
+  const detail = match ? await inventoryService.get(shop._id, match.productId).catch(() => null) : null;
+  const product = detail ? {
+    id: detail.id,
+    name: detail.name,
+    price: detail.price,
+    currency: detail.currency,
+    inStock: detail.available > 0,
+    availableQuantity: detail.available,
+    variants: detail.variants.map((variant) => ({ id: variant.id, name: variant.title, price: variant.price, availableQuantity: variant.available, inStock: variant.available > 0 })),
+  } : match ? await matchedProductContext(shop._id, match.productId) : null;
   const reply = await aiReplyService.provider.generateReply({ shopId: shop._id, customer: { id: "ai-vision-lab", name: "AI Vision Lab", language: "en", tags: [], staffNotes: [] }, latestCustomerMessage: input.text || "What product is this in the picture?", conversationHistory: (input.history ?? []).map((item) => ({ sender: item.source === "buyer" || item.source === "user" ? "customer" as const : "staff" as const, text: item.body, createdAt: new Date().toISOString() })), relevantProducts: product ? [product] : [], channel: "storefront" });
   return { reply: reply.replyText, provider: reply.provider ?? "fallback", matchedProduct: product ? { ...product, similarity: match?.confidence ?? 0, source: match?.source ?? "none" } : null, visualInspection: { hasImage: Boolean(image), imageHashReceived: false, imageHashCount: 0, catalogHashCount: 0, similarityScore: match?.confidence ?? 0, vectorSearchMatched: match?.source === "gemini_vector", reason: match?.reason ?? "No confident catalog match.", topCandidates: candidates, vectorLatencyMs: Date.now() - started, groqLatencyMs: 0 } };
 }
