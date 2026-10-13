@@ -47,12 +47,11 @@ export class GroqReplyProvider implements AiReplyProvider {
         ...(await this.fallback.generateReply(context)),
         provider: "groq",
         replyText: data.choices[0].message.content.trim(),
-        confidence: context.relevantProducts.length === 1 ? "high" : "review",
-        needsHumanAttention: context.relevantProducts.length !== 1,
-        groundingSummary:
-          context.relevantProducts.length === 1
-            ? "Reply grounded to one matched product."
-            : "No exact product match; review before sending.",
+        confidence: "review",
+        needsHumanAttention: true,
+        groundingSummary: context.relevantProducts.length === 1
+          ? "Reply grounded to one matched product; review before sending."
+          : "No exact product match; review before sending.",
       };
     } catch {
       return this.fallback.generateReply(context);
