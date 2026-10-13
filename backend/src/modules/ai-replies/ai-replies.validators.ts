@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { aiResponseLengths, aiTones, languages } from "../onboarding/onboarding.types.js";
 
 export const paramsSchema = z
   .object({
@@ -119,5 +120,15 @@ export const reviewDraftSchema = z
 export const sendDraftSchema = z
   .object({
     requestId: z.string().uuid("Valid request ID is required."),
+  })
+  .strict();
+
+export const aiPreferencesSchema = z
+  .object({
+    enabled: z.boolean(),
+    tone: z.enum(aiTones),
+    language: z.union([z.literal("auto"), z.enum(languages)]),
+    responseLength: z.enum(aiResponseLengths),
+    instructions: z.string().trim().max(2000),
   })
   .strict();

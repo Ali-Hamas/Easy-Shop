@@ -1,5 +1,7 @@
 export const languages = ["bn", "bn-en", "en", "ur-roman", "ur"] as const;
 export const aiModes = ["off", "suggest", "auto_low_risk"] as const;
+export const aiTones = ["friendly", "professional", "direct", "warm"] as const;
+export const aiResponseLengths = ["short", "balanced", "detailed"] as const;
 export const onboardingSteps = [
   "account",
   "shop",
@@ -12,6 +14,15 @@ export const shopStatuses = ["draft", "launched"] as const;
 
 export type Language = (typeof languages)[number];
 export type AiMode = (typeof aiModes)[number];
+export type AiTone = (typeof aiTones)[number];
+export type AiResponseLength = (typeof aiResponseLengths)[number];
+export type AiPreferences = {
+  enabled: boolean;
+  tone: AiTone;
+  language: "auto" | Language;
+  responseLength: AiResponseLength;
+  instructions: string;
+};
 export type OnboardingStep = (typeof onboardingSteps)[number];
 export type ShopStatus = (typeof shopStatuses)[number];
 
@@ -47,6 +58,7 @@ export type Shop = {
   onboardingStep: OnboardingStep;
   policyDefaults: PolicyDefaults;
   aiMode: AiMode;
+  aiPreferences?: AiPreferences;
   selectedTemplateId?: string;
   launchedAt?: string;
   createdAt: string;

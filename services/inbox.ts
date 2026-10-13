@@ -8,10 +8,22 @@ import type {
   ConversationChannel,
   ChannelConnection,
 } from "@/types/inbox";
+import type { AiPreferences } from "@/types/commerce";
 
 const base = (shopId: string) => `inbox/${encodeURIComponent(shopId)}`;
 
 export const inboxService = {
+  getAiPreferences: (shopId: string, signal?: AbortSignal) =>
+    apiRequest<{ preferences: AiPreferences }>(`${base(shopId)}/ai-settings`, {
+      signal,
+    }),
+
+  updateAiPreferences: (shopId: string, preferences: AiPreferences) =>
+    apiRequest<{ preferences: AiPreferences }>(`${base(shopId)}/ai-settings`, {
+      method: "PATCH",
+      body: preferences,
+    }),
+
   listChannels: (shopId: string, signal?: AbortSignal) =>
     apiRequest<{ channels: ChannelConnection[] }>(`${base(shopId)}/channels`, {
       signal,

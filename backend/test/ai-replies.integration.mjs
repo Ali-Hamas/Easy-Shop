@@ -79,6 +79,22 @@ try {
   );
   const shopId = setup.shop.id;
 
+  const defaultAiSettings = await call("GET", `/api/v1/inbox/${shopId}/ai-settings`);
+  assert.equal(defaultAiSettings.preferences.enabled, true);
+  const savedAiSettings = await call(
+    "PATCH",
+    `/api/v1/inbox/${shopId}/ai-settings`,
+    {
+      enabled: true,
+      tone: "professional",
+      language: "en",
+      responseLength: "short",
+      instructions: "Use concise product facts and greet the customer politely.",
+    },
+  );
+  assert.equal(savedAiSettings.preferences.tone, "professional");
+  assert.equal(savedAiSettings.preferences.instructions, "Use concise product facts and greet the customer politely.");
+
   // 2. Seed 2 products to test selective context retrieval
   const panjabi = {
     name: "Cotton Panjabi White",

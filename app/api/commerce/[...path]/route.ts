@@ -40,6 +40,9 @@ function permitted(path: string, method: string) {
         : method === "PATCH" && new RegExp(`/products/${uuid}$`).test(path);
   }
   if (path.startsWith("inbox/")) {
+    if (new RegExp(`^inbox/${uuid}/ai-settings$`).test(path)) {
+      return method === "GET" || method === "PATCH";
+    }
     if (new RegExp(`^inbox/${uuid}/channels$`).test(path)) {
       return method === "GET";
     }

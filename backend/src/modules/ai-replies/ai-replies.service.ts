@@ -19,6 +19,15 @@ import {
   searchProductImages,
 } from "./product-visual-index.service.js";
 import { matchProductImageWithGemini } from "./gemini-vision.service.js";
+import type { AiPreferences } from "../onboarding/onboarding.types.js";
+
+export const DEFAULT_AI_PREFERENCES: AiPreferences = {
+  enabled: true,
+  tone: "friendly",
+  language: "auto",
+  responseLength: "balanced",
+  instructions: "",
+};
 
 export class AiReplyError extends Error {
   constructor(
@@ -242,6 +251,10 @@ async function appendAuditEvent(
       },
       { session },
     );
+}
+
+function aiPreferences(value?: Partial<AiPreferences> | null): AiPreferences {
+  return { ...DEFAULT_AI_PREFERENCES, ...(value ?? {}) };
 }
 
 type MetaPage = {
@@ -662,6 +675,33 @@ export const aiReplyService = {
 
   setProvider(newProvider: AiReplyProvider) {
     this.provider = newProvider;
+  },
+
+  async getAiPreferences(shopId: string) {
+    const db = await connectDb();
+    const shop = await db.collection<{ _id: string; aiMode?: string; aiPreferences?: Partial<AiPreferences> }>("shops").findOne({ _id: shopId });
+    if (!shop) throw new AiReplyError(404, "SHOP_NOT_FOUND", "Shop not found.");
+    return aiPreferences({
+      ...shop.aiPreferences,
+      enabled: shop.aiPreferences?.enabled ?? shop.aiMode !== "off",
+    });
+  },
+
+  async updateAiPreferences(shopId: string, input: AiPreferences) {
+    const db = await connectDb();
+    await checkShop(db, shopId);
+    const next = aiPreferences(input);
+    await db.collection<{ _id: string }>("shops").updateOne(
+      { _id: shopId },
+      {
+        $set: {
+          aiPreferences: next,
+          aiMode: next.enabled ? "suggest" : "off",
+          updatedAt: new Date().toISOString(),
+        },
+      },
+    );
+    return next;
   },
 
   async listChannels(shopId: string) {
@@ -1227,9 +1267,9 @@ export const aiReplyService = {
     if (!config.aiAutoReplyEnabled) return { skipped: true, reason: "disabled" };
     const db = await connectDb();
     const shop = await db
-      .collection<{ _id: string; aiMode: string }>("shops")
+      .collection<{ _id: string; aiMode: string; aiPreferences?: Partial<AiPreferences> }>("shops")
       .findOne({ _id: shopId });
-    if (!shop || shop.aiMode === "off")
+    if (!shop || shop.aiMode === "off" || shop.aiPreferences?.enabled === false)
       return { skipped: true, reason: "shop_ai_disabled" };
     const draft = await this.generateDraft(
       shopId,
@@ -1396,9 +1436,13 @@ export const aiReplyService = {
 
     const conv = await getConversationRecord(db, shopId, conversationId);
     const shop = await db
-      .collection<{ _id: string; aiMode: string }>("shops")
+      .collection<{ _id: string; aiMode: string; aiPreferences?: Partial<AiPreferences> }>("shops")
       .findOne({ _id: shopId });
-    if (shop?.aiMode === "off")
+    const preferences = aiPreferences({
+      ...shop?.aiPreferences,
+      enabled: shop?.aiPreferences?.enabled ?? shop?.aiMode !== "off",
+    });
+    if (shop?.aiMode === "off" || !preferences.enabled)
       throw new AiReplyError(
         409,
         "AI_DISABLED",
@@ -1468,6 +1512,7 @@ export const aiReplyService = {
       })),
       relevantProducts,
       channel: conv.channel,
+      preferences,
     };
 
     // 3. Generate structured draft

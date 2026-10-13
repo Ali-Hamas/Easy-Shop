@@ -14,6 +14,7 @@ import {
   rejectDraftSchema,
   reviewDraftSchema,
   sendDraftSchema,
+  aiPreferencesSchema,
 } from "./ai-replies.validators.js";
 
 export async function registerAiReplyRoutes(app: FastifyInstance) {
@@ -34,6 +35,21 @@ export async function registerAiReplyRoutes(app: FastifyInstance) {
   app.get("/:shopId/channels", async (req) => {
     const { shopId } = paramsSchema.parse(req.params);
     return aiReplyService.listChannels(shopId);
+  });
+
+  app.get("/:shopId/ai-settings", async (req) => {
+    const { shopId } = paramsSchema.parse(req.params);
+    return { preferences: await aiReplyService.getAiPreferences(shopId) };
+  });
+
+  app.patch("/:shopId/ai-settings", async (req) => {
+    const { shopId } = paramsSchema.parse(req.params);
+    return {
+      preferences: await aiReplyService.updateAiPreferences(
+        shopId,
+        aiPreferencesSchema.parse(req.body),
+      ),
+    };
   });
 
   app.post("/:shopId/channels/meta/connect", async (req) => {

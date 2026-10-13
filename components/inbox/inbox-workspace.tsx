@@ -8,7 +8,7 @@ import {
   useCallback,
 } from "react";
 import { useRouter } from "next/navigation";
-import { Inbox, RefreshCw, AlertCircle, Camera, Link2 } from "lucide-react";
+import { Inbox, RefreshCw, AlertCircle, Camera, Link2, Bot, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { rememberedShop, subscribeShop } from "@/adapters/commerce";
 import { inboxService } from "@/services/inbox";
@@ -22,6 +22,15 @@ import type {
   AiDraft,
   ChannelConnection,
 } from "@/types/inbox";
+import type { AiPreferences } from "@/types/commerce";
+
+const defaultAiPreferences: AiPreferences = {
+  enabled: true,
+  tone: "friendly",
+  language: "auto",
+  responseLength: "balanced",
+  instructions: "",
+};
 
 export function InboxWorkspace() {
   const router = useRouter();
@@ -47,6 +56,8 @@ export function InboxWorkspace() {
   const [messages, setMessages] = useState<ConversationMessage[]>([]);
   const [latestDraft, setLatestDraft] = useState<AiDraft | null>(null);
   const [channels, setChannels] = useState<ChannelConnection[]>([]);
+  const [aiPreferences, setAiPreferences] = useState<AiPreferences>(defaultAiPreferences);
+  const [aiPreferencesDraft, setAiPreferencesDraft] = useState<AiPreferences>(defaultAiPreferences);
 
   const [panel, setPanel] = useState("list");
   const [search, setSearch] = useState("");
@@ -58,6 +69,7 @@ export function InboxWorkspace() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSubmittingDraft, setIsSubmittingDraft] = useState(false);
   const [isConnectingMeta, setIsConnectingMeta] = useState(false);
+  const [isSavingAiPreferences, setIsSavingAiPreferences] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
@@ -124,6 +136,20 @@ export function InboxWorkspace() {
       .catch(() => {
         if (!ac.signal.aborted) setChannels([]);
       });
+    return () => ac.abort();
+  }, [shopId]);
+
+  useEffect(() => {
+    if (!shopId) return;
+    const ac = new AbortController();
+    inboxService
+      .getAiPreferences(shopId, ac.signal)
+      .then((res) => {
+        if (ac.signal.aborted) return;
+        setAiPreferences(res.preferences);
+        setAiPreferencesDraft(res.preferences);
+      })
+      .catch(() => undefined);
     return () => ac.abort();
   }, [shopId]);
 
@@ -415,6 +441,21 @@ export function InboxWorkspace() {
     }
   };
 
+  const handleSaveAiPreferences = async () => {
+    if (!shopId) return;
+    setIsSavingAiPreferences(true);
+    setErrorMessage(null);
+    try {
+      const res = await inboxService.updateAiPreferences(shopId, aiPreferencesDraft);
+      setAiPreferences(res.preferences);
+      setAiPreferencesDraft(res.preferences);
+    } catch (err: unknown) {
+      setErrorMessage(err instanceof Error ? err.message : "Failed to save AI settings.");
+    } finally {
+      setIsSavingAiPreferences(false);
+    }
+  };
+
   return (
     <div className="inbox-workspace" data-panel={panel}>
       {/* Workspace Header */}
@@ -499,6 +540,68 @@ export function InboxWorkspace() {
               ? "Connection pending"
               : "Connect Facebook & Instagram"}
         </Button>
+      </section>
+
+      <section className="inbox-ai-settings" aria-label="AI reply settings">
+        <div className="inbox-ai-settings-header">
+          <div>
+            <span className="inbox-connect-eyebrow">AI reply control</span>
+            <h2><Bot size={16} /> Reply preferences</h2>
+          </div>
+          <label className="inbox-ai-toggle">
+            <input
+              type="checkbox"
+              checked={aiPreferencesDraft.enabled}
+              onChange={(event) => setAiPreferencesDraft((current) => ({ ...current, enabled: event.target.checked }))}
+            />
+            <span>{aiPreferencesDraft.enabled ? "Enabled" : "Off"}</span>
+          </label>
+        </div>
+        <div className="inbox-ai-settings-grid">
+          <label>
+            <span>Tone</span>
+            <select value={aiPreferencesDraft.tone} onChange={(event) => setAiPreferencesDraft((current) => ({ ...current, tone: event.target.value as AiPreferences["tone"] }))}>
+              <option value="friendly">Friendly</option>
+              <option value="professional">Professional</option>
+              <option value="direct">Direct</option>
+              <option value="warm">Warm</option>
+            </select>
+          </label>
+          <label>
+            <span>Language</span>
+            <select value={aiPreferencesDraft.language} onChange={(event) => setAiPreferencesDraft((current) => ({ ...current, language: event.target.value as AiPreferences["language"] }))}>
+              <option value="auto">Customer language</option>
+              <option value="en">English</option>
+              <option value="bn">Bangla</option>
+              <option value="bn-en">Bangla + English</option>
+              <option value="ur-roman">Roman Urdu</option>
+              <option value="ur">Urdu</option>
+            </select>
+          </label>
+          <label>
+            <span>Length</span>
+            <select value={aiPreferencesDraft.responseLength} onChange={(event) => setAiPreferencesDraft((current) => ({ ...current, responseLength: event.target.value as AiPreferences["responseLength"] }))}>
+              <option value="short">Short</option>
+              <option value="balanced">Balanced</option>
+              <option value="detailed">Detailed</option>
+            </select>
+          </label>
+          <label className="inbox-ai-instructions">
+            <span>Merchant instructions</span>
+            <textarea
+              value={aiPreferencesDraft.instructions}
+              maxLength={2000}
+              placeholder="Example: greet customers by name and keep replies concise."
+              onChange={(event) => setAiPreferencesDraft((current) => ({ ...current, instructions: event.target.value }))}
+            />
+          </label>
+        </div>
+        <div className="inbox-ai-settings-footer">
+          <small>Product price, stock, privacy, and human approval rules always override these preferences.</small>
+          <Button size="sm" variant="secondary" onClick={handleSaveAiPreferences} loading={isSavingAiPreferences} disabled={!shopId || JSON.stringify(aiPreferences) === JSON.stringify(aiPreferencesDraft)}>
+            <Save size={14} /> Save settings
+          </Button>
+        </div>
       </section>
 
       <nav className="inbox-mobile-panels" aria-label="Inbox view">

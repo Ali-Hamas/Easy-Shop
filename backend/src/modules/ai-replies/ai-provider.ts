@@ -1,3 +1,5 @@
+import type { AiPreferences } from "../onboarding/onboarding.types.js";
+
 export interface AiContextProduct {
   id: string;
   name: string;
@@ -36,6 +38,7 @@ export interface AiContextInput {
   }>;
   relevantProducts: AiContextProduct[];
   channel: string;
+  preferences?: AiPreferences;
 }
 
 export interface AiReplyOutput {
@@ -67,7 +70,9 @@ export function sanitizeAiText(value: string, maxLength = 2000) {
 /** Conservative fallback: never claims facts or policies that were not supplied. */
 export class GroundedRuleAiProvider implements AiReplyProvider {
   async generateReply(context: AiContextInput): Promise<AiReplyOutput> {
-    const bn = context.customer.language === "bn";
+    const preferences = context.preferences;
+    const responseLanguage = preferences?.language ?? "auto";
+    const bn = responseLanguage === "bn" || (responseLanguage === "auto" && context.customer.language === "bn");
     const product =
       context.relevantProducts.length === 1
         ? context.relevantProducts[0]
