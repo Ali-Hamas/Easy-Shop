@@ -50,12 +50,16 @@ export async function downloadImageBuffer(imageUrl: string) {
 }
 
 function isPrivateAddress(address: string) {
-  const mapped = address.match(/(?:^|:)(?:ffff:)?(\d+\.\d+\.\d+\.\d+)$/i);
-  if (mapped) return isPrivateAddress(mapped[1]);
   if (isIP(address) === 6) {
     const value = address.toLowerCase();
+    const mapped = value.match(/^::ffff:(\d+\.\d+\.\d+\.\d+)$/i);
+    if (mapped) return isPrivateIpv4(mapped[1]);
     return value === "::1" || value.startsWith("fe8") || value.startsWith("fe9") || value.startsWith("fea") || value.startsWith("feb") || value.startsWith("fc") || value.startsWith("fd");
   }
+  return isPrivateIpv4(address);
+}
+
+function isPrivateIpv4(address: string) {
   const octets = address.split(".").map(Number);
   return octets[0] === 10 || octets[0] === 127 || (octets[0] === 169 && octets[1] === 254) || (octets[0] === 172 && octets[1] >= 16 && octets[1] <= 31) || (octets[0] === 192 && octets[1] === 168) || octets[0] === 0;
 }
