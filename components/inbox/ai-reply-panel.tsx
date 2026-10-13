@@ -81,7 +81,7 @@ function DraftEditorBox({
   return (
     <div className="inbox-draft-editor-box">
       <p className="inbox-provider-note">
-        {draft.provider === "openai" ? "AI-generated draft · Human review required" : "Fallback draft · Verify the facts and language before approval"}
+        {draft.provider === "openai" || draft.provider === "groq" ? `${draft.provider === "groq" ? "Groq" : "OpenAI"}-generated draft · Human review required` : "Fallback draft · Verify the facts and language before approval"}
       </p>
       {!isEditing && ["ready", "edited"].includes(draft.status) && (
         <Button variant="secondary" disabled={isSubmitting} onClick={() => setIsEditing(true)}>Edit draft</Button>

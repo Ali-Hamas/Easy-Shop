@@ -19,6 +19,8 @@ let db;
 let app;
 let cookie = "";
 let checks = 0;
+const visionImageUrl =
+  "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=640&q=80";
 
 async function call(method, url, payload, status = 200) {
   const r = await app.inject({
@@ -86,7 +88,7 @@ try {
     price: 1850,
     comparePrice: null,
     cost: 1200,
-    images: [],
+    images: [visionImageUrl],
     status: "active",
     aiFacts: {
       sellingPoints: "100% fine cotton, handcrafted buttons",
@@ -244,6 +246,7 @@ try {
     {
       requestId: msgReqId,
       sender: "customer",
+      attachmentUrl: visionImageUrl,
       text: "আপনার কাছে কটন পাঞ্জাবি আছে কি? স্টক কত পিস?",
     },
     201,

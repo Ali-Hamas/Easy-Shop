@@ -83,7 +83,7 @@ export interface ConversationCustomerContext {
 
 export interface AiDraft {
   version: number;
-  provider?: "openai" | "fallback";
+  provider?: "openai" | "groq" | "fallback";
   id: string;
   shopId: string;
   conversationId: string;
