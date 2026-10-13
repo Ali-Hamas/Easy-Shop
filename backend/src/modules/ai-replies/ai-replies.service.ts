@@ -1793,8 +1793,20 @@ export const aiReplyService = {
       );
     await verifyDraftContext(db, shopId, conversationId, draft);
     const replyText = draft.editedText ?? draft.originalText;
-    const externalMessageId =
-      conv.channel === "storefront" ? null : await sendMetaReply(db, conv, replyText);
+    const claimed = await drafts(db).findOneAndUpdate(
+      { _id: draftId, shopId, conversationId, status: { $in: ["approved", "send_failed"] } },
+      { $set: { status: "sending", updatedAt: new Date().toISOString() } },
+      { returnDocument: "after" },
+    );
+    if (!claimed)
+      throw new AiReplyError(409, "SEND_IN_PROGRESS", "This reply is already being sent.");
+    let externalMessageId: string | null = null;
+    try {
+      externalMessageId = conv.channel === "storefront" ? null : await sendMetaReply(db, conv, replyText);
+    } catch (error) {
+      await drafts(db).updateOne({ _id: draftId, shopId }, { $set: { status: "send_failed", updatedAt: new Date().toISOString() } });
+      throw error;
+    }
 
     return await transaction(async (db, session) => {
       const completed = await replay();
@@ -1820,7 +1832,7 @@ export const aiReplyService = {
       await messages(db).insertOne(messageDoc, { session });
 
       await drafts(db).updateOne(
-        { _id: draftId },
+        { _id: draftId, status: "sending" },
         {
           $set: {
             status: "sent",

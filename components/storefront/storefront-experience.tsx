@@ -27,7 +27,7 @@ import { StorefrontChat } from "./storefront-chat";
 import { storefrontService } from "@/services/commerce";
 import { ApiError } from "@/lib/api/client";
 import { formatMoney, productPath, storefrontUrl } from "@/adapters/commerce";
-import type { PublicStore, ProductDetail } from "@/types/commerce";
+import type { PublicProduct, PublicStore, ProductDetail } from "@/types/commerce";
 import "@/styles/storefront.css";
 
 type CartItem = {
@@ -210,6 +210,13 @@ export default function StorefrontExperience({
   }, [cartItems]);
   const deliveryCharge = store?.shop.policyDefaults.deliveryCharge ?? 0;
   const cartTotal = cartSubtotal + deliveryCharge;
+
+  function defaultCartVariant(product: PublicProduct) {
+    const variant = product.variants.find((item) => typeof item !== "string");
+    return variant && typeof variant !== "string"
+      ? { variantId: variant.id, variantTitle: variant.title, price: variant.price }
+      : { variantId: undefined, variantTitle: undefined, price: product.price };
+  }
 
   function addToCart(
     item: {
@@ -917,13 +924,13 @@ export default function StorefrontExperience({
                             type="button"
                             disabled={p.stock <= 0}
                             onClick={() =>
-                              addToCart({
-                                productId: p.id,
-                                productName: p.name,
-                                slug: p.slug,
-                                price: p.price,
-                                imageUrl: p.imageUrl,
-                              })
+                            addToCart({
+                                  productId: p.id,
+                                  productName: p.name,
+                                  slug: p.slug,
+                                  ...defaultCartVariant(p),
+                                  imageUrl: p.imageUrl,
+                                })
                             }
                             className="buyer-spotlight-bag-button"
                           >
@@ -1024,11 +1031,11 @@ export default function StorefrontExperience({
                               type="button"
                               disabled={p.stock <= 0}
                               onClick={() =>
-                                addToCart({
+                              addToCart({
                                   productId: p.id,
                                   productName: p.name,
                                   slug: p.slug,
-                                  price: p.price,
+                                  ...defaultCartVariant(p),
                                   imageUrl: p.imageUrl,
                                 })
                               }
@@ -1132,13 +1139,13 @@ export default function StorefrontExperience({
                               type="button"
                               disabled={p.stock <= 0}
                               onClick={() =>
-                                addToCart({
-                                  productId: p.id,
-                                  productName: p.name,
-                                  slug: p.slug,
-                                  price: p.price,
-                                  imageUrl: p.imageUrl,
-                                })
+                            addToCart({
+                                productId: p.id,
+                                productName: p.name,
+                                slug: p.slug,
+                                ...defaultCartVariant(p),
+                                imageUrl: p.imageUrl,
+                              })
                               }
                               className="buyer-card-add-btn"
                               aria-label={`Add ${p.name} to bag`}

@@ -22,14 +22,6 @@ const DEMO_ITEMS = [
 
 type LabItem = { name: string; price: number; stock: number; sizes: string[]; description: string; imageUrl: string; is_embedded: boolean; image_url: string; id: string; slug: string; currency: string };
 
-function demoContext(name: string | undefined, id: string, similarity: number) {
-  const normalize = (value: string) => value.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
-  const item = DEMO_ITEMS.find(([title]) => normalize(title) === normalize(name ?? ""));
-  if (!item) return null;
-  const [title, price, stock, sizes] = item;
-  return { id, name: title, price, currency: "BDT", inStock: stock > 0, availableQuantity: stock, variants: sizes.map((size, index) => ({ id: `demo-${index}`, name: size, price, availableQuantity: stock, inStock: stock > 0 })), similarity };
-}
-
 async function labShop(userId: string): Promise<ShopDocument> {
   const db = await connectDb();
   const links = db.collection<{ _id: string; shopId: string }>("testLabShops");
@@ -99,13 +91,11 @@ export async function verifyLabKeys() {
 export async function chatSimulate(userId: string, input: { text?: string | null; imageUrl?: string | null; imageBase64?: string | null; mimeType?: string | null; history?: Array<{ source: "buyer" | "ai" | "staff" | "user" | "assistant"; body: string }> | null }) {
   const shop = await labShop(userId); const image = input.imageBase64 ? `data:${input.mimeType || "image/jpeg"};base64,${input.imageBase64.replace(/^data:[^,]+,/, "")}` : input.imageUrl || undefined;
   const started = Date.now(); let match: { productId: string; confidence: number; source: string; reason: string } | null = null; let candidates: unknown[] = [];
-  let catalogProduct: ReturnType<typeof demoContext> = null;
   if (image) {
     const vector = await searchProductImages(shop._id, image);
     candidates = vector?.candidates ?? [];
     if (vector?.strong) {
       match = { productId: vector.productId, confidence: vector.confidence, source: "gemini_vector", reason: `Vector search found a strong match (${vector.confidence.toFixed(3)}).` };
-      catalogProduct = demoContext((vector.candidates[0] as { name?: string } | undefined)?.name, vector.productId, vector.confidence);
     }
     else {
       const judged = await matchProductImageWithGemini(image, await activeVisualCandidates(shop._id));
@@ -121,7 +111,7 @@ export async function chatSimulate(userId: string, input: { text?: string | null
       if (current) detail = await inventoryService.get(shop._id, current._id).catch(() => null);
     }
   }
-  let product = catalogProduct ?? (detail ? {
+  const product = detail ? {
     id: detail.id,
     name: detail.name,
     price: detail.price,
@@ -129,16 +119,7 @@ export async function chatSimulate(userId: string, input: { text?: string | null
     inStock: detail.available > 0,
     availableQuantity: detail.available,
     variants: detail.variants.map((variant) => ({ id: variant.id, name: variant.title, price: variant.price, availableQuantity: variant.available, inStock: variant.available > 0 })),
-  } : match ? await matchedProductContext(shop._id, match.productId) : null);
-  if (!product && match) {
-    const top = (candidates[0] ?? {}) as { name?: string };
-    const normalize = (value: string) => value.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
-    const demo = DEMO_ITEMS.find(([name]) => normalize(name) === normalize(top.name ?? ""));
-    if (demo) {
-      const [name, price, stock, sizes] = demo;
-      product = { id: match.productId, name, price, currency: "BDT", inStock: stock > 0, availableQuantity: stock, variants: sizes.map((size, index) => ({ id: `demo-${index}`, name: size, price, availableQuantity: stock, inStock: stock > 0 })) };
-    }
-  }
+  } : match ? await matchedProductContext(shop._id, match.productId) : null;
   const reply = await aiReplyService.provider.generateReply({ shopId: shop._id, customer: { id: "ai-vision-lab", name: "AI Vision Lab", language: "en", tags: [], staffNotes: [] }, latestCustomerMessage: input.text || "What product is this in the picture?", conversationHistory: (input.history ?? []).map((item) => ({ sender: item.source === "buyer" || item.source === "user" ? "customer" as const : "staff" as const, text: item.body, createdAt: new Date().toISOString() })), relevantProducts: product ? [product] : [], channel: "storefront" });
   const matched = product ? { ...product, stock: product.availableQuantity, similarity: match?.confidence ?? 0, source: match?.source ?? "none" } : null;
   const groundedFallback = matched ? `This is ${matched.name}. It is listed at ${matched.currency} ${matched.price} and currently has ${matched.stock} unit${matched.stock === 1 ? "" : "s"} available.` : "Sorry, I could not find the exact item in the catalog.";

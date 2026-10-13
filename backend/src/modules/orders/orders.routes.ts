@@ -38,7 +38,7 @@ const checkoutSchema = z.object({
   requestId: uuid,
   buyer: z.object({
     name: z.string().trim().min(2).max(120),
-    phone: z.string().trim().min(6).max(30),
+    phone: z.string().trim().min(6).max(30).regex(/^[+0-9()\-\s]+$/).refine((value) => value.replace(/\D/g, "").length >= 6, "Enter a valid phone number."),
     address: z.string().trim().min(3).max(400),
     notes: z.string().trim().max(1000).optional(),
   }),
@@ -55,8 +55,9 @@ const checkoutSchema = z.object({
 });
 
 function publicOrder(order: OrderDocument) {
+  const { requestId: _requestId, fingerprint: _fingerprint, ...safe } = publicDocument(order) as Record<string, unknown>;
   return {
-    ...publicDocument(order),
+    ...safe,
     subtotal: amount(order.subtotal),
     deliveryCharge: amount(order.deliveryCharge),
     total: amount(order.total),
@@ -260,6 +261,8 @@ export async function registerOrderRoutes(app: FastifyInstance) {
       const existing = lines.find((line) => line.variantId === variant._id);
       if (existing) {
         existing.quantity += item.quantity;
+        if (existing.quantity > 99)
+          return reply.code(400).send({ code: "VALIDATION_ERROR", message: "A variant quantity cannot exceed 99." });
         existing.lineTotal = existing.unitPrice * existing.quantity;
       } else {
         const unitPrice = amount(variant.price);
@@ -286,7 +289,7 @@ export async function registerOrderRoutes(app: FastifyInstance) {
     const order: OrderDocument = {
       _id: randomUUID(),
       shopId: shop._id,
-      orderNumber: `ORD-${Date.now().toString(36).toUpperCase()}-${randomUUID().slice(0, 4).toUpperCase()}`,
+      orderNumber: `ORD-${Date.now().toString(36).toUpperCase()}-${randomUUID().slice(0, 12).toUpperCase()}`,
       status: "new",
       buyer: input.buyer,
       items: lines,
@@ -328,10 +331,7 @@ export async function registerOrderRoutes(app: FastifyInstance) {
           requestId: input.requestId,
         });
         if (completed?.fingerprint === fingerprint) return publicOrder(completed);
-        return reply.code(409).send({
-          code: "IDEMPOTENCY_CONFLICT",
-          message: "This order request was already used with different data.",
-        });
+        return reply.code(409).send({ code: "ORDER_CONFLICT", message: "The order could not be created because a unique order value collided. Please retry." });
       }
       if (
         typeof error === "object" &&
@@ -349,9 +349,9 @@ export async function registerOrderRoutes(app: FastifyInstance) {
     }
   });
 
-  app.get("/:shopId", async (request) => {
+  app.get("/:shopId", async (request, reply) => {
     const parsed = z.object({ shopId: uuid }).safeParse(request.params);
-    if (!parsed.success) return { orders: [] };
+    if (!parsed.success) return reply.code(400).send({ code: "VALIDATION_ERROR", message: "Invalid shop id." });
     const { shopId } = parsed.data;
     const db = await connectDb();
     const orders = await db

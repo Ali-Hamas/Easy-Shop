@@ -19,7 +19,7 @@ Request: JSON. Product images and buyer images use data URLs. Maximum request bo
 
 Response: Status, vectorized product count, product save result, or grounded reply with matched product and visual confidence.
 
-Side effects: Product saves create normal inventory records and asynchronously create image embeddings. Chat creates no customer message or order.
+Side effects: Product saves create isolated test-lab inventory records and image embeddings. Batch replacement is destructive within that isolated lab shop and requires explicit client confirmation. Chat creates no customer message or order.
 
 Audit/timeline: Test requests do not write inbox messages, customer events or outbound sends.
 
@@ -27,4 +27,4 @@ Cache: no-store.
 
 Errors: 401 AUTH_REQUIRED; 400 validation or no launched shop; 502 provider/download failures are returned as test errors.
 
-Limitations: Test bench uses the first launched shop owned by the current user. It is for staging validation, not customer-facing traffic.
+Limitations: The test lab is disabled by default (`TEST_LAB_ENABLED=false`) and must be explicitly enabled only in a controlled staging environment. It is not customer-facing traffic. Chat, seed, batch, and product routes are rate-limited; image URLs are restricted to public HTTP(S) resources and bounded image types/sizes.

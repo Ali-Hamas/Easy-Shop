@@ -327,9 +327,11 @@
     // Safe storage wrapper to prevent exceptions in restricted browser environments
     const storage = {
       get(k, fallback = '') {
+        if (k === 'geminiKey' || k === 'groqKey') return fallback;
         try { const v = localStorage.getItem(k); return v !== null ? v : fallback; } catch (e) { return fallback; }
       },
       set(k, v) {
+        if (k === 'geminiKey' || k === 'groqKey') return;
         try { localStorage.setItem(k, v); } catch (e) {}
       }
     };
@@ -530,7 +532,7 @@
 
       container.innerHTML = slotsData.map((s, idx) => {
         const hasImg = Boolean(s.imageBase64 || s.imageUrl);
-        const imgSource = s.imageBase64 || s.imageUrl;
+        const imgSource = safeImageSrc(s.imageBase64 || s.imageUrl);
         return `
           <div class="slot-card ${hasImg ? 'has-image' : ''}" id="slot-card-${idx}">
             <div class="slot-header">
@@ -564,11 +566,11 @@
             <div class="grid-2" style="gap: 0.5rem; margin-bottom: 0.4rem;">
               <div class="form-group" style="margin-bottom: 0;">
                 <label style="font-size: 0.75rem;">Price (৳ BDT)</label>
-                <input type="number" class="form-control" style="padding: 0.35rem 0.6rem; font-size: 0.82rem;" placeholder="1250" value="${s.price}" oninput="window.updateSlotField(${idx}, 'price', this.value)">
+                <input type="number" class="form-control" style="padding: 0.35rem 0.6rem; font-size: 0.82rem;" placeholder="1250" value="${escapeHtml(s.price)}" oninput="window.updateSlotField(${idx}, 'price', this.value)">
               </div>
               <div class="form-group" style="margin-bottom: 0;">
                 <label style="font-size: 0.75rem;">Stock Qty</label>
-                <input type="number" class="form-control" style="padding: 0.35rem 0.6rem; font-size: 0.82rem;" placeholder="10" value="${s.stock}" oninput="window.updateSlotField(${idx}, 'stock', this.value)">
+                <input type="number" class="form-control" style="padding: 0.35rem 0.6rem; font-size: 0.82rem;" placeholder="10" value="${escapeHtml(s.stock)}" oninput="window.updateSlotField(${idx}, 'stock', this.value)">
               </div>
             </div>
 
@@ -679,8 +681,8 @@
         showBanner('⚠️ Please fill at least 1 product with image, title, and price (or click "⚡ Autofill Sample Details").', 'warning', 5000);
         return;
       }
+      if (!window.confirm('Replace the isolated AI Vision Lab catalog with these products and re-vectorize every image?')) return;
 
-      const geminiKey = storage.get('geminiKey', DEFAULT_GEMINI_KEY);
       const btn = document.getElementById('btn-save-batch');
       const progressBox = document.getElementById('batch-progress-box');
       const progressBar = document.getElementById('batch-progress-bar');
@@ -704,7 +706,7 @@
           }
         }));
         const payload = {
-          geminiKey,
+          confirmReplace: true,
           products: validProducts.map(p => ({
             name: p.name.trim(),
             description: p.desc.trim(),
@@ -1104,6 +1106,11 @@
       return String(text || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
     }
 
+    function safeImageSrc(value) {
+      const text = String(value || '');
+      return /^(https?:\/\/|data:image\/(jpeg|png|webp|gif);base64,)/i.test(text) ? escapeHtml(text) : '';
+    }
+
     // Attach all functions to window for global inline accessibility
     window.switchTab = switchTab;
     window.showBanner = showBanner;
@@ -1147,12 +1154,6 @@
 
       autofillSampleDetails();
       renderSlots();
-
-      fetch('/api/v1/test-lab/status').then(r => r.ok ? r.json() : null).then(async status => {
-        if (status && status.totalProducts === 0) {
-          await fetch('/api/v1/test-lab/seed-demo', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
-        }
-      }).catch(() => {});
 
       // Automatically verify and show green badges for connected APIs
       verifyKeysWithApi(activeGem, activeGroq);

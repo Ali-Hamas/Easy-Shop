@@ -3,10 +3,9 @@ import { connectDb } from "../../shared/db.js";
 import { amount, collections } from "../../shared/models.js";
 import { config } from "../../shared/config.js";
 import { fetchWithRetry } from "../../shared/fetch-retry.js";
-import type { VisualProductCandidate } from "./gemini-vision.service.js";
+import { downloadImageBuffer, type VisualProductCandidate } from "./gemini-vision.service.js";
 
 const EMBEDDING_DIMENSIONS = 768;
-const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
 
 type ProductImageIndex = {
   _id: string;
@@ -114,7 +113,7 @@ export async function activeVisualCandidates(shopId: string): Promise<VisualProd
 
 export async function matchedProductContext(shopId: string, productId: string) {
   const db = await connectDb();
-  const product = await collections(db).products.findOne({ _id: productId, shopId });
+  const product = await collections(db).products.findOne({ _id: productId, shopId, status: "active" });
   if (!product) return null;
   return {
     id: product._id,
@@ -146,10 +145,10 @@ async function embedProductImage(imageUrl: string) {
 async function embedImageFromUrl(imageUrl: string) {
   const { buffer, mimeType } = await downloadImageBuffer(imageUrl);
   const response = await fetchWithRetry(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-2:embedContent?key=${config.geminiApiKey}`,
+    "https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-2:embedContent",
     {
       method: "POST",
-      headers: { "content-type": "application/json" },
+      headers: { "content-type": "application/json", "x-goog-api-key": config.geminiApiKey },
       body: JSON.stringify({
         content: { parts: [{ inline_data: { mime_type: mimeType, data: buffer.toString("base64") } }] },
         outputDimensionality: EMBEDDING_DIMENSIONS,
@@ -164,24 +163,6 @@ async function embedImageFromUrl(imageUrl: string) {
   const values = body.embedding?.values ?? body.embeddings?.[0]?.values;
   if (!response.ok || !values?.length) throw new Error("Gemini image embedding failed.");
   return normalizeEmbedding(values);
-}
-
-async function downloadImageBuffer(imageUrl: string) {
-  const dataUrl = /^data:(image\/[a-z0-9.+-]+);base64,(.+)$/i.exec(imageUrl);
-  if (dataUrl) {
-    const buffer = Buffer.from(dataUrl[2], "base64");
-    if (buffer.length > MAX_IMAGE_BYTES) throw new Error("Image is too large.");
-    return { buffer, mimeType: dataUrl[1] };
-  }
-  const resolved = new URL(imageUrl, config.appOrigin);
-  if (!['http:', 'https:'].includes(resolved.protocol)) throw new Error("Image URL is not allowed.");
-  const response = await fetchWithRetry(resolved.toString(), {}, { maxRetries: 2, timeoutMs: 15000, actionName: "downloadImage" });
-  if (!response.ok) throw new Error("Image could not be downloaded.");
-  const contentLength = Number(response.headers.get("content-length") ?? 0);
-  if (contentLength > MAX_IMAGE_BYTES) throw new Error("Image is too large.");
-  const buffer = Buffer.from(await response.arrayBuffer());
-  if (buffer.length > MAX_IMAGE_BYTES) throw new Error("Image is too large.");
-  return { buffer, mimeType: (response.headers.get("content-type") ?? "image/jpeg").split(";")[0] };
 }
 
 function normalizeEmbedding(values: number[]) {
