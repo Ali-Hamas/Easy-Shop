@@ -302,10 +302,11 @@ async function sendMetaReply(
     .collection<{ metadata?: { pages?: StoredMetaPage[] } }>("shopChannels")
     .findOne({ shopId: conv.shopId, provider: "meta", status: "connected" });
   const pages = channel?.metadata?.pages ?? [];
+  const pageId = conv.channelThreadId?.split(":", 1)[0];
   const page =
     conv.channel === "instagram"
-      ? pages.find((p) => p.instagramBusinessAccount?.id && p.accessToken)
-      : pages.find((p) => p.accessToken);
+      ? pages.find((p) => p.instagramBusinessAccount?.id === pageId && p.accessToken)
+      : pages.find((p) => p.id === pageId && p.accessToken);
   const customer = await db
     .collection<{ _id: string; externalRefs?: { metaSenderId?: string } }>("customers")
     .findOne({ _id: conv.customerId, shopId: conv.shopId });

@@ -17,6 +17,7 @@ import type {
   PolicyDefaults,
   Shop,
 } from "./onboarding.types.js";
+import { indexProductImages } from "../ai-replies/product-visual-index.service.js";
 const reservedSubdomains = new Set([
   "admin",
   "api",
@@ -385,15 +386,17 @@ export class OnboardingService {
     shopId: string,
     input: Omit<FirstProduct, "id" | "shopId" | "status" | "createdAt">,
   ) {
+    let productId = "";
     try {
-      return await this.mutate(shopId, true, async (db, session, shop) => {
+      await this.mutate(shopId, true, async (db, session, shop) => {
         const c = collections(db),
-          productId = randomUUID(),
+          newProductId = randomUUID(),
           variantId = randomUUID(),
           createdAt = now();
+        productId = newProductId;
         await c.products.insertOne(
           {
-            _id: productId,
+            _id: newProductId,
             shopId,
             name: input.name,
             slug: normalizeSubdomain(input.name),
@@ -411,7 +414,7 @@ export class OnboardingService {
           {
             _id: variantId,
             shopId,
-            productId,
+            productId: newProductId,
             title: "Default",
             price: money(input.price),
             status: "active",
@@ -437,8 +440,13 @@ export class OnboardingService {
           { $set: { onboardingStep: "channels" } },
           { session },
         );
-        await audit(db, session, shop, "product.created", "product", productId);
+        await audit(db, session, shop, "product.created", "product", newProductId);
       });
+      if (productId) {
+        await indexProductImages(shopId, productId).catch((error) =>
+          console.warn("Onboarding product visual index failed:", error),
+        );
+      }
     } catch (error) {
       if (error instanceof MongoServerError && error.code === 11000)
         throw new OnboardingError(
