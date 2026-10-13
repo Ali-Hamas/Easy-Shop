@@ -109,7 +109,7 @@ export async function chatSimulate(userId: string, input: { text?: string | null
       if (current) detail = await inventoryService.get(shop._id, current._id).catch(() => null);
     }
   }
-  const product = detail ? {
+  let product = detail ? {
     id: detail.id,
     name: detail.name,
     price: detail.price,
@@ -118,6 +118,14 @@ export async function chatSimulate(userId: string, input: { text?: string | null
     availableQuantity: detail.available,
     variants: detail.variants.map((variant) => ({ id: variant.id, name: variant.title, price: variant.price, availableQuantity: variant.available, inStock: variant.available > 0 })),
   } : match ? await matchedProductContext(shop._id, match.productId) : null;
+  if (!product && match) {
+    const top = (candidates[0] ?? {}) as { name?: string };
+    const demo = DEMO_ITEMS.find(([name]) => name === top.name);
+    if (demo) {
+      const [name, price, stock, sizes] = demo;
+      product = { id: match.productId, name, price, currency: "BDT", inStock: stock > 0, availableQuantity: stock, variants: sizes.map((size, index) => ({ id: `demo-${index}`, name: size, price, availableQuantity: stock, inStock: stock > 0 })) };
+    }
+  }
   const reply = await aiReplyService.provider.generateReply({ shopId: shop._id, customer: { id: "ai-vision-lab", name: "AI Vision Lab", language: "en", tags: [], staffNotes: [] }, latestCustomerMessage: input.text || "What product is this in the picture?", conversationHistory: (input.history ?? []).map((item) => ({ sender: item.source === "buyer" || item.source === "user" ? "customer" as const : "staff" as const, text: item.body, createdAt: new Date().toISOString() })), relevantProducts: product ? [product] : [], channel: "storefront" });
   return { reply: reply.replyText, provider: reply.provider ?? "fallback", matchedProduct: product ? { ...product, similarity: match?.confidence ?? 0, source: match?.source ?? "none" } : null, visualInspection: { hasImage: Boolean(image), imageHashReceived: false, imageHashCount: 0, catalogHashCount: 0, similarityScore: match?.confidence ?? 0, vectorSearchMatched: match?.source === "gemini_vector", reason: match?.reason ?? "No confident catalog match.", topCandidates: candidates, vectorLatencyMs: Date.now() - started, groqLatencyMs: 0 } };
 }
