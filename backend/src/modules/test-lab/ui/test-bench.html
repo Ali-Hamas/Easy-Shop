@@ -1148,6 +1148,12 @@
       autofillSampleDetails();
       renderSlots();
 
+      fetch('/api/v1/test-lab/status').then(r => r.ok ? r.json() : null).then(async status => {
+        if (status && status.totalProducts === 0) {
+          await fetch('/api/v1/test-lab/seed-demo', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+        }
+      }).catch(() => {});
+
       // Automatically verify and show green badges for connected APIs
       verifyKeysWithApi(activeGem, activeGroq);
 
