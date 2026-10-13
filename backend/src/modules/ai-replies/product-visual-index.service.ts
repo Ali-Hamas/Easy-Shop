@@ -77,6 +77,7 @@ export async function searchProductImages(shopId: string, imageUrl: string) {
     confidence: best.similarity,
     gap,
     strong: best.similarity >= config.aiVisualConfidenceThreshold && gap >= 0.06,
+    candidates: scored.slice(0, 8),
   };
 }
 
@@ -165,6 +166,12 @@ async function embedImageFromUrl(imageUrl: string) {
 }
 
 async function downloadImageBuffer(imageUrl: string) {
+  const dataUrl = /^data:(image\/[a-z0-9.+-]+);base64,(.+)$/i.exec(imageUrl);
+  if (dataUrl) {
+    const buffer = Buffer.from(dataUrl[2], "base64");
+    if (buffer.length > MAX_IMAGE_BYTES) throw new Error("Image is too large.");
+    return { buffer, mimeType: dataUrl[1] };
+  }
   const resolved = new URL(imageUrl, config.appOrigin);
   if (!['http:', 'https:'].includes(resolved.protocol)) throw new Error("Image URL is not allowed.");
   const response = await fetchWithRetry(resolved.toString(), {}, { maxRetries: 2, timeoutMs: 15000, actionName: "downloadImage" });

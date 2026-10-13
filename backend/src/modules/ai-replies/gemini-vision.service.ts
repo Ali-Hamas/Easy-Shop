@@ -16,6 +16,13 @@ export type VisualMatch = {
 };
 
 export async function downloadImageBuffer(imageUrl: string) {
+  const dataUrl = /^data:(image\/[a-z0-9.+-]+);base64,(.+)$/i.exec(imageUrl);
+  if (dataUrl) {
+    return {
+      buffer: Buffer.from(dataUrl[2], "base64"),
+      mimeType: dataUrl[1],
+    };
+  }
   const resolvedUrl = new URL(imageUrl, config.appOrigin).toString();
   const response = await fetchWithRetry(resolvedUrl, {}, { actionName: "downloadImage" });
   if (!response.ok) throw new Error("Image could not be downloaded.");
