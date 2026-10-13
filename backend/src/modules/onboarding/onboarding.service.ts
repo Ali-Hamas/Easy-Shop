@@ -447,6 +447,7 @@ export class OnboardingService {
           console.warn("Onboarding product visual index failed:", error),
         );
       }
+      return this.getState(shopId);
     } catch (error) {
       if (error instanceof MongoServerError && error.code === 11000)
         throw new OnboardingError(
