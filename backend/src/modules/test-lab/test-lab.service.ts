@@ -120,12 +120,17 @@ export async function chatSimulate(userId: string, input: { text?: string | null
   } : match ? await matchedProductContext(shop._id, match.productId) : null;
   if (!product && match) {
     const top = (candidates[0] ?? {}) as { name?: string };
-    const demo = DEMO_ITEMS.find(([name]) => name === top.name);
+    const normalize = (value: string) => value.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+    const demo = DEMO_ITEMS.find(([name]) => normalize(name) === normalize(top.name ?? ""));
     if (demo) {
       const [name, price, stock, sizes] = demo;
       product = { id: match.productId, name, price, currency: "BDT", inStock: stock > 0, availableQuantity: stock, variants: sizes.map((size, index) => ({ id: `demo-${index}`, name: size, price, availableQuantity: stock, inStock: stock > 0 })) };
     }
   }
   const reply = await aiReplyService.provider.generateReply({ shopId: shop._id, customer: { id: "ai-vision-lab", name: "AI Vision Lab", language: "en", tags: [], staffNotes: [] }, latestCustomerMessage: input.text || "What product is this in the picture?", conversationHistory: (input.history ?? []).map((item) => ({ sender: item.source === "buyer" || item.source === "user" ? "customer" as const : "staff" as const, text: item.body, createdAt: new Date().toISOString() })), relevantProducts: product ? [product] : [], channel: "storefront" });
-  return { reply: reply.replyText, provider: reply.provider ?? "fallback", matchedProduct: product ? { ...product, similarity: match?.confidence ?? 0, source: match?.source ?? "none" } : null, visualInspection: { hasImage: Boolean(image), imageHashReceived: false, imageHashCount: 0, catalogHashCount: 0, similarityScore: match?.confidence ?? 0, vectorSearchMatched: match?.source === "gemini_vector", reason: match?.reason ?? "No confident catalog match.", topCandidates: candidates, vectorLatencyMs: Date.now() - started, groqLatencyMs: 0 } };
+  const matched = product ? { ...product, stock: product.availableQuantity, similarity: match?.confidence ?? 0, source: match?.source ?? "none" } : null;
+  const groundedFallback = matched ? `This is ${matched.name}. It is listed at ${matched.currency} ${matched.price} and currently has ${matched.stock} unit${matched.stock === 1 ? "" : "s"} available.` : "Sorry, I could not find the exact item in the catalog.";
+  const modelReply = reply.replyText?.trim() || "";
+  const trustedReply = matched && !modelReply.toLowerCase().includes(matched.name.toLowerCase()) && !modelReply.includes(String(matched.price)) ? groundedFallback : (modelReply || groundedFallback);
+  return { reply: trustedReply, provider: reply.provider ?? "fallback", matchedProduct: matched, visualInspection: { hasImage: Boolean(image), imageHashReceived: false, imageHashCount: 0, catalogHashCount: 0, similarityScore: match?.confidence ?? 0, vectorSearchMatched: match?.source === "gemini_vector", reason: match?.reason ?? "No confident catalog match.", topCandidates: candidates, vectorLatencyMs: Date.now() - started, groqLatencyMs: 0 } };
 }
