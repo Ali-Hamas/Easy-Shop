@@ -65,6 +65,7 @@ export async function searchProductImages(shopId: string, imageUrl: string) {
     .map((row) => ({
       productId: row.productId,
       imageUrl: row.imageUrl,
+      name: row.name,
       similarity: cosineSimilarity(query, row.embedding ?? []),
     }))
     .sort((a, b) => b.similarity - a.similarity);
@@ -113,7 +114,7 @@ export async function activeVisualCandidates(shopId: string): Promise<VisualProd
 
 export async function matchedProductContext(shopId: string, productId: string) {
   const db = await connectDb();
-  const product = await collections(db).products.findOne({ _id: productId, shopId, status: "active" });
+  const product = await collections(db).products.findOne({ _id: productId, shopId });
   if (!product) return null;
   return {
     id: product._id,
