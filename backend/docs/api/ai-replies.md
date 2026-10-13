@@ -2,6 +2,8 @@
 
 Purpose: Provide a human-in-the-loop social messaging inbox and grounded AI reply assistance for commerce conversations. Allows merchants to receive customer inquiries, retrieve relevant customer and product/inventory facts, generate deterministic stock-grounded reply drafts with explicit rationale, edit drafts, approve/reject drafts, and explicitly send approved replies to conversation threads. Excludes external Meta/Instagram/WhatsApp webhook ingestion and automated unapproved external transmission.
 
+Automatic sending is disabled unless `AI_AUTO_REPLY_SEND_ENABLED=true` is explicitly configured. Generated drafts remain in human review by default, regardless of provider or shop AI mode.
+
 Auth: Requires an HttpOnly merchant session and server-side shop ownership validation. Mutations require the configured Origin. See auth.md. Account IDs are resolved by the server; production is supported.
 
 Request: Prefix `/api/v1/inbox`. UUID shop, customer, conversation, message, and draft IDs. Strict Zod validation on all input bodies and query parameters. Supported channels: `messenger`, `instagram`, `storefront`. WhatsApp and future channels remain reserved in data modeling but unexposed in this phase.

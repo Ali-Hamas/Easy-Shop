@@ -52,6 +52,8 @@ export type ConversationAiStatus =
   | "sent"
   | "needs_human";
 
+const STALE_SEND_MS = 10 * 60 * 1000;
+
 export interface ConversationDocument {
   _id: string;
   shopId: string;
@@ -1236,6 +1238,7 @@ export const aiReplyService = {
     );
     if (
       shop.aiMode !== "auto_low_risk" ||
+      !config.aiAutoReplySendEnabled ||
       draft.confidence !== "high" ||
       draft.needsHumanAttention
     )
@@ -1766,7 +1769,7 @@ export const aiReplyService = {
     if (prior) return prior;
 
     const conv = await getConversationRecord(db, shopId, conversationId);
-    const draft = await drafts(db).findOne({
+    let draft = await drafts(db).findOne({
       _id: draftId,
       shopId,
       conversationId,
@@ -1774,6 +1777,25 @@ export const aiReplyService = {
 
     if (!draft)
       throw new AiReplyError(404, "DRAFT_NOT_FOUND", "AI draft not found.");
+
+    if (
+      draft.status === "sending" &&
+      Date.parse(draft.updatedAt) < Date.now() - STALE_SEND_MS
+    ) {
+      await drafts(db).updateOne(
+        { _id: draftId, shopId, conversationId, status: "sending" },
+        {
+          $set: {
+            status: "send_failed",
+            rejectionReason: "Previous send attempt expired and requires review.",
+            updatedAt: new Date().toISOString(),
+          },
+        },
+      );
+      draft = await drafts(db).findOne({ _id: draftId, shopId, conversationId });
+      if (!draft)
+        throw new AiReplyError(404, "DRAFT_NOT_FOUND", "AI draft not found.");
+    }
 
     if (draft.status !== "approved" && draft.status !== "send_failed")
       throw new AiReplyError(
@@ -1902,6 +1924,16 @@ export const aiReplyService = {
     }).catch(async (error) => {
       const completed = await replay();
       if (completed) return completed;
+      await drafts(db).updateOne(
+        { _id: draftId, shopId, conversationId, status: "sending" },
+        {
+          $set: {
+            status: "send_failed",
+            rejectionReason: "Message sent externally but local recording failed; reconcile before retrying.",
+            updatedAt: new Date().toISOString(),
+          },
+        },
+      );
       throw error;
     });
   },

@@ -1,5 +1,7 @@
 import { lookup } from "node:dns/promises";
 import { isIP } from "node:net";
+import http from "node:http";
+import https from "node:https";
 import { config } from "../../shared/config.js";
 import { fetchWithRetry } from "../../shared/fetch-retry.js";
 
@@ -33,30 +35,119 @@ export async function downloadImageBuffer(imageUrl: string) {
   }
   const resolved = new URL(imageUrl, config.appOrigin);
   if (!['http:', 'https:'].includes(resolved.protocol)) throw new Error("Image URL is not allowed.");
-  const addresses = await lookup(resolved.hostname, { all: true });
+  const addresses = await lookup(resolved.hostname, { all: true, verbatim: true });
   if (addresses.some(({ address }) => isPrivateAddress(address))) throw new Error("Private image hosts are not allowed.");
-  const response = await fetchWithRetry(resolved.toString(), { redirect: "error" }, { actionName: "downloadImage", timeoutMs: 15000, maxRetries: 2 });
-  if (!response.ok) throw new Error("Image could not be downloaded.");
-  const type = (response.headers.get("content-type") || "").split(";")[0].toLowerCase();
-  if (!IMAGE_TYPES.has(type)) throw new Error("Unsupported image type.");
-  const contentLength = Number(response.headers.get("content-length") ?? 0);
-  if (contentLength > MAX_IMAGE_BYTES) throw new Error("Image is too large.");
-  const buffer = Buffer.from(await response.arrayBuffer());
-  if (buffer.length > MAX_IMAGE_BYTES) throw new Error("Image is too large.");
+  const address = addresses[0];
+  let result: { buffer: Buffer; mimeType: string } | undefined;
+  let lastError: unknown;
+  for (let attempt = 0; attempt < 2 && !result; attempt += 1) {
+    try {
+      result = await requestPinnedImage(resolved, address.address);
+    } catch (error) {
+      lastError = error;
+    }
+  }
+  if (!result) throw (lastError instanceof Error ? lastError : new Error("Image download failed."));
   return {
-    buffer,
-    mimeType: type,
+    buffer: result.buffer,
+    mimeType: result.mimeType,
   };
+}
+
+function requestPinnedImage(url: URL, address: string) {
+  const transport = url.protocol === "https:" ? https : http;
+  return new Promise<{ buffer: Buffer; mimeType: string }>((resolve, reject) => {
+    const request = transport.request(
+      {
+        protocol: url.protocol,
+        hostname: address,
+        port: url.port || undefined,
+        path: `${url.pathname}${url.search}`,
+        method: "GET",
+        headers: { host: url.host },
+        ...(url.protocol === "https:" ? { servername: url.hostname.replace(/^\[|\]$/g, "") } : {}),
+        timeout: 15000,
+      },
+      (response) => {
+        if (response.statusCode && response.statusCode >= 300 && response.statusCode < 400) {
+          response.resume();
+          reject(new Error("Image redirects are not allowed."));
+          return;
+        }
+        if (response.statusCode !== 200) {
+          response.resume();
+          reject(new Error("Image could not be downloaded."));
+          return;
+        }
+        const type = (response.headers["content-type"] || "").split(";", 1)[0].toLowerCase();
+        const contentLength = Number(response.headers["content-length"] ?? 0);
+        if (!IMAGE_TYPES.has(type)) {
+          response.resume();
+          reject(new Error("Unsupported image type."));
+          return;
+        }
+        if (contentLength > MAX_IMAGE_BYTES) {
+          response.resume();
+          reject(new Error("Image is too large."));
+          return;
+        }
+        const chunks: Buffer[] = [];
+        let total = 0;
+        response.on("data", (chunk: Buffer) => {
+          total += chunk.length;
+          if (total > MAX_IMAGE_BYTES) {
+            request.destroy(new Error("Image is too large."));
+            return;
+          }
+          chunks.push(chunk);
+        });
+        response.on("end", () => resolve({ buffer: Buffer.concat(chunks), mimeType: type }));
+        response.on("error", reject);
+      },
+    );
+    request.on("timeout", () => request.destroy(new Error("Image download timed out.")));
+    request.on("error", reject);
+    request.end();
+  });
 }
 
 function isPrivateAddress(address: string) {
   if (isIP(address) === 6) {
-    const value = address.toLowerCase();
-    const mapped = value.match(/^::ffff:(\d+\.\d+\.\d+\.\d+)$/i);
-    if (mapped) return isPrivateIpv4(mapped[1]);
-    return value === "::1" || value.startsWith("fe8") || value.startsWith("fe9") || value.startsWith("fea") || value.startsWith("feb") || value.startsWith("fc") || value.startsWith("fd");
+    const value = ipv6ToBigInt(address);
+    if (value === null) return true;
+    const mapped = Number(value & 0xffffffffn);
+    if ((value >> 32n) === 0xffffn) return isPrivateIpv4BigInt(mapped);
+    return value === 0n || value === 1n || prefix(value, 7) === 0b1111110n || prefix(value, 10) === 0b1111111010n || prefix(value, 10) === 0b1111111011n || prefix(value, 8) === 0xffn || value >> 32n === 0x64ff9b000000000000000000n;
   }
   return isPrivateIpv4(address);
+}
+
+function prefix(value: bigint, bits: number) {
+  return value >> BigInt(128 - bits);
+}
+
+function ipv6ToBigInt(address: string) {
+  const clean = address.split("%", 1)[0].toLowerCase();
+  const parts = clean.split("::");
+  if (parts.length > 2) return null;
+  const left = parts[0] ? parts[0].split(":") : [];
+  const right = parts.length === 2 && parts[1] ? parts[1].split(":") : [];
+  const expand = (part: string) => {
+    if (!part.includes(".")) return [part];
+    const octets = part.split(".").map(Number);
+    if (octets.length !== 4 || octets.some((octet) => !Number.isInteger(octet) || octet < 0 || octet > 255)) return [];
+    return [(octets[0] * 256 + octets[1]).toString(16), (octets[2] * 256 + octets[3]).toString(16)];
+  };
+  const words = [...left.flatMap(expand), ...right.flatMap(expand)];
+  if (parts.length === 1 && words.length !== 8) return null;
+  if (parts.length === 2 && words.length >= 8) return null;
+  const expanded = parts.length === 2 ? [...left.flatMap(expand), ...Array(8 - words.length).fill("0"), ...right.flatMap(expand)] : words;
+  if (expanded.length !== 8 || expanded.some((word) => !/^[0-9a-f]{1,4}$/.test(word))) return null;
+  return BigInt(`0x${expanded.join("").padStart(32, "0")}`);
+}
+
+function isPrivateIpv4BigInt(value: number) {
+  return isPrivateIpv4([(value >>> 24) & 255, (value >>> 16) & 255, (value >>> 8) & 255, value & 255].join("."));
 }
 
 function isPrivateIpv4(address: string) {

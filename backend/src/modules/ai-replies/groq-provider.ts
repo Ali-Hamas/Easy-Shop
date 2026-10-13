@@ -2,6 +2,7 @@ import { config } from "../../shared/config.js";
 import { fetchWithRetry } from "../../shared/fetch-retry.js";
 import {
   GroundedRuleAiProvider,
+  sanitizeAiText,
   type AiContextInput,
   type AiReplyOutput,
   type AiReplyProvider,
@@ -29,9 +30,9 @@ export class GroqReplyProvider implements AiReplyProvider {
               { role: "system", content: systemPrompt(context) },
               ...context.conversationHistory.slice(-8).map((m) => ({
                 role: m.sender === "customer" ? "user" : "assistant",
-                content: m.text,
+                content: sanitizeAiText(m.text),
               })),
-              { role: "user", content: context.latestCustomerMessage },
+              { role: "user", content: sanitizeAiText(context.latestCustomerMessage) },
             ],
           }),
         },
@@ -77,5 +78,5 @@ Reply in the customer's language, concise and friendly.`;
 }
 
 function safeData(value: string) {
-  return value.replace(/[\u0000-\u001f\u007f]/g, " ").slice(0, 500);
+  return sanitizeAiText(value, 500);
 }

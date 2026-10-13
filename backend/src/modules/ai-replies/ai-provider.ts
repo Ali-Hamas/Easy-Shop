@@ -56,6 +56,14 @@ export interface AiReplyProvider {
   generateReply(context: AiContextInput): Promise<AiReplyOutput>;
 }
 
+export function sanitizeAiText(value: string, maxLength = 2000) {
+  return value
+    .replace(/[\u0000-\u001f\u007f<>]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, maxLength);
+}
+
 /** Conservative fallback: never claims facts or policies that were not supplied. */
 export class GroundedRuleAiProvider implements AiReplyProvider {
   async generateReply(context: AiContextInput): Promise<AiReplyOutput> {

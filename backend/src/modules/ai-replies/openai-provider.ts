@@ -2,6 +2,7 @@ import { z } from "zod";
 import { config } from "../../shared/config.js";
 import {
   GroundedRuleAiProvider,
+  sanitizeAiText,
   type AiContextInput,
   type AiReplyOutput,
   type AiReplyProvider,
@@ -100,12 +101,25 @@ export class OpenAiReplyProvider implements AiReplyProvider {
               role: "user",
               content: JSON.stringify({
                 customer: {
-                  name: context.customer.name,
-                  language: context.customer.language,
+                  name: sanitizeAiText(context.customer.name, 200),
+                  language: sanitizeAiText(context.customer.language, 40),
                 },
-                incomingMessage: context.latestCustomerMessage,
-                history: context.conversationHistory.slice(-8),
-                products: context.relevantProducts,
+                incomingMessage: sanitizeAiText(context.latestCustomerMessage),
+                history: context.conversationHistory.slice(-8).map((message) => ({
+                  sender: message.sender,
+                  text: sanitizeAiText(message.text),
+                  createdAt: message.createdAt,
+                })),
+                products: context.relevantProducts.map((product) => ({
+                  ...product,
+                  name: sanitizeAiText(product.name, 500),
+                  currency: sanitizeAiText(product.currency, 20),
+                  variants: product.variants.map((variant) => ({
+                    ...variant,
+                    name: sanitizeAiText(variant.name, 200),
+                    sku: variant.sku ? sanitizeAiText(variant.sku, 100) : undefined,
+                  })),
+                })),
               }),
             },
           ],
@@ -142,13 +156,13 @@ export class OpenAiReplyProvider implements AiReplyProvider {
         contextSources: context.relevantProducts.flatMap((p) => [
           {
             type: "product" as const,
-            name: p.name,
+                  name: sanitizeAiText(p.name, 500),
             detail: `${p.currency} ${p.price}`,
           },
           {
             type: "inventory" as const,
             name: p.name,
-            detail: `${p.availableQuantity} available; verify the requested variant`,
+          detail: `${p.availableQuantity} available; verify the requested variant`,
           },
         ]),
       };
