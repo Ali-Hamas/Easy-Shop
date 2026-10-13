@@ -18,7 +18,7 @@ const result = z
     OPENAI_API_KEY: z.string().default(""),
     OPENAI_MODEL: z.string().default("gpt-4o-mini"),
     GROQ_API_KEY: z.string().default(""),
-    GROQ_MODEL: z.string().default("llama-3.3-70b-versatile"),
+    GROQ_MODEL: z.string().default("openai/gpt-oss-120b"),
     GEMINI_API_KEY: z.string().default(""),
     AI_AUTO_REPLY_ENABLED: z.coerce.boolean().default(true),
     AI_VISUAL_CONFIDENCE_THRESHOLD: z.coerce.number().min(0).max(1).default(0.7),
