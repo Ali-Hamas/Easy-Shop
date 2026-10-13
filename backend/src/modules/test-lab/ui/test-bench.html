@@ -1,0 +1,1167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Multimodal Visual Search & Groq Messenger Lab</title>
+  <style>
+    :root {
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --bg: #f8fafc;
+      --surface: #ffffff;
+      --border: #e2e8f0;
+      --text: #0f172a;
+      --text-muted: #64748b;
+      --success: #16a34a;
+      --accent: #8b5cf6;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: var(--bg); color: var(--text); line-height: 1.5; }
+    header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 0.9rem 2rem; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 20; }
+    .brand h1 { font-size: 1.2rem; font-weight: 700; color: #1e293b; display: flex; align-items: center; gap: 0.5rem; }
+    .badge { display: inline-flex; align-items: center; font-size: 0.75rem; font-weight: 600; padding: 0.25rem 0.6rem; border-radius: 9999px; background: #e2e8f0; color: #475467; }
+    .badge.green { background: #dcfce7; color: #15803d; }
+    .badge.purple { background: #f3e8ff; color: #7e22ce; }
+    .badge.blue { background: #dbeafe; color: #1d4ed8; }
+    .badge.red { background: #fee2e2; color: #b91c1c; }
+    .badge.amber { background: #fef3c7; color: #b45309; }
+    nav { display: flex; gap: 0.4rem; }
+    .tab-btn { background: transparent; border: 1px solid transparent; padding: 0.5rem 0.9rem; font-weight: 600; font-size: 0.88rem; color: var(--text-muted); cursor: pointer; border-radius: 7px; transition: all 0.15s; }
+    .tab-btn:hover { background: #f1f5f9; color: var(--text); }
+    .tab-btn.active { background: #eff6ff; color: var(--primary); border-color: #bfdbfe; }
+    main { max-width: 1400px; margin: 1.25rem auto; padding: 0 1.25rem; }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+    .btn { background: var(--primary); color: #fff; border: 0; padding: 0.6rem 1.2rem; border-radius: 8px; font-weight: 600; font-size: 0.88rem; cursor: pointer; transition: all 0.15s; display: inline-flex; align-items: center; gap: 0.4rem; }
+    .btn:hover { background: var(--primary-hover); transform: translateY(-1px); }
+    .btn:active { transform: translateY(0); }
+    .btn-secondary { background: #f1f5f9; color: #334155; border: 1px solid #cbd5e1; }
+    .btn-secondary:hover { background: #e2e8f0; color: #0f172a; }
+    .btn-success { background: #16a34a; }
+    .btn-success:hover { background: #15803d; }
+    .form-group { margin-bottom: 1.1rem; }
+    .form-group label { display: block; font-size: 0.82rem; font-weight: 600; margin-bottom: 0.35rem; color: #334155; }
+    .form-control { width: 100%; padding: 0.6rem 0.8rem; border: 1px solid var(--border); border-radius: 8px; font-size: 0.88rem; font-family: inherit; }
+    .form-control:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(37,99,235,0.15); }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+
+    /* Alert / Notification banner */
+    #global-banner { transition: opacity 0.3s; }
+
+    /* 10-Slot Uploader Styles */
+    .slots-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 1.2rem; margin-top: 1.25rem; }
+    .slot-card { background: #fff; border: 1px solid var(--border); border-radius: 12px; padding: 1rem; display: flex; flex-direction: column; gap: 0.65rem; position: relative; transition: border-color 0.2s, box-shadow 0.2s; }
+    .slot-card:hover { border-color: #cbd5e1; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+    .slot-card.has-image { border-color: #93c5fd; background: #fafcff; }
+    .slot-header { display: flex; justify-content: space-between; align-items: center; }
+    .slot-title { font-weight: 700; font-size: 0.9rem; color: #1e293b; }
+    .dropzone { border: 2px dashed #cbd5e1; border-radius: 8px; height: 160px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; background: #f8fafc; overflow: hidden; position: relative; transition: background 0.15s; }
+    .dropzone:hover { background: #f1f5f9; border-color: #94a3b8; }
+    .dropzone img { width: 100%; height: 100%; object-fit: cover; }
+    .dropzone-label { text-align: center; font-size: 0.8rem; color: #64748b; padding: 0.5rem; pointer-events: none; }
+    .dropzone-remove { position: absolute; top: 6px; right: 6px; background: rgba(0,0,0,0.65); color: #fff; border: 0; border-radius: 50%; width: 26px; height: 26px; font-size: 0.8rem; cursor: pointer; display: none; align-items: center; justify-content: center; z-index: 5; }
+    .has-image .dropzone-remove { display: flex; }
+
+    /* Chat View */
+    .chat-layout { display: grid; grid-template-columns: 1fr 440px; gap: 1.25rem; height: 720px; }
+    .chat-container { display: flex; flex-direction: column; height: 100%; background: #fff; border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+    .chat-header { background: #f8fafc; border-bottom: 1px solid var(--border); padding: 0.85rem 1.25rem; display: flex; align-items: center; gap: 0.75rem; }
+    .chat-avatar { width: 36px; height: 36px; border-radius: 50%; background: #2563eb; color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.85rem; }
+    .chat-messages { flex: 1; padding: 1.25rem; overflow-y: auto; display: flex; flex-direction: column; gap: 1rem; background: #fcfdfe; }
+    .msg { max-width: 80%; padding: 0.75rem 1rem; border-radius: 14px; font-size: 0.95rem; line-height: 1.4; word-break: break-word; }
+    .msg.buyer { align-self: flex-end; background: #0084ff; color: #fff; border-bottom-right-radius: 4px; }
+    .msg.ai { align-self: flex-start; background: #f1f5f9; color: #0f172a; border-bottom-left-radius: 4px; border: 1px solid #e2e8f0; }
+    .msg-img { max-width: 240px; border-radius: 8px; margin-bottom: 0.5rem; display: block; border: 1px solid rgba(0,0,0,0.1); }
+    .chat-input-bar { border-top: 1px solid var(--border); padding: 0.85rem 1rem; background: #fff; display: flex; gap: 0.5rem; align-items: center; }
+    .upload-btn { background: #f1f5f9; border: 1px dashed #cbd5e1; padding: 0.55rem 0.85rem; border-radius: 8px; cursor: pointer; font-size: 0.85rem; font-weight: 600; color: #475569; display: flex; align-items: center; gap: 0.4rem; white-space: nowrap; }
+    .upload-btn:hover { background: #e2e8f0; }
+    .inspector { background: #fff; border: 1px solid var(--border); border-radius: 12px; padding: 1.25rem; overflow-y: auto; display: flex; flex-direction: column; gap: 1rem; }
+    .inspector h3 { font-size: 1rem; font-weight: 700; border-bottom: 1px solid var(--border); padding-bottom: 0.5rem; color: #1e293b; display: flex; justify-content: space-between; align-items: center; }
+    .stat-row { display: flex; justify-content: space-between; font-size: 0.85rem; padding: 0.35rem 0; border-bottom: 1px dashed #f1f5f9; }
+    .stat-label { color: var(--text-muted); font-weight: 500; }
+    .stat-val { font-weight: 700; color: #0f172a; }
+    .sim-bar { height: 8px; background: #e2e8f0; border-radius: 4px; overflow: hidden; margin-top: 0.4rem; }
+    .sim-fill { height: 100%; background: #16a34a; width: 0%; transition: width 0.3s; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <h1>🛍️ AI Social Commerce Lab <span class="badge purple">Multimodal Vision + Groq</span></h1>
+    </div>
+    <div style="display: flex; align-items: center; gap: 0.75rem;">
+      <span id="header-key-pill" class="badge green">🔑 Gemini & Groq Ready</span>
+      <nav>
+        <button type="button" class="tab-btn active" id="nav-btn-products" onclick="window.switchTab('products')">📸 1. Upload 10 Products</button>
+        <button type="button" class="tab-btn" id="nav-btn-chat" onclick="window.switchTab('chat')">💬 2. Customer Messenger Chat</button>
+        <button type="button" class="tab-btn" id="nav-btn-keys" onclick="window.switchTab('keys')">⚙️ 3. API Keys & AI Brain</button>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <!-- GLOBAL NOTIFICATION BANNER (Replaces browser alerts) -->
+    <div id="global-banner" style="display: none; padding: 0.85rem 1.25rem; border-radius: 8px; font-weight: 600; font-size: 0.92rem; margin-bottom: 1.25rem;"></div>
+
+    <!-- TAB 1: 10 PRODUCTS UPLOADER (DEFAULT VIEW) -->
+    <section id="tab-products" class="tab-content active" style="display: block;">
+      <div id="tab2-key-banner" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; padding: 0.85rem 1.25rem; border-radius: 8px; margin-bottom: 1.25rem; background: #dcfce7; border: 1px solid #86efac;">
+        <div id="tab2-key-banner-text" style="font-size: 0.9rem; font-weight: 600; color: #15803d;">
+          ✅ Google Gemini (768d Multimodal Vision) & Groq Connected & Ready
+        </div>
+        <button type="button" class="btn btn-secondary" onclick="window.switchTab('keys')" style="padding: 0.4rem 0.8rem; font-size: 0.82rem;">
+          ⚙️ View / Edit Keys
+        </button>
+      </div>
+
+      <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 1rem;">
+        <div>
+          <div style="display: flex; align-items: center; gap: 0.75rem;">
+            <h2>Step 1: Upload Your 10 Products & Vectorize</h2>
+            <span id="tab2-key-pill" class="badge green">✅ AI Ready</span>
+          </div>
+          <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: 0.2rem;">
+            Drop photos directly from your phone/PC, or click <strong>"⚡ Autofill Sample Details"</strong> to instantly load 10 demo items with prices and stock. Then click <strong>"🚀 Save & Vectorize All 10 Products"</strong>.
+          </p>
+        </div>
+        <div style="display: flex; gap: 0.6rem; flex-wrap: wrap; align-items: center;">
+          <button type="button" class="btn btn-secondary" onclick="window.autofillSampleDetails()">⚡ Autofill Sample Details</button>
+          <button type="button" class="btn btn-secondary" onclick="window.clearAllSlots()">🗑️ Reset Slots</button>
+          <button type="button" class="btn btn-success" id="btn-save-batch" onclick="window.saveBatchProducts()">🚀 Save & Vectorize All 10 Products</button>
+          <button type="button" class="btn btn-secondary" onclick="window.switchTab('chat')">Go to Chat ➔</button>
+          <button type="button" class="btn btn-secondary" onclick="window.switchTab('keys')">⚙️ Keys & Persona</button>
+        </div>
+      </div>
+
+      <div id="batch-progress-box" style="display: none; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 1rem; margin-bottom: 1rem;">
+        <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem; font-size: 0.9rem; font-weight: 600; color: #1e40af;">
+          <span id="batch-progress-label">Vectorizing product images via Gemini...</span>
+          <span id="batch-progress-pct">0%</span>
+        </div>
+        <div style="height: 10px; background: #dbeafe; border-radius: 5px; overflow: hidden;">
+          <div id="batch-progress-bar" style="height: 100%; width: 0%; background: #2563eb; transition: width 0.3s;"></div>
+        </div>
+      </div>
+
+      <!-- 10 PRODUCT SLOTS -->
+      <div class="slots-grid" id="slots-grid">
+        <!-- Rendered by JavaScript -->
+      </div>
+    </section>
+
+    <!-- TAB 2: CHAT SIMULATOR -->
+    <section id="tab-chat" class="tab-content" style="display: none;">
+      <div class="chat-layout">
+        <!-- CHAT BOX -->
+        <div class="chat-container">
+          <div class="chat-header">
+            <div class="chat-avatar">AI</div>
+            <div>
+              <strong id="chat-shop-header">Saimon Fashion</strong>
+              <div style="font-size: 0.75rem; color: #16a34a; font-weight: 600;">● Online (Automated Messenger Reply)</div>
+            </div>
+            <button type="button" class="btn btn-secondary" onclick="window.switchTab('products')" style="margin-left: auto; padding: 0.35rem 0.75rem; font-size: 0.8rem;">
+              📸 Manage Products
+            </button>
+          </div>
+
+          <div id="chat-messages" class="chat-messages">
+            <div class="msg ai">
+              Hello! Welcome to our store. You can ask any question about our 10 products (in Bengali or English), or upload a screenshot/photo to ask for price and availability! 😊
+            </div>
+          </div>
+
+          <div id="img-preview-container" style="display: none; padding: 0.5rem 1rem; background: #f8fafc; border-top: 1px solid var(--border);">
+            <div style="display: inline-flex; align-items: center; gap: 0.5rem; background: #e2e8f0; padding: 0.3rem 0.6rem; border-radius: 6px; font-size: 0.8rem;">
+              <span>📸 Screenshot attached</span>
+              <button type="button" onclick="window.clearAttachedImage()" style="background:none;border:none;cursor:pointer;font-weight:700;">✕</button>
+            </div>
+          </div>
+
+          <form class="chat-input-bar" onsubmit="window.sendChatMessage(event)">
+            <label class="upload-btn">
+              📸 Attach Screenshot
+              <input type="file" id="chat-image-input" accept="image/*" style="display:none;" onchange="window.handleImageAttach(event)">
+            </label>
+            <input type="text" id="chat-text-input" class="form-control" placeholder="Ask e.g. 'Eta koto?' or 'Panjabi price?' or 'Stock ache?'">
+            <button type="submit" class="btn" style="padding: 0.65rem 1.4rem;">Send</button>
+          </form>
+        </div>
+
+        <!-- VISION & RAG INSPECTOR -->
+        <div class="inspector">
+          <h3>
+            <span>🔍 Visual Recognition Inspector</span>
+            <span id="inspect-source" class="badge">Awaiting Inquiry</span>
+          </h3>
+
+          <div id="inspector-empty" style="text-align: center; color: var(--text-muted); padding: 2rem 0; font-size: 0.9rem;">
+            Send a product screenshot or text question to see the Multimodal Gemini ➔ Vector Match ➔ Groq Grounding pipeline in real-time.
+          </div>
+
+          <div id="inspector-content" style="display: none; flex-direction: column; gap: 1rem;">
+            <div>
+              <div style="font-weight: 600; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.3rem;">CUSTOMER ATTACHMENT</div>
+              <img id="inspect-img" src="" alt="Customer Attachment" style="width: 100%; height: 160px; object-fit: cover; border-radius: 8px; border: 1px solid var(--border);">
+            </div>
+
+            <div class="card" style="padding: 1rem; background: #f8fafc;">
+              <div style="font-weight: 700; font-size: 0.85rem; margin-bottom: 0.4rem; color: #1e293b;">GEMINI VECTOR MATCH</div>
+              <div class="stat-row">
+                <span class="stat-label">Matched Product</span>
+                <span id="inspect-matched-name" class="stat-val">-</span>
+              </div>
+              <div class="stat-row">
+                <span class="stat-label">Cosine Similarity</span>
+                <span id="inspect-sim" class="stat-val" style="color: var(--success);">-</span>
+              </div>
+              <div class="sim-bar">
+                <div id="inspect-sim-bar" class="sim-fill"></div>
+              </div>
+            </div>
+
+            <div class="card" style="padding: 1rem;">
+              <div style="font-weight: 700; font-size: 0.85rem; margin-bottom: 0.4rem; color: #1e293b;">POSTGRESQL AUTHORITATIVE TRUTH</div>
+              <div class="stat-row">
+                <span class="stat-label">Official Base Price</span>
+                <span id="inspect-price" class="stat-val">-</span>
+              </div>
+              <div class="stat-row">
+                <span class="stat-label">Available Ledger Stock</span>
+                <span id="inspect-stock" class="stat-val">-</span>
+              </div>
+              <div class="stat-row">
+                <span class="stat-label">Variants / Sizes</span>
+                <span id="inspect-variants" class="stat-val">-</span>
+              </div>
+            </div>
+
+            <div class="card" style="padding: 1rem; background: #fdf4ff;">
+              <div style="font-weight: 700; font-size: 0.85rem; margin-bottom: 0.4rem; color: #6b21a8;">LATENCY PERFORMANCE</div>
+              <div class="stat-row">
+                <span class="stat-label">Multimodal Vector Match</span>
+                <span id="inspect-vector-ms" class="stat-val">-</span>
+              </div>
+              <div class="stat-row">
+                <span class="stat-label">Groq LLM Generation</span>
+                <span id="inspect-groq-ms" class="stat-val">-</span>
+              </div>
+            </div>
+
+            <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 0.75rem; font-size: 0.8rem; color: #1e40af;">
+              🔒 <strong>Anti-Hallucination Guardrail:</strong> Groq was strictly injected with the verified price & stock above.
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 3: API KEYS & SETTINGS -->
+    <section id="tab-keys" class="tab-content" style="display: none;">
+      <div class="card" style="max-width: 800px; margin: 0 auto;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+          <h2>Step 3: API Keys & AI Brain Settings</h2>
+          <button type="button" class="btn btn-secondary" onclick="window.switchTab('products')">⬅ Back to 10 Products</button>
+        </div>
+        <p style="color: var(--text-muted); margin-bottom: 1.5rem; font-size: 0.9rem;">
+          Your API keys are pre-configured, validated, and active. You can re-test or customize them here.
+        </p>
+
+        <div id="keys-box">
+          <div class="form-group">
+            <label>Google Gemini API Key (For 768d Multimodal Image Embeddings)</label>
+            <input type="password" id="gemini-key" class="form-control" placeholder="AQ.Ab8RN...">
+            <small style="color: var(--text-muted); font-size: 0.75rem;">Embeds catalog photos and customer screenshots into 768-dimensional vectors.</small>
+          </div>
+
+          <div class="form-group">
+            <label>Groq API Key (For Fast Conversational Grounding)</label>
+            <input type="password" id="groq-key" class="form-control" placeholder="gsk_...">
+            <small style="color: var(--text-muted); font-size: 0.75rem;">Strictly quotes live price & stock from PostgreSQL database truth with zero hallucination.</small>
+          </div>
+
+          <hr style="border: 0; border-top: 1px solid var(--border); margin: 1.5rem 0;">
+
+          <h3 style="margin-bottom: 1rem; font-size: 1rem;">Shop Persona & Tone</h3>
+          <div class="grid-2">
+            <div class="form-group">
+              <label>Shop Name</label>
+              <input type="text" id="shop-name" class="form-control" value="Saimon Fashion">
+            </div>
+            <div class="form-group">
+              <label>Tone of Voice</label>
+              <select id="shop-tone" class="form-control">
+                <option value="friendly">Friendly & Helpful (Bengali + Banglish)</option>
+                <option value="polite">Polite & Formal (Pure Bengali)</option>
+                <option value="enthusiastic">Enthusiastic & Sales-Driven</option>
+                <option value="english">Professional English</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>System Instructions / Anti-Hallucination Guardrails</label>
+            <textarea id="shop-prompt" class="form-control" rows="3">State product price and stock availability accurately based on the matched product. Do not negotiate on price. Inform customer that delivery charge is 80 BDT in Dhaka and 150 BDT outside Dhaka.</textarea>
+          </div>
+
+          <div style="display: flex; gap: 0.75rem; align-items: center; margin-top: 1.5rem; flex-wrap: wrap;">
+            <button type="button" id="btn-save-keys" class="btn btn-success" onclick="window.saveKeysAndGoToProducts()" style="font-size: 1rem; padding: 0.75rem 1.4rem; cursor: pointer;">
+              💾 Save Keys & Return to 10 Products ➔
+            </button>
+            <button type="button" class="btn btn-secondary" onclick="window.testKeysOnly()" style="font-size: 0.9rem; padding: 0.75rem 1.2rem; cursor: pointer;">
+              🧪 Test Keys Now
+            </button>
+            <button type="button" class="btn btn-secondary" onclick="window.switchTab('products')" style="font-size: 0.9rem; padding: 0.75rem 1.2rem; cursor: pointer;">
+              📸 Back to 10 Products ➔
+            </button>
+          </div>
+          <div id="key-test-feedback" style="margin-top: 1rem; padding: 0.75rem 1rem; border-radius: 8px; font-size: 0.88rem; font-weight: 600; display: none;"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    // Safe storage wrapper to prevent exceptions in restricted browser environments
+    const storage = {
+      get(k, fallback = '') {
+        try { const v = localStorage.getItem(k); return v !== null ? v : fallback; } catch (e) { return fallback; }
+      },
+      set(k, v) {
+        try { localStorage.setItem(k, v); } catch (e) {}
+      }
+    };
+
+    const DEFAULT_GEMINI_KEY = '';
+    const DEFAULT_GROQ_KEY = '';
+
+    const SAMPLE_ITEMS = [
+      { name: "Black Cotton Casual Shirt with White Dots", price: 1250, stock: 15, sizes: "M, L, XL", desc: "100% combed cotton casual shirt with micro-dot print", img: "https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=600&auto=format&fit=crop&q=80" },
+      { name: "Solid Crimson Red Silk Party Dress", price: 2450, stock: 8, sizes: "S, M, L", desc: "Graceful full-length A-line party dress crafted with lightweight silk", img: "https://images.unsplash.com/photo-1539109136881-3be0616acf4b?w=600&auto=format&fit=crop&q=80" },
+      { name: "Classic Minimalist White Leather Sneakers", price: 1850, stock: 22, sizes: "40, 41, 42, 43", desc: "Unisex low-top everyday casual sneakers with rubber sole", img: "https://images.unsplash.com/photo-1549298916-b41d501d3772?w=600&auto=format&fit=crop&q=80" },
+      { name: "Vintage Genuine Leather Bi-Fold Wallet", price: 850, stock: 50, sizes: "Tan Brown, Black", desc: "Handcrafted top-grain cowhide leather with 8 card slots", img: "https://images.unsplash.com/photo-1627123424574-724758594e93?w=600&auto=format&fit=crop&q=80" },
+      { name: "Smart Fitness Tracker Watch AMOLED Display", price: 3200, stock: 12, sizes: "Black, Silver", desc: "1.96-inch AMOLED display with heart rate & SpO2 monitoring", img: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=600&auto=format&fit=crop&q=80" },
+      { name: "Katan Silk Traditional Maroon Saree", price: 4500, stock: 8, sizes: "Standard", desc: "Banarasi Katan silk saree in royal maroon with golden zari", img: "https://images.unsplash.com/photo-1610030469983-98e550d6193c?w=600&auto=format&fit=crop&q=80" },
+      { name: "Rugged Blue Denim Trucker Jacket", price: 2150, stock: 20, sizes: "M, L, XL", desc: "Heavyweight washed denim jacket with brass buttons", img: "https://images.unsplash.com/photo-1576995853123-5a10305d93c0?w=600&auto=format&fit=crop&q=80" },
+      { name: "Active Noise Cancelling Wireless Earbuds", price: 2200, stock: 35, sizes: "Matte Black, White", desc: "32dB hybrid active noise cancellation, 10mm bass drivers", img: "https://images.unsplash.com/photo-1590658268037-6bf12165a8df?w=600&auto=format&fit=crop&q=80" },
+      { name: "Canvas Structured Laptop Tote Bag", price: 1650, stock: 18, sizes: "Beige, Olive", desc: "Water-resistant canvas tote with padded 15.6-inch laptop pocket", img: "https://images.unsplash.com/photo-1544816155-12df9643f363?w=600&auto=format&fit=crop&q=80" },
+      { name: "Polarized Retro Aviator Sunglasses", price: 950, stock: 40, sizes: "Gold / Green, Gunmetal", desc: "UV400 protection polarized lenses with stainless steel frame", img: "https://images.unsplash.com/photo-1511499767150-a48a237f0083?w=600&auto=format&fit=crop&q=80" }
+    ];
+
+    const slotsData = Array.from({ length: 10 }, (_, i) => ({
+      slot: i + 1,
+      name: '',
+      price: '',
+      stock: '10',
+      sizes: 'Standard',
+      desc: '',
+      imageBase64: '',
+      imageUrl: '',
+      imageHash: '',
+      status: 'Empty'
+    }));
+
+    let attachedImageBase64 = null;
+    let attachedImageHash = '';
+    let attachedImageHashes = [];
+    let chatHistory = [];
+    let bannerTimer = null;
+
+    // Prominent inline notification banner (never blocked by browser)
+    function showBanner(msg, type = 'info', duration = 4000) {
+      const banner = document.getElementById('global-banner');
+      if (!banner) return;
+      banner.style.display = 'block';
+      banner.innerText = msg;
+      if (type === 'success') {
+        banner.style.background = '#dcfce7';
+        banner.style.color = '#15803d';
+        banner.style.border = '1px solid #86efac';
+      } else if (type === 'error') {
+        banner.style.background = '#fee2e2';
+        banner.style.color = '#b91c1c';
+        banner.style.border = '1px solid #fca5a5';
+      } else if (type === 'warning') {
+        banner.style.background = '#fef3c7';
+        banner.style.color = '#b45309';
+        banner.style.border = '1px solid #fde68a';
+      } else {
+        banner.style.background = '#eff6ff';
+        banner.style.color = '#1d4ed8';
+        banner.style.border = '1px solid #bfdbfe';
+      }
+      if (bannerTimer) clearTimeout(bannerTimer);
+      if (duration > 0) {
+        bannerTimer = setTimeout(() => {
+          banner.style.display = 'none';
+        }, duration);
+      }
+    }
+
+    // Tab switching
+    function switchTab(name) {
+      const tabs = ['products', 'chat', 'keys'];
+      const targetTab = tabs.includes(name) ? name : 'products';
+
+      try {
+        if (history.replaceState) {
+          history.replaceState(null, '', '#' + targetTab);
+        }
+      } catch (e) {}
+
+      tabs.forEach(t => {
+        const navBtn = document.getElementById('nav-btn-' + t);
+        const tabEl = document.getElementById('tab-' + t);
+        const isActive = (t === targetTab);
+
+        if (navBtn) {
+          navBtn.classList.toggle('active', isActive);
+        }
+        if (tabEl) {
+          tabEl.style.display = isActive ? 'block' : 'none';
+          tabEl.classList.toggle('active', isActive);
+        }
+      });
+
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // Client-side image optimizer (resizes to max 512px, JPEG 0.75 for fast vision processing)
+    async function compressImageFile(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          const img = new Image();
+          img.onload = function() {
+            const maxDim = 512;
+            let width = img.width;
+            let height = img.height;
+            if (width > maxDim || height > maxDim) {
+              if (width > height) {
+                height = Math.round((height * maxDim) / width);
+                width = maxDim;
+              } else {
+                width = Math.round((width * maxDim) / height);
+                height = maxDim;
+              }
+            }
+            const canvas = document.createElement('canvas');
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, width, height);
+            resolve(canvas.toDataURL('image/jpeg', 0.75));
+          };
+          img.onerror = reject;
+          img.src = e.target.result;
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    }
+
+    async function imageDHash(source) {
+      const hashes = await imageDHashes(source, false);
+      return hashes[0] || '';
+    }
+
+    async function imageDHashes(source, includeRegions = true) {
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = function() {
+          try {
+            const regions = [{ x: 0, y: 0, w: img.width, h: img.height }];
+            if (includeRegions) {
+              const minSide = Math.min(img.width, img.height);
+              const cropScales = [0.9, 0.75, 0.6, 0.45];
+              cropScales.forEach((scale) => {
+                const size = minSide * scale;
+                regions.push({ x: (img.width - size) / 2, y: (img.height - size) / 2, w: size, h: size });
+              });
+              for (let gy = 0; gy < 3; gy++) {
+                for (let gx = 0; gx < 3; gx++) {
+                  regions.push({
+                    x: (img.width * gx) / 3,
+                    y: (img.height * gy) / 3,
+                    w: img.width / 3,
+                    h: img.height / 3
+                  });
+                }
+              }
+            }
+            resolve([...new Set(regions.map((region) => dHashRegion(img, region)).filter(Boolean))]);
+          } catch (err) {
+            reject(err);
+          }
+        };
+        img.onerror = reject;
+        img.src = source;
+      });
+    }
+
+    function dHashRegion(img, region) {
+      const canvas = document.createElement('canvas');
+      canvas.width = 9;
+      canvas.height = 8;
+      const ctx = canvas.getContext('2d', { willReadFrequently: true });
+      ctx.drawImage(img, region.x, region.y, region.w, region.h, 0, 0, 9, 8);
+      const data = ctx.getImageData(0, 0, 9, 8).data;
+      let bits = '';
+      for (let y = 0; y < 8; y++) {
+        for (let x = 0; x < 8; x++) {
+          const i = (y * 9 + x) * 4;
+          const j = (y * 9 + x + 1) * 4;
+          const left = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114;
+          const right = data[j] * 0.299 + data[j + 1] * 0.587 + data[j + 2] * 0.114;
+          bits += left > right ? '1' : '0';
+        }
+      }
+      let hex = '';
+      for (let i = 0; i < bits.length; i += 4) hex += parseInt(bits.slice(i, i + 4), 2).toString(16);
+      return hex;
+    }
+
+    function renderSlots() {
+      const container = document.getElementById('slots-grid');
+      if (!container) return;
+
+      container.innerHTML = slotsData.map((s, idx) => {
+        const hasImg = Boolean(s.imageBase64 || s.imageUrl);
+        const imgSource = s.imageBase64 || s.imageUrl;
+        return `
+          <div class="slot-card ${hasImg ? 'has-image' : ''}" id="slot-card-${idx}">
+            <div class="slot-header">
+              <span class="slot-title">Slot ${idx + 1}</span>
+              <span class="badge ${s.status.includes('✓') ? 'green' : (hasImg ? 'blue' : '')}" id="slot-badge-${idx}">
+                ${escapeHtml(s.status)}
+              </span>
+            </div>
+
+            <!-- Hidden dedicated input outside click path -->
+            <input type="file" id="slot-file-${idx}" accept="image/*" style="display:none;" onchange="window.handleSlotFileSelect(event, ${idx})">
+
+            <div class="dropzone" id="dropzone-${idx}" onclick="window.triggerFileInput(${idx})" ondragover="window.handleDragOver(event)" ondrop="window.handleDrop(event, ${idx})">
+              ${hasImg ? `
+                <img src="${imgSource}" alt="Slot ${idx + 1}">
+                <button type="button" class="dropzone-remove" onclick="window.removeSlotImage(event, ${idx})" title="Remove image">✕</button>
+              ` : `
+                <div class="dropzone-label">
+                  <div style="font-size: 1.5rem; margin-bottom: 0.2rem;">📷</div>
+                  <strong>Click or Drop Image</strong>
+                  <div style="font-size: 0.7rem; color: #94a3b8;">PNG, JPG, WEBP</div>
+                </div>
+              `}
+            </div>
+
+            <div class="form-group" style="margin-bottom: 0.4rem;">
+              <label style="font-size: 0.75rem;">Product Title</label>
+              <input type="text" class="form-control" style="padding: 0.35rem 0.6rem; font-size: 0.82rem;" placeholder="e.g. Cotton Shirt" value="${escapeHtml(s.name)}" oninput="window.updateSlotField(${idx}, 'name', this.value)">
+            </div>
+
+            <div class="grid-2" style="gap: 0.5rem; margin-bottom: 0.4rem;">
+              <div class="form-group" style="margin-bottom: 0;">
+                <label style="font-size: 0.75rem;">Price (৳ BDT)</label>
+                <input type="number" class="form-control" style="padding: 0.35rem 0.6rem; font-size: 0.82rem;" placeholder="1250" value="${s.price}" oninput="window.updateSlotField(${idx}, 'price', this.value)">
+              </div>
+              <div class="form-group" style="margin-bottom: 0;">
+                <label style="font-size: 0.75rem;">Stock Qty</label>
+                <input type="number" class="form-control" style="padding: 0.35rem 0.6rem; font-size: 0.82rem;" placeholder="10" value="${s.stock}" oninput="window.updateSlotField(${idx}, 'stock', this.value)">
+              </div>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 0.4rem;">
+              <label style="font-size: 0.75rem;">Sizes / Variants</label>
+              <input type="text" class="form-control" style="padding: 0.35rem 0.6rem; font-size: 0.82rem;" placeholder="M, L, XL" value="${escapeHtml(s.sizes)}" oninput="window.updateSlotField(${idx}, 'sizes', this.value)">
+            </div>
+
+            <div class="form-group" style="margin-bottom: 0;">
+              <label style="font-size: 0.75rem;">Description</label>
+              <input type="text" class="form-control" style="padding: 0.35rem 0.6rem; font-size: 0.82rem;" placeholder="Fabric, color details..." value="${escapeHtml(s.desc)}" oninput="window.updateSlotField(${idx}, 'desc', this.value)">
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function triggerFileInput(idx) {
+      const input = document.getElementById('slot-file-' + idx);
+      if (input) input.click();
+    }
+
+    function handleDragOver(e) {
+      e.preventDefault();
+    }
+
+    async function handleDrop(e, idx) {
+      e.preventDefault();
+      const file = e.dataTransfer && e.dataTransfer.files ? e.dataTransfer.files[0] : null;
+      if (file && file.type.startsWith('image/')) {
+        await processFileForSlot(file, idx);
+      }
+    }
+
+    async function handleSlotFileSelect(e, idx) {
+      const file = e.target.files && e.target.files[0];
+      if (file) {
+        await processFileForSlot(file, idx);
+      }
+    }
+
+    async function processFileForSlot(file, idx) {
+      try {
+        const compressed = await compressImageFile(file);
+        slotsData[idx].imageBase64 = compressed;
+        slotsData[idx].imageUrl = '';
+        slotsData[idx].imageHash = await imageDHash(compressed).catch(() => '');
+        slotsData[idx].status = 'Image Ready';
+        renderSlots();
+        showBanner(`📸 Slot ${idx + 1}: Image loaded successfully!`, 'info', 2500);
+      } catch (err) {
+        showBanner('Failed to load image: ' + err.message, 'error');
+      }
+    }
+
+    function removeSlotImage(e, idx) {
+      if (e && e.stopPropagation) e.stopPropagation();
+      slotsData[idx].imageBase64 = '';
+      slotsData[idx].imageUrl = '';
+      slotsData[idx].imageHash = '';
+      slotsData[idx].status = 'Empty';
+      renderSlots();
+      showBanner(`Slot ${idx + 1} image removed.`, 'info', 2000);
+    }
+
+    function updateSlotField(idx, field, val) {
+      if (slotsData[idx]) {
+        slotsData[idx][field] = val;
+      }
+    }
+
+    function autofillSampleDetails() {
+      SAMPLE_ITEMS.forEach((sample, idx) => {
+        slotsData[idx].name = sample.name;
+        slotsData[idx].price = sample.price;
+        slotsData[idx].stock = sample.stock;
+        slotsData[idx].sizes = sample.sizes;
+        slotsData[idx].desc = sample.desc;
+        if (!slotsData[idx].imageBase64) {
+          slotsData[idx].imageUrl = sample.img;
+          imageDHash(sample.img).then(hash => { slotsData[idx].imageHash = hash; }).catch(() => {});
+          slotsData[idx].status = 'Image Ready';
+        }
+      });
+      renderSlots();
+      showBanner('✅ Populated all 10 slots with sample products! Click "🚀 Save & Vectorize All 10 Products" next.', 'success', 5000);
+    }
+
+    function clearAllSlots() {
+      slotsData.forEach((s) => {
+        s.name = '';
+        s.price = '';
+        s.stock = '10';
+        s.sizes = 'Standard';
+        s.desc = '';
+        s.imageBase64 = '';
+        s.imageUrl = '';
+        s.imageHash = '';
+        s.status = 'Empty';
+      });
+      renderSlots();
+      showBanner('🗑️ Reset all 10 slots to empty.', 'info', 2500);
+    }
+
+    async function saveBatchProducts() {
+      const validProducts = slotsData.filter(s => s.name.trim() && s.price && (s.imageBase64 || s.imageUrl));
+      if (!validProducts.length) {
+        showBanner('⚠️ Please fill at least 1 product with image, title, and price (or click "⚡ Autofill Sample Details").', 'warning', 5000);
+        return;
+      }
+
+      const geminiKey = storage.get('geminiKey', DEFAULT_GEMINI_KEY);
+      const btn = document.getElementById('btn-save-batch');
+      const progressBox = document.getElementById('batch-progress-box');
+      const progressBar = document.getElementById('batch-progress-bar');
+      const progressLabel = document.getElementById('batch-progress-label');
+      const progressPct = document.getElementById('batch-progress-pct');
+
+      if (btn) {
+        btn.disabled = true;
+        btn.innerText = 'Vectorizing Products...';
+      }
+      if (progressBox) progressBox.style.display = 'block';
+      if (progressBar) progressBar.style.width = '35%';
+      if (progressPct) progressPct.innerText = '35%';
+      if (progressLabel) progressLabel.innerText = `Vectorizing ${validProducts.length} images with Gemini multimodal embedding...`;
+
+      try {
+        await Promise.all(validProducts.map(async (p) => {
+          if (!p.imageHash) {
+            const source = p.imageBase64 || p.imageUrl;
+            p.imageHash = source ? await imageDHash(source).catch(() => '') : '';
+          }
+        }));
+        const payload = {
+          geminiKey,
+          products: validProducts.map(p => ({
+            name: p.name.trim(),
+            description: p.desc.trim(),
+            price: Number(p.price),
+            stock: Number(p.stock) || 10,
+            imageUrl: p.imageUrl || undefined,
+            imageBase64: p.imageBase64 || undefined,
+            imageHash: p.imageHash || undefined,
+            sizes: p.sizes ? p.sizes.split(',').map(x => x.trim()).filter(Boolean) : ['Standard']
+          }))
+        };
+        storage.set('catalogImageHashes', JSON.stringify(validProducts.map(p => ({
+          name: p.name.trim(),
+          imageHash: p.imageHash || ''
+        })).filter(p => p.name && p.imageHash)));
+
+        const res = await fetch('/api/v1/test-lab/batch-products', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.message || 'Batch save failed');
+        }
+
+        const data = await res.json();
+        if (progressBar) progressBar.style.width = '100%';
+        if (progressPct) progressPct.innerText = '100%';
+        if (progressLabel) progressLabel.innerText = `Successfully vectorized ${data.count} products into PostgreSQL vector store!`;
+
+        slotsData.forEach((s) => {
+          if (s.name.trim() && (s.imageBase64 || s.imageUrl)) {
+            s.status = '✓ 768d Vector Ready';
+          }
+        });
+        renderSlots();
+
+        showBanner(`🎉 Success! ${data.count} products vectorized and stored. Switching to Chat Simulator...`, 'success', 4000);
+
+        setTimeout(() => {
+          switchTab('chat');
+        }, 1200);
+
+      } catch (err) {
+        showBanner('Batch upload error: ' + err.message, 'error', 6000);
+        if (progressBox) progressBox.style.display = 'none';
+      } finally {
+        if (btn) {
+          btn.disabled = false;
+          btn.innerText = '🚀 Save & Vectorize All 10 Products';
+        }
+      }
+    }
+
+    // Key Management & Feedback Indicators
+    function updateKeyIndicators(text, statusType) {
+      // 1. Header status pill
+      const headerPill = document.getElementById('header-key-pill');
+      if (headerPill) {
+        headerPill.innerText = text;
+        headerPill.className = 'badge ' + (statusType === 'valid' ? 'green' : statusType === 'invalid' ? 'red' : statusType === 'checking' ? 'blue' : 'amber');
+      }
+
+      // 2. Tab 2 status pill
+      const tab2Pill = document.getElementById('tab2-key-pill');
+      if (tab2Pill) {
+        tab2Pill.innerText = text;
+        tab2Pill.className = 'badge ' + (statusType === 'valid' ? 'green' : statusType === 'invalid' ? 'red' : statusType === 'checking' ? 'blue' : 'amber');
+      }
+
+      // 3. Tab 2 prominent banner
+      const banner = document.getElementById('tab2-key-banner');
+      const bannerText = document.getElementById('tab2-key-banner-text');
+      if (banner && bannerText) {
+        bannerText.innerText = text;
+        if (statusType === 'valid') {
+          banner.style.background = '#dcfce7';
+          banner.style.border = '1px solid #86efac';
+          bannerText.style.color = '#15803d';
+        } else if (statusType === 'invalid') {
+          banner.style.background = '#fee2e2';
+          banner.style.border = '1px solid #fca5a5';
+          bannerText.style.color = '#b91c1c';
+        } else if (statusType === 'checking') {
+          banner.style.background = '#eff6ff';
+          banner.style.border = '1px solid #bfdbfe';
+          bannerText.style.color = '#1d4ed8';
+        } else {
+          banner.style.background = '#fef3c7';
+          banner.style.border = '1px solid #fde68a';
+          bannerText.style.color = '#b45309';
+        }
+      }
+
+      // 4. Tab 3 feedback box
+      const feedback = document.getElementById('key-test-feedback');
+      if (feedback) {
+        feedback.style.display = 'block';
+        feedback.innerText = text;
+        if (statusType === 'valid') {
+          feedback.style.background = '#dcfce7';
+          feedback.style.color = '#15803d';
+          feedback.style.border = '1px solid #86efac';
+        } else if (statusType === 'invalid') {
+          feedback.style.background = '#fee2e2';
+          feedback.style.color = '#b91c1c';
+          feedback.style.border = '1px solid #fca5a5';
+        } else if (statusType === 'checking') {
+          feedback.style.background = '#eff6ff';
+          feedback.style.color = '#1d4ed8';
+          feedback.style.border = '1px solid #bfdbfe';
+        } else {
+          feedback.style.background = '#fef3c7';
+          feedback.style.color = '#b45309';
+          feedback.style.border = '1px solid #fde68a';
+        }
+      }
+    }
+
+    async function verifyKeysWithApi(geminiKey, groqKey) {
+      if (!geminiKey && !groqKey) {
+        updateKeyIndicators('⚠️ No API Keys Configured (Built-in Demo Fallback Mode)', 'amber');
+        return;
+      }
+
+      updateKeyIndicators('⏳ Verifying Gemini and Groq API Keys with live endpoints...', 'checking');
+
+      try {
+        const res = await fetch('/api/v1/test-lab/verify-keys', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ geminiKey, groqKey })
+        });
+        const data = await res.json();
+        const geminiValid = Boolean(data.gemini && data.gemini.valid);
+        const groqValid = Boolean(data.groq && data.groq.valid);
+
+        const geminiMsg = geminiValid
+          ? '✅ Gemini Connected (Embeddings OK)'
+          : (geminiKey ? '❌ Gemini: ' + (data.gemini?.message || 'Invalid Key') : '⚠️ No Gemini Key');
+
+        const groqMsg = groqValid
+          ? '✅ Groq Connected (Llama 3.3 OK)'
+          : (groqKey ? '❌ Groq: ' + (data.groq?.message || 'Invalid Key') : '⚠️ No Groq Key');
+
+        const fullMsg = `${geminiMsg} | ${groqMsg}`;
+        const allValid = geminiValid && groqValid;
+        const statusType = allValid ? 'valid' : ((geminiKey || groqKey) ? 'invalid' : 'amber');
+
+        updateKeyIndicators(fullMsg, statusType);
+      } catch (err) {
+        updateKeyIndicators('❌ Verification request failed: ' + err.message, 'invalid');
+      }
+    }
+
+    function saveKeysAndGoToProducts() {
+      const geminiInput = document.getElementById('gemini-key');
+      const groqInput = document.getElementById('groq-key');
+      const shopInput = document.getElementById('shop-name');
+      const toneInput = document.getElementById('shop-tone');
+      const promptInput = document.getElementById('shop-prompt');
+
+      const geminiKey = (geminiInput ? geminiInput.value : '').trim();
+      const groqKey = (groqInput ? groqInput.value : '').trim();
+      const shopName = (shopInput ? shopInput.value : '').trim() || 'Saimon Fashion';
+      const shopTone = toneInput ? toneInput.value : 'friendly';
+      const shopPrompt = (promptInput ? promptInput.value : '').trim();
+
+      storage.set('geminiKey', geminiKey);
+      storage.set('groqKey', groqKey);
+      storage.set('shopName', shopName);
+      storage.set('shopTone', shopTone);
+      storage.set('shopPrompt', shopPrompt);
+
+      const headerShop = document.getElementById('chat-shop-header');
+      if (headerShop) headerShop.innerText = shopName;
+
+      // Navigate directly to Tab 1 (Upload 10 Products)
+      switchTab('products');
+      showBanner('💾 API keys and shop persona saved!', 'success', 3000);
+
+      // Verify in background
+      verifyKeysWithApi(geminiKey, groqKey);
+    }
+
+    function saveKeys(e) {
+      if (e && e.preventDefault) e.preventDefault();
+      saveKeysAndGoToProducts();
+      return false;
+    }
+
+    async function testKeysOnly() {
+      const geminiKey = (document.getElementById('gemini-key')?.value || '').trim();
+      const groqKey = (document.getElementById('groq-key')?.value || '').trim();
+      await verifyKeysWithApi(geminiKey, groqKey);
+    }
+
+    // Chat Simulator
+    async function handleImageAttach(e) {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+      try {
+        attachedImageBase64 = await compressImageFile(file);
+        attachedImageHashes = await imageDHashes(attachedImageBase64, true).catch(() => []);
+        attachedImageHash = attachedImageHashes[0] || '';
+        const preview = document.getElementById('img-preview-container');
+        if (preview) preview.style.display = 'block';
+        showBanner('📸 Product screenshot attached! Now type your question or hit Send.', 'info', 3000);
+      } catch (err) {
+        showBanner('Image preview error: ' + err.message, 'error');
+      }
+    }
+
+    function clearAttachedImage() {
+      attachedImageBase64 = null;
+      attachedImageHash = '';
+      attachedImageHashes = [];
+      const fileInput = document.getElementById('chat-image-input');
+      if (fileInput) fileInput.value = '';
+      const preview = document.getElementById('img-preview-container');
+      if (preview) preview.style.display = 'none';
+    }
+
+    async function sendChatMessage(e) {
+      if (e && e.preventDefault) e.preventDefault();
+      const input = document.getElementById('chat-text-input');
+      const text = input ? input.value.trim() : '';
+      const currentImage = attachedImageBase64;
+      const currentImageHash = attachedImageHash;
+      const currentImageHashes = attachedImageHashes;
+      if (!text && !currentImage) return;
+
+      const chatMessages = document.getElementById('chat-messages');
+
+      let buyerHtml = `<div class="msg buyer">`;
+      if (currentImage) buyerHtml += `<img src="${currentImage}" class="msg-img" alt="Customer uploaded image">`;
+      if (text) buyerHtml += `<div>${escapeHtml(text)}</div>`;
+      buyerHtml += `</div>`;
+      if (chatMessages) {
+        chatMessages.insertAdjacentHTML('beforeend', buyerHtml);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+      }
+
+      if (input) input.value = '';
+      clearAttachedImage();
+
+      chatHistory.push({
+        source: 'buyer',
+        body: text || (currentImage ? 'Customer shared a product image' : 'Hello')
+      });
+
+      const typingId = 'typing-' + Date.now();
+      if (chatMessages) {
+        chatMessages.insertAdjacentHTML('beforeend', `<div id="${typingId}" class="msg ai" style="font-style:italic;color:#64748b;">AI is analyzing image embedding & searching catalog...</div>`);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+      }
+
+      try {
+        const res = await fetch('/api/v1/test-lab/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            text: text || undefined,
+            imageBase64: currentImage || undefined,
+            imageHash: currentImageHash || undefined,
+            imageHashes: currentImageHashes?.length ? currentImageHashes : undefined,
+            catalogImageHashes: JSON.parse(storage.get('catalogImageHashes', '[]')),
+            history: chatHistory.slice(-8),
+            geminiKey: storage.get('geminiKey', DEFAULT_GEMINI_KEY),
+            groqKey: storage.get('groqKey', DEFAULT_GROQ_KEY),
+            aiBrain: {
+              shopName: storage.get('shopName', 'Saimon Fashion'),
+              tone: storage.get('shopTone', 'friendly'),
+              systemPrompt: storage.get('shopPrompt', '')
+            }
+          })
+        });
+        const data = await res.json();
+        document.getElementById(typingId)?.remove();
+
+        if (!res.ok) {
+          throw new Error(data.message || 'Chat service request failed');
+        }
+
+        const replyText = data.reply || data.replyText || "Sorry, no response generated.";
+        chatHistory.push({ source: 'ai', body: replyText });
+
+        if (chatMessages) {
+          chatMessages.insertAdjacentHTML('beforeend', `<div class="msg ai">${escapeHtml(replyText)}</div>`);
+          if (data.visualInspection?.hasImage) {
+            const candidates = (data.visualInspection.topCandidates || [])
+              .map(c => `${escapeHtml(c.name)} (${Number(c.similarity || 0).toFixed(4)})`)
+              .join('<br>');
+            chatMessages.insertAdjacentHTML(
+              'beforeend',
+              `<div class="msg ai" style="font-size:0.78rem;color:#475569;background:#f8fafc;border:1px solid #e2e8f0;">Visual debug:<br>Reason: ${escapeHtml(data.visualInspection.reason || 'n/a')}<br>Top candidates:<br>${candidates || 'none'}</div>`
+                .replace('Top candidates:', `Image hashes: ${data.visualInspection.imageHashCount || 0} | Catalog hashes: ${data.visualInspection.catalogHashCount || 0} | Best hash distance: ${data.visualInspection.hashBestDistance ?? 'n/a'}<br>Top candidates:`)
+            );
+          }
+          chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        updateInspector(data, currentImage);
+      } catch (err) {
+        document.getElementById(typingId)?.remove();
+        if (chatMessages) {
+          chatMessages.insertAdjacentHTML('beforeend', `<div class="msg ai" style="color:#ef4444;background:#fee2e2;">⚠️ ${escapeHtml(err.message)}</div>`);
+        }
+      }
+    }
+
+    function updateInspector(data, attachedImage) {
+      const emptyEl = document.getElementById('inspector-empty');
+      const content = document.getElementById('inspector-content');
+      if (emptyEl) emptyEl.style.display = 'none';
+      if (content) content.style.display = 'flex';
+
+      const sourceBadge = document.getElementById('inspect-source');
+      const isVisual = Boolean(data.matchedProduct && (data.visualInspection?.vectorSearchMatched || data.matchedProduct?.source === 'visual_search'));
+      const isText = Boolean(data.matchedProduct && data.matchedProduct?.source === 'text_search');
+
+      if (sourceBadge) {
+        if (isVisual) {
+          sourceBadge.innerText = 'Visual Match (Gemini)';
+          sourceBadge.className = 'badge purple';
+          sourceBadge.removeAttribute('style');
+        } else if (isText) {
+          sourceBadge.innerText = 'Text Match (Catalog)';
+          sourceBadge.className = 'badge green';
+          sourceBadge.removeAttribute('style');
+        } else {
+          sourceBadge.innerText = 'Not in Catalog';
+          sourceBadge.className = 'badge';
+          sourceBadge.style.background = '#fef3c7';
+          sourceBadge.style.color = '#b45309';
+        }
+      }
+
+      const inspectImg = document.getElementById('inspect-img');
+      if (inspectImg) {
+        if (attachedImage) {
+          inspectImg.src = attachedImage;
+          inspectImg.parentElement.style.display = 'block';
+        } else {
+          inspectImg.parentElement.style.display = 'none';
+        }
+      }
+
+      if (data.matchedProduct) {
+        const nameEl = document.getElementById('inspect-matched-name');
+        if (nameEl) nameEl.innerText = data.matchedProduct.name;
+
+        const sim = data.matchedProduct.similarity || data.visualInspection?.similarityScore || 0;
+        const pct = Math.round(sim * 100);
+        const simEl = document.getElementById('inspect-sim');
+        if (simEl) simEl.innerText = `${pct}% (${sim.toFixed(4)})`;
+
+        const barEl = document.getElementById('inspect-sim-bar');
+        if (barEl) barEl.style.width = `${pct}%`;
+
+        const priceEl = document.getElementById('inspect-price');
+        if (priceEl) priceEl.innerText = `৳${data.matchedProduct.price.toLocaleString()} ${data.matchedProduct.currency || 'BDT'}`;
+
+        const stockEl = document.getElementById('inspect-stock');
+        if (stockEl) stockEl.innerText = `${data.matchedProduct.stock} units`;
+
+        const variantsEl = document.getElementById('inspect-variants');
+        if (variantsEl) {
+          const vTitles = data.matchedProduct.variants?.map(v => v.title).join(', ') || 'Standard';
+          variantsEl.innerText = vTitles;
+        }
+      } else {
+        const nameEl = document.getElementById('inspect-matched-name');
+        if (nameEl) nameEl.innerText = 'Item Not Found in Store Catalog';
+        const simEl = document.getElementById('inspect-sim');
+        if (simEl) simEl.innerText = '0%';
+        const barEl = document.getElementById('inspect-sim-bar');
+        if (barEl) barEl.style.width = '0%';
+        const priceEl = document.getElementById('inspect-price');
+        if (priceEl) priceEl.innerText = 'N/A';
+        const stockEl = document.getElementById('inspect-stock');
+        if (stockEl) stockEl.innerText = 'N/A';
+        const variantsEl = document.getElementById('inspect-variants');
+        if (variantsEl) variantsEl.innerText = 'N/A';
+      }
+
+      const vLatency = document.getElementById('inspect-vector-ms');
+      if (vLatency) vLatency.innerText = `${data.visualInspection?.vectorLatencyMs || 0} ms`;
+
+      const gLatency = document.getElementById('inspect-groq-ms');
+      if (gLatency) gLatency.innerText = `${data.visualInspection?.groqLatencyMs || 0} ms`;
+    }
+
+    function escapeHtml(text) {
+      return String(text || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    // Attach all functions to window for global inline accessibility
+    window.switchTab = switchTab;
+    window.showBanner = showBanner;
+    window.triggerFileInput = triggerFileInput;
+    window.handleDragOver = handleDragOver;
+    window.handleDrop = handleDrop;
+    window.handleSlotFileSelect = handleSlotFileSelect;
+    window.removeSlotImage = removeSlotImage;
+    window.updateSlotField = updateSlotField;
+    window.autofillSampleDetails = autofillSampleDetails;
+    window.clearAllSlots = clearAllSlots;
+    window.saveBatchProducts = saveBatchProducts;
+    window.saveKeysAndGoToProducts = saveKeysAndGoToProducts;
+    window.saveKeys = saveKeys;
+    window.testKeysOnly = testKeysOnly;
+    window.handleImageAttach = handleImageAttach;
+    window.clearAttachedImage = clearAttachedImage;
+    window.sendChatMessage = sendChatMessage;
+
+    // Initialization
+    function init() {
+      const activeGem = storage.get('geminiKey') || DEFAULT_GEMINI_KEY;
+      const activeGroq = storage.get('groqKey') || DEFAULT_GROQ_KEY;
+      storage.set('geminiKey', activeGem);
+      storage.set('groqKey', activeGroq);
+
+      const gemInput = document.getElementById('gemini-key');
+      const groqInput = document.getElementById('groq-key');
+      const shopInput = document.getElementById('shop-name');
+      const toneInput = document.getElementById('shop-tone');
+      const promptInput = document.getElementById('shop-prompt');
+
+      if (gemInput) gemInput.value = activeGem;
+      if (groqInput) groqInput.value = activeGroq;
+      if (shopInput) shopInput.value = storage.get('shopName', 'Saimon Fashion');
+      if (toneInput) toneInput.value = storage.get('shopTone', 'friendly');
+      if (promptInput) promptInput.value = storage.get('shopPrompt', promptInput.value);
+
+      const headerShop = document.getElementById('chat-shop-header');
+      if (headerShop && shopInput) headerShop.innerText = shopInput.value;
+
+      autofillSampleDetails();
+      renderSlots();
+
+      // Automatically verify and show green badges for connected APIs
+      verifyKeysWithApi(activeGem, activeGroq);
+
+      // Default directly to Step 1: Upload 10 Products (NEVER stuck on keys screen!)
+      const hash = (window.location.hash || '').replace('#', '');
+      if (hash === 'keys' || hash === 'chat') {
+        switchTab(hash);
+      } else {
+        switchTab('products');
+      }
+    }
+
+    // Run initialization
+    init();
+  </script>
+</body>
+</html>
