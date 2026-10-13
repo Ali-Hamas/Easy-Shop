@@ -1,7 +1,12 @@
 import type { Db } from "mongodb";
 import { connectDb } from "../../shared/db.js";
 import { amount, collections } from "../../shared/models.js";
+import { config } from "../../shared/config.js";
+import { fetchWithRetry } from "../../shared/fetch-retry.js";
 import type { VisualProductCandidate } from "./gemini-vision.service.js";
+
+const EMBEDDING_DIMENSIONS = 768;
+const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
 
 type ProductImageIndex = {
   _id: string;
@@ -13,6 +18,7 @@ type ProductImageIndex = {
   description?: string;
   status: string;
   updatedAt: string;
+  embedding?: number[];
 };
 
 const col = (db: Db) => db.collection<ProductImageIndex>("productImageEmbeddings");
@@ -26,8 +32,10 @@ export async function indexProductImages(shopId: string, productId: string) {
   await col(db).deleteMany({ shopId, productId });
   if (!urls.length) return;
   const now = new Date().toISOString();
-  await col(db).insertMany(
-    urls.map((imageUrl) => ({
+  const rows = [];
+  for (const imageUrl of urls) {
+    const embedding = await embedProductImage(imageUrl);
+    rows.push({
       _id: `${productId}:${Buffer.from(imageUrl).toString("base64url").slice(0, 80)}`,
       shopId,
       productId,
@@ -37,9 +45,39 @@ export async function indexProductImages(shopId: string, productId: string) {
       description: product.description,
       status: product.status,
       updatedAt: now,
-    })),
-    { ordered: false },
-  ).catch(() => undefined);
+      ...(embedding ? { embedding, dimensions: embedding.length } : {}),
+    });
+  }
+  await col(db).insertMany(rows, { ordered: false }).catch(() => undefined);
+}
+
+export async function searchProductImages(shopId: string, imageUrl: string) {
+  if (!config.geminiApiKey) return null;
+  const query = await embedImageFromUrl(imageUrl);
+  if (!query) return null;
+  const db = await dbOrConnect();
+  const rows = await col(db).find({
+    shopId,
+    status: "active",
+    embedding: { $exists: true },
+  }).toArray();
+  const scored = rows
+    .map((row) => ({
+      productId: row.productId,
+      imageUrl: row.imageUrl,
+      similarity: cosineSimilarity(query, row.embedding ?? []),
+    }))
+    .sort((a, b) => b.similarity - a.similarity);
+  const best = scored[0];
+  if (!best) return null;
+  const second = scored.find((row) => row.productId !== best.productId);
+  const gap = best.similarity - (second?.similarity ?? 0);
+  return {
+    productId: best.productId,
+    confidence: best.similarity,
+    gap,
+    strong: best.similarity >= config.aiVisualConfidenceThreshold && gap >= 0.06,
+  };
 }
 
 export async function activeVisualCandidates(shopId: string): Promise<VisualProductCandidate[]> {
@@ -85,4 +123,75 @@ export async function matchedProductContext(shopId: string, productId: string) {
     availableQuantity: Number(product.stock ?? 0),
     variants: [],
   };
+}
+
+let cachedDb: Db | null = null;
+async function dbOrConnect() {
+  cachedDb ??= await connectDb();
+  return cachedDb;
+}
+
+async function embedProductImage(imageUrl: string) {
+  if (!config.geminiApiKey) return null;
+  try {
+    return await embedImageFromUrl(imageUrl);
+  } catch (error) {
+    console.warn("Product image embedding failed:", error);
+    return null;
+  }
+}
+
+async function embedImageFromUrl(imageUrl: string) {
+  const { buffer, mimeType } = await downloadImageBuffer(imageUrl);
+  const response = await fetchWithRetry(
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-2:embedContent?key=${config.geminiApiKey}`,
+    {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        content: { parts: [{ inline_data: { mime_type: mimeType, data: buffer.toString("base64") } }] },
+        outputDimensionality: EMBEDDING_DIMENSIONS,
+      }),
+    },
+    { maxRetries: 2, timeoutMs: 20000, actionName: "geminiImageEmbedding" },
+  );
+  const body = (await response.json()) as {
+    embedding?: { values?: number[] };
+    embeddings?: Array<{ values?: number[] }>;
+  };
+  const values = body.embedding?.values ?? body.embeddings?.[0]?.values;
+  if (!response.ok || !values?.length) throw new Error("Gemini image embedding failed.");
+  return normalizeEmbedding(values);
+}
+
+async function downloadImageBuffer(imageUrl: string) {
+  const resolved = new URL(imageUrl, config.appOrigin);
+  if (!['http:', 'https:'].includes(resolved.protocol)) throw new Error("Image URL is not allowed.");
+  const response = await fetchWithRetry(resolved.toString(), {}, { maxRetries: 2, timeoutMs: 15000, actionName: "downloadImage" });
+  if (!response.ok) throw new Error("Image could not be downloaded.");
+  const contentLength = Number(response.headers.get("content-length") ?? 0);
+  if (contentLength > MAX_IMAGE_BYTES) throw new Error("Image is too large.");
+  const buffer = Buffer.from(await response.arrayBuffer());
+  if (buffer.length > MAX_IMAGE_BYTES) throw new Error("Image is too large.");
+  return { buffer, mimeType: (response.headers.get("content-type") ?? "image/jpeg").split(";")[0] };
+}
+
+function normalizeEmbedding(values: number[]) {
+  if (values.length > EMBEDDING_DIMENSIONS) return values.slice(0, EMBEDDING_DIMENSIONS);
+  return values.length === EMBEDDING_DIMENSIONS
+    ? values
+    : [...values, ...new Array(EMBEDDING_DIMENSIONS - values.length).fill(0)];
+}
+
+function cosineSimilarity(a: number[], b: number[]) {
+  if (!a.length || a.length !== b.length) return 0;
+  let dot = 0;
+  let aNorm = 0;
+  let bNorm = 0;
+  for (let i = 0; i < a.length; i++) {
+    dot += a[i] * b[i];
+    aNorm += a[i] ** 2;
+    bNorm += b[i] ** 2;
+  }
+  return dot / ((Math.sqrt(aNorm) * Math.sqrt(bNorm)) || 1);
 }

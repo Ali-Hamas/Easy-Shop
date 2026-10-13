@@ -16,6 +16,7 @@ import {
 import { GroqReplyProvider } from "./groq-provider.js";
 import {
   activeVisualCandidates,
+  searchProductImages,
 } from "./product-visual-index.service.js";
 import { matchProductImageWithGemini } from "./gemini-vision.service.js";
 
@@ -472,6 +473,11 @@ async function retrieveRelevantProducts(
 ): Promise<AiContextProduct[]> {
   if (attachmentUrl) {
     try {
+      const vectorMatch = await searchProductImages(shopId, attachmentUrl);
+      if (vectorMatch?.strong) {
+        const p = await inventoryService.get(shopId, vectorMatch.productId);
+        return [inventoryProductToAiContext(p)];
+      }
       const candidates = await activeVisualCandidates(shopId);
       const match = await matchProductImageWithGemini(attachmentUrl, candidates);
       if (
