@@ -100,7 +100,15 @@ export async function chatSimulate(userId: string, input: { text?: string | null
       if (judged.productId && judged.confidence >= config.aiVisualConfidenceThreshold) match = { productId: judged.productId, confidence: judged.confidence, source: "gemini_vision", reason: judged.reason };
     }
   }
-  const detail = match ? await inventoryService.get(shop._id, match.productId).catch(() => null) : null;
+  let detail = match ? await inventoryService.get(shop._id, match.productId).catch(() => null) : null;
+  if (!detail && match) {
+    const top = (candidates[0] ?? {}) as { name?: string };
+    if (top.name) {
+      const db = await connectDb();
+      const current = await collections(db).products.findOne({ shopId: shop._id, name: top.name, status: "active" });
+      if (current) detail = await inventoryService.get(shop._id, current._id).catch(() => null);
+    }
+  }
   const product = detail ? {
     id: detail.id,
     name: detail.name,
