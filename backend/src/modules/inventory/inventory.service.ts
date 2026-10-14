@@ -83,13 +83,74 @@ async function detail(
   const p = await pcol(db).findOne({ _id: id, shopId }, { session });
   if (!p)
     throw new InventoryError("PRODUCT_NOT_FOUND", "Product not found.", 404);
+  return (await details(db, shopId, [p], session))[0]!;
+}
+async function details(
+  db: Db,
+  shopId: string,
+  products: Product[],
+  session?: ClientSession,
+) {
+  if (!products.length) return [];
   const variants = await vcol(db)
-    .find({ shopId, productId: id }, { session })
+    .find(
+      { shopId, productId: { $in: products.map((p) => p._id) } },
+      { session },
+    )
     .sort({ createdAt: 1, _id: 1 })
     .toArray();
-  const mapped = await Promise.all(
-    variants.map(async (v) => {
-      const b = await balance(db, shopId, v._id, id, session);
+  const variantIds = variants.map((variant) => variant._id);
+  const balances = variantIds.length
+    ? await bcol(db)
+        .find({ shopId, _id: { $in: variantIds } }, { session })
+        .toArray()
+    : [];
+  const balanceByVariant = new Map(
+    balances.map((stored) => [stored._id, stored]),
+  );
+  const missingBalanceIds = variantIds.filter(
+    (variantId) => !balanceByVariant.has(variantId),
+  );
+  if (missingBalanceIds.length) {
+    const legacyEntries = await collections(db)
+      .ledger.find(
+        { shopId, variantId: { $in: missingBalanceIds } },
+        { session },
+      )
+      .toArray();
+    const entriesByVariant = new Map<string, typeof legacyEntries>();
+    for (const entry of legacyEntries)
+      entriesByVariant.set(entry.variantId, [
+        ...(entriesByVariant.get(entry.variantId) ?? []),
+        entry,
+      ]);
+    for (const variant of variants) {
+      if (balanceByVariant.has(variant._id)) continue;
+      const entries = entriesByVariant.get(variant._id) ?? [];
+      balanceByVariant.set(variant._id, {
+        _id: variant._id,
+        shopId,
+        productId: variant.productId,
+        onHand: entries.reduce(
+          (total, entry) => total + entry.deltaQuantity,
+          0,
+        ),
+        reserved: 0,
+        sold: 0,
+        returned: 0,
+        version: 0,
+      });
+    }
+  }
+  const variantsByProduct = new Map<string, Variant[]>();
+  for (const variant of variants)
+    variantsByProduct.set(variant.productId, [
+      ...(variantsByProduct.get(variant.productId) ?? []),
+      variant,
+    ]);
+  return products.map((p) => {
+    const mapped = (variantsByProduct.get(p._id) ?? []).map((v) => {
+      const b = balanceByVariant.get(v._id)!;
       return {
         id: v._id,
         title: v.title,
@@ -108,41 +169,41 @@ async function detail(
         returned: b.returned,
         version: b.version,
       };
-    }),
-  );
-  return {
-    id: p._id,
-    shopId,
-    name: p.name,
-    slug: p.slug,
-    sku: p.sku ?? "",
-    category: p.category ?? "",
-    description: p.description ?? "",
-    price: amount(p.price),
-    currency: p.currency,
-    comparePrice: p.comparePrice ?? null,
-    cost: p.cost ?? null,
-    images: p.images ?? [],
-    status: p.status,
-    aiFacts: p.aiFacts ?? {
-      sellingPoints: "",
-      audience: "",
-      care: "",
-      policyExceptions: "",
-    },
-    seo: p.seo ?? { title: "", description: "" },
-    delivery: p.delivery ?? { weightGrams: null, note: "" },
-    version: p.version ?? 0,
-    createdAt: p.createdAt,
-    updatedAt: p.updatedAt ?? p.createdAt,
-    variants: mapped,
-    available: mapped.reduce((n, v) => n + v.available, 0),
-    reserved: mapped.reduce((n, v) => n + v.reserved, 0),
-    lowStock:
-      mapped.some((v) => v.available > 0) &&
-      mapped.some((v) => v.available <= v.lowStockThreshold),
-    outOfStock: mapped.every((v) => v.available === 0),
-  };
+    });
+    return {
+      id: p._id,
+      shopId,
+      name: p.name,
+      slug: p.slug,
+      sku: p.sku ?? "",
+      category: p.category ?? "",
+      description: p.description ?? "",
+      price: amount(p.price),
+      currency: p.currency,
+      comparePrice: p.comparePrice ?? null,
+      cost: p.cost ?? null,
+      images: p.images ?? [],
+      status: p.status,
+      aiFacts: p.aiFacts ?? {
+        sellingPoints: "",
+        audience: "",
+        care: "",
+        policyExceptions: "",
+      },
+      seo: p.seo ?? { title: "", description: "" },
+      delivery: p.delivery ?? { weightGrams: null, note: "" },
+      version: p.version ?? 0,
+      createdAt: p.createdAt,
+      updatedAt: p.updatedAt ?? p.createdAt,
+      variants: mapped,
+      available: mapped.reduce((n, v) => n + v.available, 0),
+      reserved: mapped.reduce((n, v) => n + v.reserved, 0),
+      lowStock:
+        mapped.some((v) => v.available > 0) &&
+        mapped.some((v) => v.available <= v.lowStockThreshold),
+      outOfStock: mapped.every((v) => v.available === 0),
+    };
+  });
 }
 async function audit(
   db: Db,
@@ -316,9 +377,7 @@ export const inventoryService = {
         "Narrow your search to fewer than 2,000 products.",
         422,
       );
-    let products = await Promise.all(
-      docs.map((p) => detail(db, shopId, p._id)),
-    );
+    let products = await details(db, shopId, docs);
     const summary = {
       products: products.length,
       available: products.reduce((n, p) => n + p.available, 0),
@@ -397,9 +456,7 @@ export const inventoryService = {
           ? await vcol(db).find({ shopId, productId }, { session }).toArray()
           : [];
         if (
-          current.some(
-            (v) => !normalized.variants.some((i) => i.id === v._id),
-          )
+          current.some((v) => !normalized.variants.some((i) => i.id === v._id))
         )
           throw new InventoryError(
             "VARIANT_HISTORY_REQUIRED",
