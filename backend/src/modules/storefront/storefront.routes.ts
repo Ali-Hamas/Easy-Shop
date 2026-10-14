@@ -3,6 +3,9 @@ import { connectDb } from "../../shared/db.js";
 import { collections, amount } from "../../shared/models.js";
 import { templateCatalog } from "../onboarding/template-catalog.js";
 
+const STOREFRONT_CACHE_TTL_MS = 15_000;
+const storefrontCache = new Map<string, { expiresAt: number; value: unknown }>();
+
 const toSlug = (text: string) =>
   text
     .toLowerCase()
@@ -14,6 +17,15 @@ const toSlug = (text: string) =>
 export async function registerStorefrontRoutes(app: FastifyInstance) {
   app.get("/:subdomain", async (request, reply) => {
     const { subdomain } = request.params as { subdomain: string };
+    const wantsPreview = Boolean(
+      (request.query as { preview?: string })?.preview === "true" ||
+        request.headers["x-preview-mode"] === "true",
+    );
+    const cached = !wantsPreview ? storefrontCache.get(subdomain) : undefined;
+    if (cached && cached.expiresAt > Date.now())
+      return reply
+        .header("Cache-Control", "public, max-age=15, stale-while-revalidate=45")
+        .send(cached.value);
     const db = await connectDb();
     const c = collections(db);
     const shop = await c.shops.findOne({ subdomain });
@@ -25,10 +37,6 @@ export async function registerStorefrontRoutes(app: FastifyInstance) {
 
     const isOwner = Boolean(
       request.authUser && request.authUser.id === shop.ownerId,
-    );
-    const wantsPreview = Boolean(
-      (request.query as { preview?: string })?.preview === "true" ||
-        request.headers["x-preview-mode"] === "true",
     );
     const isPreview = isOwner && wantsPreview;
 
@@ -140,7 +148,7 @@ export async function registerStorefrontRoutes(app: FastifyInstance) {
       templateCatalog.find((t) => t.id === shop.selectedTemplateId) ??
       templateCatalog[0];
 
-    return {
+    const result = {
       shop: {
         id: shop._id,
         displayName: shop.displayName,
@@ -158,6 +166,16 @@ export async function registerStorefrontRoutes(app: FastifyInstance) {
       template,
       products,
     };
+    if (!isPreview && shop.status === "launched") {
+      storefrontCache.set(subdomain, {
+        value: result,
+        expiresAt: Date.now() + STOREFRONT_CACHE_TTL_MS,
+      });
+      return reply
+        .header("Cache-Control", "public, max-age=15, stale-while-revalidate=45")
+        .send(result);
+    }
+    return result;
   });
 
   app.get("/:subdomain/products/:slug", async (request, reply) => {
