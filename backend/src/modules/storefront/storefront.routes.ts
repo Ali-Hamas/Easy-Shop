@@ -4,7 +4,10 @@ import { collections, amount } from "../../shared/models.js";
 import { templateCatalog } from "../onboarding/template-catalog.js";
 
 const STOREFRONT_CACHE_TTL_MS = 15_000;
-const storefrontCache = new Map<string, { expiresAt: number; value: unknown }>();
+const storefrontCache = new Map<
+  string,
+  { expiresAt: number; value: unknown }
+>();
 
 const toSlug = (text: string) =>
   text
@@ -19,12 +22,15 @@ export async function registerStorefrontRoutes(app: FastifyInstance) {
     const { subdomain } = request.params as { subdomain: string };
     const wantsPreview = Boolean(
       (request.query as { preview?: string })?.preview === "true" ||
-        request.headers["x-preview-mode"] === "true",
+      request.headers["x-preview-mode"] === "true",
     );
     const cached = !wantsPreview ? storefrontCache.get(subdomain) : undefined;
     if (cached && cached.expiresAt > Date.now())
       return reply
-        .header("Cache-Control", "public, max-age=15, stale-while-revalidate=45")
+        .header(
+          "Cache-Control",
+          "public, max-age=15, stale-while-revalidate=45",
+        )
         .send(cached.value);
     const db = await connectDb();
     const c = collections(db);
@@ -56,7 +62,9 @@ export async function registerStorefrontRoutes(app: FastifyInstance) {
 
     const productIds = documents.map((product) => product._id);
     const [variants, imgDocs] = await Promise.all([
-      c.variants.find({ shopId: shop._id, productId: { $in: productIds } }).toArray(),
+      c.variants
+        .find({ shopId: shop._id, productId: { $in: productIds } })
+        .toArray(),
       c.images
         .find({ shopId: shop._id, productId: { $in: productIds } })
         .sort({ sortOrder: 1 })
@@ -67,7 +75,12 @@ export async function registerStorefrontRoutes(app: FastifyInstance) {
     const [balances, assets] = await Promise.all([
       variantIds.length
         ? db
-            .collection<{ _id: string; shopId: string; onHand: number; reserved: number }>("inventoryBalances")
+            .collection<{
+              _id: string;
+              shopId: string;
+              onHand: number;
+              reserved: number;
+            }>("inventoryBalances")
             .find({ shopId: shop._id, _id: { $in: variantIds } })
             .toArray()
         : [],
@@ -87,8 +100,12 @@ export async function registerStorefrontRoutes(app: FastifyInstance) {
         ...(imagesByProduct.get(image.productId) ?? []),
         image,
       ]);
-    const assetUrlById = new Map(assets.map((asset) => [asset._id, asset.publicUrl]));
-    const balanceByVariant = new Map(balances.map((balance) => [balance._id, balance]));
+    const assetUrlById = new Map(
+      assets.map((asset) => [asset._id, asset.publicUrl]),
+    );
+    const balanceByVariant = new Map(
+      balances.map((balance) => [balance._id, balance]),
+    );
 
     const products = documents.map((p) => {
       const productVariants = variantsByProduct.get(p._id) ?? [];
@@ -99,26 +116,28 @@ export async function registerStorefrontRoutes(app: FastifyInstance) {
         Array.isArray(p.images) && p.images.length > 0
           ? p.images
           : assetImages.length > 0
-          ? assetImages
-          : p.imageUrl
-          ? [p.imageUrl]
-          : [];
+            ? assetImages
+            : p.imageUrl
+              ? [p.imageUrl]
+              : [];
       const productImages = Array.from(new Set(rawImages.filter(Boolean)));
       const imageUrl =
-        productImages[0] ||
-        productVariants.find((v) => v.image)?.image ||
-        null;
+        productImages[0] || productVariants.find((v) => v.image)?.image || null;
 
       let stock = productVariants.reduce((total, variant) => {
         const balance = balanceByVariant.get(variant._id);
-        return total + (balance ? balance.onHand - balance.reserved : (variant.openingStock || 0));
+        return (
+          total +
+          (balance
+            ? balance.onHand - balance.reserved
+            : variant.openingStock || 0)
+        );
       }, 0);
       if (stock === 0 && p.stock) {
         stock = Number(p.stock);
       }
 
-      const canonicalSlug =
-        p.slug || toSlug(p.name) || `product-${p._id}`;
+      const canonicalSlug = p.slug || toSlug(p.name) || `product-${p._id}`;
 
       return {
         id: p._id,
@@ -138,7 +157,9 @@ export async function registerStorefrontRoutes(app: FastifyInstance) {
           price: amount(v.price),
           stock: (() => {
             const balance = balanceByVariant.get(v._id);
-            return balance ? balance.onHand - balance.reserved : (v.openingStock || 0);
+            return balance
+              ? balance.onHand - balance.reserved
+              : v.openingStock || 0;
           })(),
         })),
       };
@@ -172,7 +193,10 @@ export async function registerStorefrontRoutes(app: FastifyInstance) {
         expiresAt: Date.now() + STOREFRONT_CACHE_TTL_MS,
       });
       return reply
-        .header("Cache-Control", "public, max-age=15, stale-while-revalidate=45")
+        .header(
+          "Cache-Control",
+          "public, max-age=15, stale-while-revalidate=45",
+        )
         .send(result);
     }
     return result;
@@ -183,7 +207,22 @@ export async function registerStorefrontRoutes(app: FastifyInstance) {
       subdomain: string;
       slug: string;
     };
-    const c = collections(await connectDb());
+    const wantsPreview = Boolean(
+      (request.query as { preview?: string })?.preview === "true" ||
+      request.headers["x-preview-mode"] === "true",
+    );
+    const productId = (request.query as { productId?: string })?.productId;
+    const cacheKey = `product:${subdomain}:${slug}:${productId ?? ""}`;
+    const cached = !wantsPreview ? storefrontCache.get(cacheKey) : undefined;
+    if (cached && cached.expiresAt > Date.now())
+      return reply
+        .header(
+          "Cache-Control",
+          "public, max-age=15, stale-while-revalidate=45",
+        )
+        .send(cached.value);
+    const db = await connectDb();
+    const c = collections(db);
     const shop = await c.shops.findOne({ subdomain });
     if (!shop) {
       return reply
@@ -194,10 +233,6 @@ export async function registerStorefrontRoutes(app: FastifyInstance) {
     const isOwner = Boolean(
       request.authUser && request.authUser.id === shop.ownerId,
     );
-    const wantsPreview = Boolean(
-      (request.query as { preview?: string })?.preview === "true" ||
-        request.headers["x-preview-mode"] === "true",
-    );
     const isPreview = isOwner && wantsPreview;
 
     if (shop.status !== "launched" && !isOwner) {
@@ -206,7 +241,6 @@ export async function registerStorefrontRoutes(app: FastifyInstance) {
         .send({ code: "SHOP_NOT_FOUND", message: "Published shop not found." });
     }
 
-    const productId = (request.query as { productId?: string })?.productId;
     const p = await c.products.findOne({
       shopId: shop._id,
       $or: [
@@ -224,40 +258,57 @@ export async function registerStorefrontRoutes(app: FastifyInstance) {
       });
     }
 
-    const variants = await c.variants
-      .find({ shopId: p.shopId, productId: p._id })
-      .sort({ createdAt: 1, _id: 1 })
-      .toArray();
-
-    const entries = await c.ledger
-      .find({
-        shopId: p.shopId,
-        variantId: { $in: variants.map((v) => v._id) },
-      })
-      .toArray();
-
-    const imgDocs = await c.images
-      .find({ shopId: p.shopId, productId: p._id })
-      .sort({ sortOrder: 1 })
-      .toArray();
-    const assetImages: string[] = [];
-    for (const img of imgDocs) {
-      const a = await c.assets.findOne({ _id: img.assetId, shopId: p.shopId });
-      if (a?.publicUrl) assetImages.push(a.publicUrl);
-    }
+    const [variants, imgDocs] = await Promise.all([
+      c.variants
+        .find({ shopId: p.shopId, productId: p._id })
+        .sort({ createdAt: 1, _id: 1 })
+        .toArray(),
+      c.images
+        .find({ shopId: p.shopId, productId: p._id })
+        .sort({ sortOrder: 1 })
+        .toArray(),
+    ]);
+    const [balances, assets] = await Promise.all([
+      variants.length
+        ? db
+            .collection<{ _id: string; onHand: number; reserved: number }>(
+              "inventoryBalances",
+            )
+            .find({
+              shopId: p.shopId,
+              _id: { $in: variants.map((v) => v._id) },
+            })
+            .toArray()
+        : [],
+      imgDocs.length
+        ? c.assets
+            .find({
+              shopId: p.shopId,
+              _id: { $in: imgDocs.map((img) => img.assetId) },
+            })
+            .toArray()
+        : [],
+    ]);
+    const balanceByVariant = new Map(
+      balances.map((balance) => [balance._id, balance]),
+    );
+    const assetUrlById = new Map(
+      assets.map((asset) => [asset._id, asset.publicUrl]),
+    );
+    const assetImages = imgDocs
+      .map((img) => assetUrlById.get(img.assetId))
+      .filter((url): url is string => Boolean(url));
     const rawImages: string[] =
       Array.isArray(p.images) && p.images.length > 0
         ? p.images
         : assetImages.length > 0
-        ? assetImages
-        : p.imageUrl
-        ? [p.imageUrl]
-        : [];
+          ? assetImages
+          : p.imageUrl
+            ? [p.imageUrl]
+            : [];
     const productImages = Array.from(new Set(rawImages.filter(Boolean)));
     const imageUrl =
-      productImages[0] ||
-      variants.find((v) => v.image)?.image ||
-      null;
+      productImages[0] || variants.find((v) => v.image)?.image || null;
 
     const mappedVariants =
       variants.length > 0
@@ -266,11 +317,12 @@ export async function registerStorefrontRoutes(app: FastifyInstance) {
             sku: v.sku ?? null,
             title: v.title,
             price: amount(v.price),
-            stock:
-              entries
-                .filter((e) => e.variantId === v._id)
-                .reduce((n, e) => n + e.deltaQuantity, 0) ||
-              (v.openingStock || 0),
+            stock: (() => {
+              const balance = balanceByVariant.get(v._id);
+              return balance
+                ? balance.onHand - balance.reserved
+                : v.openingStock || 0;
+            })(),
           }))
         : [
             {
@@ -278,13 +330,11 @@ export async function registerStorefrontRoutes(app: FastifyInstance) {
               sku: p.sku ?? null,
               title: "Default",
               price: amount(p.price),
-              stock:
-                entries.reduce((n, e) => n + e.deltaQuantity, 0) ||
-                (p.stock ? Number(p.stock) : 0),
+              stock: p.stock ? Number(p.stock) : 0,
             },
           ];
 
-    return {
+    const result = {
       product: {
         id: p._id,
         name: p.name,
@@ -298,6 +348,18 @@ export async function registerStorefrontRoutes(app: FastifyInstance) {
         variants: mappedVariants,
       },
     };
+    if (!isPreview && shop.status === "launched") {
+      storefrontCache.set(cacheKey, {
+        value: result,
+        expiresAt: Date.now() + STOREFRONT_CACHE_TTL_MS,
+      });
+      return reply
+        .header(
+          "Cache-Control",
+          "public, max-age=15, stale-while-revalidate=45",
+        )
+        .send(result);
+    }
+    return result;
   });
 }
-
