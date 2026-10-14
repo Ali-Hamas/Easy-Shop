@@ -5,7 +5,6 @@ import type { Db, ClientSession, Filter } from "mongodb";
 import { connectDb, transaction } from "../../shared/db.js";
 import { publicDocument } from "../../shared/models.js";
 import { config } from "../../shared/config.js";
-import { fetchWithRetry } from "../../shared/fetch-retry.js";
 import {
   GroundedRuleAiProvider,
   OpenAiReplyProvider,
@@ -338,18 +337,18 @@ async function sendMetaReply(
     conv.channel === "instagram" ? page.instagramBusinessAccount!.id : page.id;
   let response: Response;
   try {
-    response = await fetchWithRetry(
+    response = await fetch(
       `https://graph.facebook.com/${config.metaGraphVersion}/${senderNode}/messages`,
       {
         method: "POST",
         headers: { "content-type": "application/json" },
+        signal: AbortSignal.timeout(12000),
         body: JSON.stringify({
           recipient: { id: recipientId },
           message: { text },
           access_token: page.accessToken,
         }),
       },
-      { maxRetries: 3, timeoutMs: 12000, actionName: "metaSendMessage" },
     );
   } catch {
     throw new AiReplyError(502, "META_SEND_UNKNOWN", "Meta send outcome is unknown. Reconcile before retrying.", true);

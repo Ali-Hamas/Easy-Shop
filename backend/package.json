@@ -9,7 +9,7 @@
     "start": "node dist/server.js",
     "check": "npm run check:api-docs && npm run build && npm test",
     "check:api-docs": "node scripts/check-api-docs.mjs",
-    "test": "npm run build && node test/database-failure.mjs && node test/local-mongo.mjs",
+    "test": "npm run build && node test/database-failure.mjs && node test/local-mongo.mjs && node test/meta-send-regression.mjs",
     "db:indexes": "npm run build && node scripts/ensure-indexes.mjs",
     "test:atlas": "npm run build && node test/onboarding.integration.mjs",
     "test:inventory": "npm run build && node test/inventory.integration.mjs",
