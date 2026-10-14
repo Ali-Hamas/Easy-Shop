@@ -39,6 +39,7 @@ type Session = {
   expiresAt: Date;
   createdAt: Date;
 };
+type AuthenticatedUser = Pick<User, "_id" | "name" | "email">;
 type PasswordResetOtp = {
   _id?: string;
   email: string;
@@ -57,7 +58,7 @@ declare module "fastify" {
     authUser?: { id: string; name: string; email: string };
   }
 }
-const publicUser = (user: User) => ({
+const publicUser = (user: AuthenticatedUser) => ({
   id: user._id,
   name: user.name,
   email: user.email,
@@ -95,12 +96,30 @@ async function resolveSession(request: FastifyRequest) {
   const token = sessionToken(request);
   if (!token) return null;
   const db = await connectDb();
-  const session = await db
+  const [session] = await db
     .collection<Session>("authSessions")
-    .findOne({ _id: digest(token), expiresAt: { $gt: new Date() } });
-  return session
-    ? db.collection<User>("users").findOne({ _id: session.userId })
-    : null;
+    .aggregate<{ user: AuthenticatedUser }>([
+      { $match: { _id: digest(token), expiresAt: { $gt: new Date() } } },
+      {
+        $lookup: {
+          from: "users",
+          localField: "userId",
+          foreignField: "_id",
+          as: "user",
+        },
+      },
+      { $unwind: "$user" },
+      {
+        $project: {
+          _id: 0,
+          "user._id": 1,
+          "user.name": 1,
+          "user.email": 1,
+        },
+      },
+    ])
+    .toArray();
+  return session?.user ?? null;
 }
 export function installAuth(app: FastifyInstance) {
   app.addHook("onRequest", (_request, _reply, done) =>

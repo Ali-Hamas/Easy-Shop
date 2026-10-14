@@ -1,101 +1,104 @@
 import type { NextRequest } from "next/server";
+
 const uuid = "[a-fA-F0-9-]{36}";
+const dashboardPath = new RegExp(`^dashboard/${uuid}$`);
+const orderPath = new RegExp(`^orders/${uuid}$`);
+const storefrontOrdersPath = /^orders\/storefront\/[A-Za-z0-9-]+\/orders$/;
+const storefrontChatPath = /^storefront\/[A-Za-z0-9-]+\/chat\/(session|messages)$/;
+const authPath = /^auth\/(register|login|logout|me|forgot-password|forgot-password\/request|verify-otp|reset-password)$/;
+const customerPath = new RegExp(`^customers/${uuid}(?:/${uuid}(?:/(history|notes))?)?$`);
+const customerRootPath = new RegExp(`^customers/${uuid}$`);
+const customerPatchPath = new RegExp(`^customers/${uuid}/${uuid}$`);
+const inventoryPath = new RegExp(
+  `^inventory/${uuid}/products(?:/${uuid}(?:/(history|adjustments))?)?$`,
+);
+const inventoryPatchPath = new RegExp(`/products/${uuid}$`);
+const inboxSettingsPath = new RegExp(`^inbox/${uuid}/ai-settings$`);
+const inboxChannelsPath = new RegExp(`^inbox/${uuid}/channels$`);
+const inboxConnectPath = new RegExp(`^inbox/${uuid}/channels/meta/connect$`);
+const inboxConversationsPath = new RegExp(`^inbox/${uuid}/conversations$`);
+const inboxConversationPath = new RegExp(`^inbox/${uuid}/conversations/${uuid}$`);
+const inboxMessagesPath = new RegExp(`^inbox/${uuid}/conversations/${uuid}/messages$`);
+const inboxDraftsPath = new RegExp(
+  `^inbox/${uuid}/conversations/${uuid}/drafts(?:/generate)?$`,
+);
+const inboxDraftPath = new RegExp(`^inbox/${uuid}/conversations/${uuid}/drafts/${uuid}$`);
+const inboxDraftActionPath = new RegExp(
+  `^inbox/${uuid}/conversations/${uuid}/drafts/${uuid}/(review|approve|reject|send)$`,
+);
+const publicGetPath = new RegExp(
+  `^(onboarding/(templates|${uuid})|storefront/[A-Za-z0-9-]+(?:/products/[A-Za-z0-9-]+)?)$`,
+);
+const publicPostPath = new RegExp(
+  `^onboarding/(start|subdomain/check|${uuid}/(products|channels/meta/skip|template|launch))$`,
+);
+const publicPatchPath = new RegExp(`^onboarding/${uuid}/(shop|ai-mode)$`);
+
 function permitted(path: string, method: string) {
-  if (new RegExp(`^dashboard/${uuid}$`).test(path)) return method === "GET";
-  if (new RegExp(`^orders/${uuid}$`).test(path)) return method === "GET";
-  if (new RegExp(`^orders/storefront/[A-Za-z0-9-]+/orders$`).test(path))
+  if (dashboardPath.test(path)) return method === "GET";
+  if (orderPath.test(path)) return method === "GET";
+  if (storefrontOrdersPath.test(path))
     return method === "POST";
-  if (/^storefront\/[A-Za-z0-9-]+\/chat\/(session|messages)$/.test(path))
+  if (storefrontChatPath.test(path))
     return (
       method === "POST" || (method === "GET" && path.endsWith("/messages"))
     );
-  if (
-    /^auth\/(register|login|logout|me|forgot-password|forgot-password\/request|verify-otp|reset-password)$/.test(
-      path,
-    )
-  )
+  if (authPath.test(path))
     return path === "auth/me" ? method === "GET" : method === "POST";
-  if (
-    new RegExp(`^customers/${uuid}(?:/${uuid}(?:/(history|notes))?)?$`).test(
-      path,
-    )
-  ) {
+  if (customerPath.test(path)) {
     return method === "GET"
       ? !path.endsWith("/notes")
       : method === "POST"
-        ? new RegExp(`^customers/${uuid}$`).test(path) ||
-          path.endsWith("/notes")
+        ? customerRootPath.test(path) || path.endsWith("/notes")
         : method === "PATCH" &&
-          new RegExp(`^customers/${uuid}/${uuid}$`).test(path);
+          customerPatchPath.test(path);
   }
-  if (
-    new RegExp(
-      `^inventory/${uuid}/products(?:/${uuid}(?:/(history|adjustments))?)?$`,
-    ).test(path)
-  ) {
+  if (inventoryPath.test(path)) {
     return method === "GET"
       ? !path.endsWith("/adjustments")
       : method === "POST"
         ? path.endsWith("/products") || path.endsWith("/adjustments")
-        : method === "PATCH" && new RegExp(`/products/${uuid}$`).test(path);
+        : method === "PATCH" && inventoryPatchPath.test(path);
   }
   if (path.startsWith("inbox/")) {
-    if (new RegExp(`^inbox/${uuid}/ai-settings$`).test(path)) {
+    if (inboxSettingsPath.test(path)) {
       return method === "GET" || method === "PATCH";
     }
-    if (new RegExp(`^inbox/${uuid}/channels$`).test(path)) {
+    if (inboxChannelsPath.test(path)) {
       return method === "GET";
     }
-    if (new RegExp(`^inbox/${uuid}/channels/meta/connect$`).test(path)) {
+    if (inboxConnectPath.test(path)) {
       return method === "POST";
     }
     if (path === "inbox/channels/meta/callback") {
       return method === "GET";
     }
-    if (new RegExp(`^inbox/${uuid}/conversations$`).test(path)) {
+    if (inboxConversationsPath.test(path)) {
       return method === "GET" || method === "POST";
     }
-    if (new RegExp(`^inbox/${uuid}/conversations/${uuid}$`).test(path)) {
+    if (inboxConversationPath.test(path)) {
       return method === "GET";
     }
-    if (
-      new RegExp(`^inbox/${uuid}/conversations/${uuid}/messages$`).test(path)
-    ) {
+    if (inboxMessagesPath.test(path)) {
       return method === "GET" || method === "POST";
     }
-    if (
-      new RegExp(
-        `^inbox/${uuid}/conversations/${uuid}/drafts(?:/generate)?$`,
-      ).test(path)
-    ) {
+    if (inboxDraftsPath.test(path)) {
       return method === "GET" || method === "POST";
     }
-    if (
-      new RegExp(`^inbox/${uuid}/conversations/${uuid}/drafts/${uuid}$`).test(
-        path,
-      )
-    ) {
+    if (inboxDraftPath.test(path)) {
       return method === "PATCH";
     }
-    if (
-      new RegExp(
-        `^inbox/${uuid}/conversations/${uuid}/drafts/${uuid}/(review|approve|reject|send)$`,
-      ).test(path)
-    ) {
+    if (inboxDraftActionPath.test(path)) {
       return method === "POST";
     }
     return false;
   }
   return method === "GET"
-    ? new RegExp(
-        `^(onboarding/(templates|${uuid})|storefront/[A-Za-z0-9-]+(?:/products/[A-Za-z0-9-]+)?)$`,
-      ).test(path)
+    ? publicGetPath.test(path)
     : method === "POST"
-      ? new RegExp(
-          `^onboarding/(start|subdomain/check|${uuid}/(products|channels/meta/skip|template|launch))$`,
-        ).test(path)
+      ? publicPostPath.test(path)
       : method === "PATCH" &&
-        new RegExp(`^onboarding/${uuid}/(shop|ai-mode)$`).test(path);
+        publicPatchPath.test(path);
 }
 async function forward(
   request: NextRequest,

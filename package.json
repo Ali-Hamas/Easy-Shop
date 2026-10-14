@@ -9,6 +9,7 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test:e2e": "playwright test",
+    "test:api-proxy": "node tests/api-proxy-allowlist-regression.mjs",
     "format": "prettier --write app adapters components config hooks lib services styles types tests scripts *.ts *.mjs *.json",
     "format:check": "prettier --check app adapters components config hooks lib services styles types tests scripts *.ts *.mjs *.json"
   },
