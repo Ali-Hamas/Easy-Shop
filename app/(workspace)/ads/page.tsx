@@ -1,5 +1,5 @@
-import { ModuleShell } from "@/components/layout/module-shell";
+import AdsWorkspace from "@/components/ads/ads-workspace";
 export const metadata = { title: "Ads" };
 export default function Page() {
-  return <ModuleShell slug="ads" />;
+  return <AdsWorkspace />;
 }

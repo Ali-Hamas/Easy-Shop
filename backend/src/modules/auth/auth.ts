@@ -128,7 +128,7 @@ export function installAuth(app: FastifyInstance) {
   app.addHook("preHandler", async (request, reply) => {
     const path = request.url.split("?")[0];
     const protectedRoute =
-      /^\/api\/v1\/(onboarding|inventory|customers|inbox|dashboard|test-lab)(\/|$)/.test(
+      /^\/api\/v1\/(onboarding|inventory|customers|inbox|dashboard|ads|test-lab)(\/|$)/.test(
         path,
       ) || /^\/api\/v1\/orders\/[a-fA-F0-9-]{36}(\/|$)/.test(path);
     const publicSessionRoute =

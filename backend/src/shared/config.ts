@@ -34,6 +34,10 @@ const result = z
       .default(
         "pages_show_list,pages_manage_metadata,pages_messaging,pages_read_engagement,pages_read_user_content,pages_manage_posts,pages_manage_engagement,read_insights,business_management,instagram_basic,instagram_manage_messages,instagram_content_publish,instagram_manage_comments,instagram_manage_insights",
       ),
+    META_ADS_OAUTH_SCOPES: z
+      .string()
+      .default("ads_read,ads_management,business_management,catalog_management"),
+    META_TOKEN_ENCRYPTION_KEY: z.string().regex(/^(|[a-f0-9]{64})$/i).default(""),
   })
   .safeParse(process.env);
 if (!result.success)
@@ -64,4 +68,6 @@ export const config = {
   metaWebhookVerifyToken: env.META_WEBHOOK_VERIFY_TOKEN,
   metaGraphVersion: env.META_GRAPH_VERSION,
   metaOAuthScopes: env.META_OAUTH_SCOPES,
+  metaAdsOAuthScopes: env.META_ADS_OAUTH_SCOPES,
+  metaTokenEncryptionKey: env.META_TOKEN_ENCRYPTION_KEY,
 };

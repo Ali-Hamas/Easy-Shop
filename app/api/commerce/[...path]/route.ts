@@ -13,6 +13,10 @@ const inventoryPath = new RegExp(
   `^inventory/${uuid}/products(?:/${uuid}(?:/(history|adjustments))?)?$`,
 );
 const inventoryPatchPath = new RegExp(`/products/${uuid}$`);
+const adsOverviewPath = new RegExp(`^ads/${uuid}$`);
+const adsConnectPath = new RegExp(`^ads/${uuid}/connect$`);
+const adsSelectionPath = new RegExp(`^ads/${uuid}/selection$`);
+const adsSyncPath = new RegExp(`^ads/${uuid}/insights/sync$`);
 const inboxSettingsPath = new RegExp(`^inbox/${uuid}/ai-settings$`);
 const inboxChannelsPath = new RegExp(`^inbox/${uuid}/channels$`);
 const inboxConnectPath = new RegExp(`^inbox/${uuid}/channels/meta/connect$`);
@@ -60,6 +64,10 @@ function permitted(path: string, method: string) {
         ? path.endsWith("/products") || path.endsWith("/adjustments")
         : method === "PATCH" && inventoryPatchPath.test(path);
   }
+  if (adsOverviewPath.test(path)) return method === "GET";
+  if (adsConnectPath.test(path) || adsSyncPath.test(path))
+    return method === "POST";
+  if (adsSelectionPath.test(path)) return method === "PATCH";
   if (path.startsWith("inbox/")) {
     if (inboxSettingsPath.test(path)) {
       return method === "GET" || method === "PATCH";

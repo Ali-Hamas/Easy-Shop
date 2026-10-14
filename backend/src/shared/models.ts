@@ -265,6 +265,19 @@ export async function ensureIndexes(db: Db) {
   await db
     .collection("orders")
     .createIndex({ shopId: 1, orderNumber: 1 }, { unique: true });
+  await db.collection("metaAdsConnections").createIndex({ shopId: 1 }, { unique: true });
+  await db
+    .collection("metaAdsOAuthStates")
+    .createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 });
+  await db
+    .collection("metaAdsInsights")
+    .createIndex({ shopId: 1, dateStart: -1, level: 1 });
+  await db
+    .collection("metaAdsCampaignDrafts")
+    .createIndex({ shopId: 1, updatedAt: -1 });
+  await db
+    .collection("metaCapiEvents")
+    .createIndex({ shopId: 1, eventId: 1 }, { unique: true });
 }
 export function publicDocument<T extends { _id: string }>(
   document: T,
