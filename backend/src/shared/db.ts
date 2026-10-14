@@ -14,13 +14,13 @@ export async function connectDb(): Promise<Db> {
     state.ready = (async () => {
       if (!config.mongoUri) throw new DatabaseUnavailable();
       const client = new MongoClient(config.mongoUri, {
-        maxPoolSize: 10,
-        minPoolSize: 0,
+        maxPoolSize: 20,
+        minPoolSize: 2,
         maxIdleTimeMS: 30000,
         serverSelectionTimeoutMS: 5000,
         connectTimeoutMS: 5000,
         socketTimeoutMS: 10000,
-        waitQueueTimeoutMS: 5000,
+        waitQueueTimeoutMS: 2000,
       });
       state.client = client;
       try {

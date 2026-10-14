@@ -72,7 +72,8 @@ export async function buildApp() {
   await app.register(swagger, {
     openapi: { info: { title: "Easy Shop Backend API", version: "0.1.0" } },
   });
-  await app.register(swaggerUi, { routePrefix: "/docs" });
+  if (config.nodeEnv !== "production")
+    await app.register(swaggerUi, { routePrefix: "/docs" });
 
   await app.register(registerDashboardRoutes, { prefix: "/api/v1/dashboard" });
   await app.register(registerAuthRoutes, { prefix: "/api/v1/auth" });

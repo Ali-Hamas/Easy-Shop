@@ -14,7 +14,8 @@ const toSlug = (text: string) =>
 export async function registerStorefrontRoutes(app: FastifyInstance) {
   app.get("/:subdomain", async (request, reply) => {
     const { subdomain } = request.params as { subdomain: string };
-    const c = collections(await connectDb());
+    const db = await connectDb();
+    const c = collections(db);
     const shop = await c.shops.findOne({ subdomain });
     if (!shop) {
       return reply
@@ -45,26 +46,47 @@ export async function registerStorefrontRoutes(app: FastifyInstance) {
       .sort({ createdAt: -1, _id: -1 })
       .toArray();
 
-    const products = [];
-    for (const p of documents) {
-      const variants = await c.variants
-        .find({ shopId: shop._id, productId: p._id })
-        .toArray();
-      const entries = await c.ledger
-        .find({
-          shopId: shop._id,
-          variantId: { $in: variants.map((v) => v._id) },
-        })
-        .toArray();
-      const imgDocs = await c.images
-        .find({ shopId: shop._id, productId: p._id })
+    const productIds = documents.map((product) => product._id);
+    const [variants, imgDocs] = await Promise.all([
+      c.variants.find({ shopId: shop._id, productId: { $in: productIds } }).toArray(),
+      c.images
+        .find({ shopId: shop._id, productId: { $in: productIds } })
         .sort({ sortOrder: 1 })
-        .toArray();
-      const assetImages: string[] = [];
-      for (const img of imgDocs) {
-        const a = await c.assets.findOne({ _id: img.assetId, shopId: shop._id });
-        if (a?.publicUrl) assetImages.push(a.publicUrl);
-      }
+        .toArray(),
+    ]);
+    const variantIds = variants.map((variant) => variant._id);
+    const assetIds = imgDocs.map((image) => image.assetId);
+    const [balances, assets] = await Promise.all([
+      variantIds.length
+        ? db
+            .collection<{ _id: string; shopId: string; onHand: number; reserved: number }>("inventoryBalances")
+            .find({ shopId: shop._id, _id: { $in: variantIds } })
+            .toArray()
+        : [],
+      assetIds.length
+        ? c.assets.find({ shopId: shop._id, _id: { $in: assetIds } }).toArray()
+        : [],
+    ]);
+    const variantsByProduct = new Map<string, typeof variants>();
+    for (const variant of variants)
+      variantsByProduct.set(variant.productId, [
+        ...(variantsByProduct.get(variant.productId) ?? []),
+        variant,
+      ]);
+    const imagesByProduct = new Map<string, typeof imgDocs>();
+    for (const image of imgDocs)
+      imagesByProduct.set(image.productId, [
+        ...(imagesByProduct.get(image.productId) ?? []),
+        image,
+      ]);
+    const assetUrlById = new Map(assets.map((asset) => [asset._id, asset.publicUrl]));
+    const balanceByVariant = new Map(balances.map((balance) => [balance._id, balance]));
+
+    const products = documents.map((p) => {
+      const productVariants = variantsByProduct.get(p._id) ?? [];
+      const assetImages = (imagesByProduct.get(p._id) ?? [])
+        .map((image) => assetUrlById.get(image.assetId))
+        .filter((url): url is string => Boolean(url));
       const rawImages: string[] =
         Array.isArray(p.images) && p.images.length > 0
           ? p.images
@@ -76,24 +98,21 @@ export async function registerStorefrontRoutes(app: FastifyInstance) {
       const productImages = Array.from(new Set(rawImages.filter(Boolean)));
       const imageUrl =
         productImages[0] ||
-        variants.find((v) => v.image)?.image ||
+        productVariants.find((v) => v.image)?.image ||
         null;
 
-      let stock = entries.reduce((n, e) => n + e.deltaQuantity, 0);
+      let stock = productVariants.reduce((total, variant) => {
+        const balance = balanceByVariant.get(variant._id);
+        return total + (balance ? balance.onHand - balance.reserved : (variant.openingStock || 0));
+      }, 0);
       if (stock === 0 && p.stock) {
         stock = Number(p.stock);
-      }
-      if (stock === 0 && variants.length > 0) {
-        stock = variants.reduce(
-          (sum, v) => sum + (v.openingStock || 0),
-          0,
-        );
       }
 
       const canonicalSlug =
         p.slug || toSlug(p.name) || `product-${p._id}`;
 
-      products.push({
+      return {
         id: p._id,
         slug: canonicalSlug,
         name: p.name,
@@ -104,19 +123,18 @@ export async function registerStorefrontRoutes(app: FastifyInstance) {
         imageUrl: typeof imageUrl === "string" ? imageUrl : null,
         images: productImages,
         status: p.status,
-        variants: variants.map((v) => ({
+        variants: productVariants.map((v) => ({
           id: v._id,
           sku: v.sku ?? null,
           title: v.title,
           price: amount(v.price),
-          stock:
-            entries
-              .filter((e) => e.variantId === v._id)
-              .reduce((n, e) => n + e.deltaQuantity, 0) ||
-            (v.openingStock || 0),
+          stock: (() => {
+            const balance = balanceByVariant.get(v._id);
+            return balance ? balance.onHand - balance.reserved : (v.openingStock || 0);
+          })(),
         })),
-      });
-    }
+      };
+    });
 
     const template =
       templateCatalog.find((t) => t.id === shop.selectedTemplateId) ??

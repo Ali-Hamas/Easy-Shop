@@ -153,6 +153,8 @@ export async function ensureIndexes(db: Db) {
   await c.staff.createIndex({ shopId: 1, userId: 1 }, { unique: true });
   await c.products.createIndex({ shopId: 1, slug: 1 }, { unique: true });
   await c.products.createIndex({ shopId: 1, status: 1, createdAt: 1 });
+  await c.products.createIndex({ shopId: 1, status: 1, createdAt: -1, _id: -1 });
+  await c.products.createIndex({ shopId: 1, name: 1 });
   await c.products.createIndex({ shopId: 1, category: 1, createdAt: -1 });
   await c.products.createIndex(
     { shopId: 1, sku: 1 },
@@ -168,6 +170,9 @@ export async function ensureIndexes(db: Db) {
   await db
     .collection("inventoryBalances")
     .createIndex({ shopId: 1, productId: 1 });
+  await db
+    .collection("inventoryBalances")
+    .createIndex({ shopId: 1, onHand: 1, reserved: 1 });
   await c.ledger.createIndex({ shopId: 1, productId: 1, createdAt: -1 });
   await c.ledger.createIndex(
     { shopId: 1, requestId: 1 },
@@ -177,6 +182,7 @@ export async function ensureIndexes(db: Db) {
     },
   );
   await c.variants.createIndex({ shopId: 1, productId: 1 });
+  await c.variants.createIndex({ shopId: 1, status: 1, productId: 1 });
   await c.variants.createIndex(
     { shopId: 1, sku: 1 },
     { unique: true, partialFilterExpression: { sku: { $type: "string" } } },
@@ -187,7 +193,8 @@ export async function ensureIndexes(db: Db) {
   );
   await c.images.createIndex({ shopId: 1, productId: 1, sortOrder: 1 });
   await c.ledger.createIndex({ shopId: 1, variantId: 1, createdAt: 1 });
-  await c.audit.createIndex({ shopId: 1, createdAt: 1 });
+  await c.ledger.createIndex({ shopId: 1, variantId: 1, createdAt: -1, _id: -1 });
+  await c.audit.createIndex({ shopId: 1, createdAt: -1, _id: -1 });
   await c.channels.createIndex({ shopId: 1, provider: 1 }, { unique: true });
   await db.collection("metaOAuthStates").createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 });
   await db
@@ -199,6 +206,9 @@ export async function ensureIndexes(db: Db) {
   await db
     .collection("conversations")
     .createIndex({ shopId: 1, status: 1, aiStatus: 1 });
+  await db
+    .collection("conversations")
+    .createIndex({ shopId: 1, status: 1, aiStatus: 1, channel: 1, lastActivityAt: -1, _id: -1 });
   await db.collection("conversations").createIndex(
     { shopId: 1, channelThreadId: 1 },
     {
@@ -216,6 +226,7 @@ export async function ensureIndexes(db: Db) {
   await db
     .collection("messages")
     .createIndex({ shopId: 1, conversationId: 1, createdAt: 1, _id: 1 });
+  await db.collection("messages").createIndex({ shopId: 1, source: 1 });
   await db.collection("messages").createIndex(
     { shopId: 1, requestId: 1 },
     {
@@ -226,6 +237,7 @@ export async function ensureIndexes(db: Db) {
   await db
     .collection("aiDrafts")
     .createIndex({ shopId: 1, conversationId: 1, createdAt: -1 });
+  await db.collection("aiDrafts").createIndex({ shopId: 1, status: 1 });
   await db.collection("aiDrafts").createIndex(
     { shopId: 1, requestId: 1 },
     {
