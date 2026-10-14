@@ -156,10 +156,15 @@ async function embedImageFromUrl(imageUrl: string) {
     },
     { maxRetries: 2, timeoutMs: 20000, actionName: "geminiImageEmbedding" },
   );
-  const body = (await response.json()) as {
+  let body: {
     embedding?: { values?: number[] };
     embeddings?: Array<{ values?: number[] }>;
   };
+  try {
+    body = (await response.json()) as typeof body;
+  } catch {
+    throw new Error("Gemini image embedding returned an invalid response.");
+  }
   const values = body.embedding?.values ?? body.embeddings?.[0]?.values;
   if (!response.ok || !values?.length) throw new Error("Gemini image embedding failed.");
   return normalizeEmbedding(values);

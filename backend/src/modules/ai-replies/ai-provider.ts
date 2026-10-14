@@ -90,14 +90,16 @@ export class GroundedRuleAiProvider implements AiReplyProvider {
         ? "আপনার প্রশ্নটি বুঝতে পেরেছি। সঠিক তথ্য দেওয়ার আগে বিষয়টি যাচাই করা প্রয়োজন।"
         : "Thank you for explaining. This needs to be checked before we can give you a confirmed answer.";
     else if (product && Number.isFinite(product.price)) {
+      const productName = sanitizeAiText(product.name, 500);
+      const currency = sanitizeAiText(product.currency, 40);
       replyText = bn
-        ? `${product.name}: মূল্য ${product.currency} ${product.price}। ${product.inStock ? "বর্তমানে স্টকে আছে।" : "বর্তমানে স্টকে নেই।"}`
-        : `${product.name} is listed at ${product.currency} ${product.price}. It is currently ${product.inStock ? "in stock" : "out of stock"}.`;
+        ? `${productName}: মূল্য ${currency} ${product.price}। ${product.inStock ? "বর্তমানে স্টকে আছে।" : "বর্তমানে স্টকে নেই।"}`
+        : `${productName} is listed at ${currency} ${product.price}. It is currently ${product.inStock ? "in stock" : "out of stock"}.`;
       sources.push(
         {
           type: "product",
-          name: product.name,
-          detail: `${product.currency} ${product.price}`,
+          name: productName,
+          detail: `${currency} ${product.price}`,
         },
         {
           type: "inventory",

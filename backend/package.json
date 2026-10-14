@@ -17,7 +17,8 @@
     "test:inbox": "npm run build && node test/ai-replies.integration.mjs",
     "test:ai-provider": "npm run build && node test/openai-provider.test.mjs",
     "test:auth": "npm run build && node test/auth.integration.mjs",
-    "test:storefront-chat": "npm run build && node test/storefront-messaging.integration.mjs"
+    "test:storefront-chat": "npm run build && node test/storefront-messaging.integration.mjs",
+    "test:vision-security": "npm run build && node test/gemini-vision.security.test.mjs"
   },
   "dependencies": {
     "@fastify/cors": "^10.0.0",

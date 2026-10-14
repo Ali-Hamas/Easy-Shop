@@ -14,7 +14,8 @@ import {
   rejectDraftSchema,
   reviewDraftSchema,
   sendDraftSchema,
-  aiPreferencesSchema,
+  resolveSendSchema,
+  aiPreferencesPatchSchema,
 } from "./ai-replies.validators.js";
 
 export async function registerAiReplyRoutes(app: FastifyInstance) {
@@ -47,7 +48,7 @@ export async function registerAiReplyRoutes(app: FastifyInstance) {
     return {
       preferences: await aiReplyService.updateAiPreferences(
         shopId,
-        aiPreferencesSchema.parse(req.body),
+        aiPreferencesPatchSchema.parse(req.body),
       ),
     };
   });
@@ -109,6 +110,15 @@ export async function registerAiReplyRoutes(app: FastifyInstance) {
             requestId,
           ),
         );
+    },
+  );
+
+  app.post(
+    "/:shopId/conversations/:conversationId/drafts/:draftId/resolve-send",
+    async (req) => {
+      const { shopId, conversationId, draftId } = paramsSchema.parse(req.params);
+      const { resolution, attestation } = resolveSendSchema.parse(req.body);
+      return aiReplyService.resolveUnknownSend(shopId, conversationId!, draftId!, resolution, attestation);
     },
   );
 

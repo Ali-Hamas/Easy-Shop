@@ -123,6 +123,12 @@ export const sendDraftSchema = z
   })
   .strict();
 
+export const resolveSendSchema = z
+  .discriminatedUnion("resolution", [
+    z.object({ resolution: z.literal("confirm_sent"), attestation: z.literal("delivered") }).strict(),
+    z.object({ resolution: z.literal("retry"), attestation: z.literal("not_delivered") }).strict(),
+  ]);
+
 export const aiPreferencesSchema = z
   .object({
     enabled: z.boolean(),
@@ -132,3 +138,5 @@ export const aiPreferencesSchema = z
     instructions: z.string().trim().max(2000),
   })
   .strict();
+
+export const aiPreferencesPatchSchema = aiPreferencesSchema.partial();

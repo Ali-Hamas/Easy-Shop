@@ -70,6 +70,7 @@ export function InboxWorkspace() {
   const [isSubmittingDraft, setIsSubmittingDraft] = useState(false);
   const [isConnectingMeta, setIsConnectingMeta] = useState(false);
   const [isSavingAiPreferences, setIsSavingAiPreferences] = useState(false);
+  const [aiPreferencesLoadFailed, setAiPreferencesLoadFailed] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
@@ -148,8 +149,13 @@ export function InboxWorkspace() {
         if (ac.signal.aborted) return;
         setAiPreferences(res.preferences);
         setAiPreferencesDraft(res.preferences);
+        setAiPreferencesLoadFailed(false);
       })
-      .catch(() => undefined);
+      .catch(() => {
+        if (ac.signal.aborted) return;
+        setAiPreferencesLoadFailed(true);
+        setErrorMessage("AI settings could not be loaded. Refresh before changing them.");
+      });
     return () => ac.abort();
   }, [shopId]);
 
@@ -598,7 +604,7 @@ export function InboxWorkspace() {
         </div>
         <div className="inbox-ai-settings-footer">
           <small>Product price, stock, privacy, and human approval rules always override these preferences.</small>
-          <Button size="sm" variant="secondary" onClick={handleSaveAiPreferences} loading={isSavingAiPreferences} disabled={!shopId || JSON.stringify(aiPreferences) === JSON.stringify(aiPreferencesDraft)}>
+          <Button size="sm" variant="secondary" onClick={handleSaveAiPreferences} loading={isSavingAiPreferences} disabled={!shopId || aiPreferencesLoadFailed || JSON.stringify(aiPreferences) === JSON.stringify(aiPreferencesDraft)}>
             <Save size={14} /> Save settings
           </Button>
         </div>

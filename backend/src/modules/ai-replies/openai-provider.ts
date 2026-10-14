@@ -159,13 +159,13 @@ export class OpenAiReplyProvider implements AiReplyProvider {
         contextSources: context.relevantProducts.flatMap((p) => [
           {
             type: "product" as const,
-                  name: sanitizeAiText(p.name, 500),
-            detail: `${p.currency} ${p.price}`,
+            name: sanitizeAiText(p.name, 500),
+            detail: `${sanitizeAiText(p.currency, 20)} ${p.price}`,
           },
           {
             type: "inventory" as const,
-            name: p.name,
-          detail: `${p.availableQuantity} available; verify the requested variant`,
+            name: sanitizeAiText(p.name, 500),
+            detail: `${p.availableQuantity} available; verify the requested variant`,
           },
         ]),
       };

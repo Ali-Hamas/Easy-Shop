@@ -34,6 +34,7 @@ export class AiReplyError extends Error {
     public statusCode: number,
     public code: string,
     message: string,
+    public unknownOutcome = false,
   ) {
     super(message);
   }
@@ -50,7 +51,8 @@ export type AiDraftStatus =
   | "rejected"
   | "sending"
   | "sent"
-  | "send_failed";
+  | "send_failed"
+  | "send_unknown";
 
 export type ConversationAiStatus =
   | "idle"
@@ -124,6 +126,8 @@ export interface AiDraftDocument {
   reviewedBy?: string;
   reviewedAt?: string;
   rejectionReason?: string;
+  sendFailureReason?: string;
+  externalMessageId?: string;
   sentAt?: string;
   createdAt: string;
   updatedAt: string;
@@ -332,30 +336,44 @@ async function sendMetaReply(
     );
   const senderNode =
     conv.channel === "instagram" ? page.instagramBusinessAccount!.id : page.id;
-  const response = await fetchWithRetry(
-    `https://graph.facebook.com/${config.metaGraphVersion}/${senderNode}/messages`,
-    {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        recipient: { id: recipientId },
-        message: { text },
-        access_token: page.accessToken,
-      }),
-    },
-    { maxRetries: 3, timeoutMs: 12000, actionName: "metaSendMessage" },
-  );
-  const data = (await response.json()) as {
+  let response: Response;
+  try {
+    response = await fetchWithRetry(
+      `https://graph.facebook.com/${config.metaGraphVersion}/${senderNode}/messages`,
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          recipient: { id: recipientId },
+          message: { text },
+          access_token: page.accessToken,
+        }),
+      },
+      { maxRetries: 3, timeoutMs: 12000, actionName: "metaSendMessage" },
+    );
+  } catch {
+    throw new AiReplyError(502, "META_SEND_UNKNOWN", "Meta send outcome is unknown. Reconcile before retrying.", true);
+  }
+  if (response.status >= 500 || response.status === 429)
+    throw new AiReplyError(502, "META_SEND_UNKNOWN", "Meta send outcome is unknown. Reconcile before retrying.", true);
+  let data: {
     message_id?: string;
     error?: { message?: string };
   };
+  try {
+    data = (await response.json()) as typeof data;
+  } catch {
+    throw new AiReplyError(502, "META_SEND_UNKNOWN", "Meta returned an invalid send response. Reconcile before retrying.", true);
+  }
   if (!response.ok)
     throw new AiReplyError(
       502,
       "META_SEND_FAILED",
       data.error?.message ?? "Meta could not send the reply.",
     );
-  return data.message_id ?? null;
+  if (!data.message_id)
+    throw new AiReplyError(502, "META_SEND_UNKNOWN", "Meta accepted an incomplete send response. Reconcile before retrying.", true);
+  return data.message_id;
 }
 
 async function syncMetaConversations(
@@ -412,8 +430,14 @@ async function syncMetaConversations(
       );
     if (!customer) continue;
     const customerId = String(customer._id);
-    const conversation = await conversations(db).findOneAndUpdate(
+    const pageKey = channel === "instagram" ? page.instagram_business_account?.id ?? page.id : page.id;
+    const normalizedThreadId = `${pageKey}:${senderId}`;
+    await conversations(db).updateMany(
       { shopId, channelThreadId: item.id },
+      { $set: { channelThreadId: normalizedThreadId } },
+    );
+    const conversation = await conversations(db).findOneAndUpdate(
+      { shopId, channelThreadId: normalizedThreadId },
       {
         $set: {
           customerId,
@@ -432,7 +456,7 @@ async function syncMetaConversations(
         $setOnInsert: {
           _id: randomUUID(),
           shopId,
-          channelThreadId: item.id,
+          channelThreadId: normalizedThreadId,
           createdAt: now,
           requestId: randomUUID(),
           fingerprint: digest({ shopId, thread: item.id }),
@@ -687,16 +711,17 @@ export const aiReplyService = {
     });
   },
 
-  async updateAiPreferences(shopId: string, input: AiPreferences) {
+  async updateAiPreferences(shopId: string, input: Partial<AiPreferences>) {
     const db = await connectDb();
     await checkShop(db, shopId);
-    const next = aiPreferences(input);
+    const shop = await db.collection<{ _id: string; aiMode?: string; aiPreferences?: Partial<AiPreferences> }>("shops").findOne({ _id: shopId });
+    const next = aiPreferences({ ...shop?.aiPreferences, ...input });
     await db.collection<{ _id: string }>("shops").updateOne(
       { _id: shopId },
       {
         $set: {
           aiPreferences: next,
-          aiMode: next.enabled ? "suggest" : "off",
+          aiMode: next.enabled ? (shop?.aiMode === "off" ? "suggest" : (shop?.aiMode ?? "suggest")) : "off",
           updatedAt: new Date().toISOString(),
         },
       },
@@ -1280,6 +1305,7 @@ export const aiReplyService = {
     if (
       shop.aiMode !== "auto_low_risk" ||
       !config.aiAutoReplySendEnabled ||
+      draft.provider !== "groq" ||
       draft.confidence !== "high" ||
       draft.needsHumanAttention
     )
@@ -1832,8 +1858,10 @@ export const aiReplyService = {
         { _id: draftId, shopId, conversationId, status: "sending" },
         {
           $set: {
-            status: "send_failed",
-            rejectionReason: "Previous send attempt expired and requires review.",
+            status: conv.channel === "storefront" ? "send_failed" : "send_unknown",
+            sendFailureReason: conv.channel === "storefront"
+              ? "Previous local send attempt expired and requires review."
+              : "Previous Meta send attempt expired; reconcile before retrying.",
             updatedAt: new Date().toISOString(),
           },
         },
@@ -1872,7 +1900,10 @@ export const aiReplyService = {
     try {
       externalMessageId = conv.channel === "storefront" ? null : await sendMetaReply(db, conv, replyText);
     } catch (error) {
-      await drafts(db).updateOne({ _id: draftId, shopId }, { $set: { status: "send_failed", updatedAt: new Date().toISOString() } });
+      await drafts(db).updateOne(
+        { _id: draftId, shopId, conversationId },
+        { $set: { status: conv.channel !== "storefront" && (error instanceof AiReplyError && error.unknownOutcome) ? "send_unknown" : "send_failed", ...(externalMessageId ? { externalMessageId } : {}), sendFailureReason: error instanceof Error ? error.message : "Meta send failed.", updatedAt: new Date().toISOString() } },
+      );
       throw error;
     }
 
@@ -1900,7 +1931,7 @@ export const aiReplyService = {
       await messages(db).insertOne(messageDoc, { session });
 
       await drafts(db).updateOne(
-        { _id: draftId, status: "sending" },
+        { _id: draftId, shopId, conversationId, status: "sending" },
         {
           $set: {
             status: "sent",
@@ -1974,13 +2005,61 @@ export const aiReplyService = {
         { _id: draftId, shopId, conversationId, status: "sending" },
         {
           $set: {
-            status: "send_failed",
-            rejectionReason: "Message sent externally but local recording failed; reconcile before retrying.",
+            status: conv.channel !== "storefront" || externalMessageId ? "send_unknown" : "send_failed",
+            sendFailureReason: "Message sent externally but local recording failed; reconcile before retrying.",
             updatedAt: new Date().toISOString(),
           },
         },
       );
       throw error;
+    });
+  },
+
+  async resolveUnknownSend(
+    shopId: string,
+    conversationId: string,
+    draftId: string,
+    resolution: "confirm_sent" | "retry",
+    attestation: "delivered" | "not_delivered",
+  ) {
+    if ((resolution === "retry" && attestation !== "not_delivered") || (resolution === "confirm_sent" && attestation !== "delivered"))
+      throw new AiReplyError(400, "INVALID_RECONCILIATION", "Resolution and attestation do not match.");
+    const db = await connectDb();
+    return transaction(async (db, session) => {
+      const conv = await getConversationRecord(db, shopId, conversationId, session);
+      const draft = await drafts(db).findOne({ _id: draftId, shopId, conversationId, status: "send_unknown" }, { session });
+      if (!draft)
+        throw new AiReplyError(409, "SEND_NOT_RECONCILABLE", "This draft is not waiting for send reconciliation.");
+      const now = new Date().toISOString();
+      if (resolution === "retry") {
+        await drafts(db).updateOne(
+          { _id: draftId, shopId, conversationId, status: "send_unknown" },
+          { $set: { status: "approved", sendFailureReason: "Operator attested that Meta did not deliver the message.", updatedAt: now } },
+          { session },
+        );
+        await appendAuditEvent(db, session, { shopId, action: "inbox.reply_retry_authorized", entityType: "draft", entityId: draftId, createdAt: now });
+        return { id: draftId, status: "approved" as const };
+      }
+      const messageId = `reconcile:${draftId}`;
+      const messageDoc: MessageDocument = {
+        _id: messageId, shopId, conversationId, customerId: conv.customerId,
+        sender: "staff", text: draft.editedText ?? draft.originalText,
+        source: "staff_approved_ai", ...(draft.externalMessageId ? { externalMessageId: draft.externalMessageId } : {}),
+        draftId, createdAt: now, requestId: messageId, fingerprint: digest({ shopId, conversationId, draftId, action: "reconcile" }),
+      };
+      await messages(db).updateOne({ _id: messageId, shopId, conversationId }, { $setOnInsert: messageDoc }, { upsert: true, session });
+      await drafts(db).updateOne(
+        { _id: draftId, shopId, conversationId, status: "send_unknown" },
+        { $set: { status: "sent", sentAt: now, updatedAt: now } },
+        { session },
+      );
+      await conversations(db).updateOne(
+        { _id: conversationId, shopId },
+        { $set: { aiStatus: "sent", lastMessage: { text: messageDoc.text, sender: "staff", createdAt: now }, lastActivityAt: now, updatedAt: now } },
+        { session },
+      );
+      await appendAuditEvent(db, session, { shopId, action: "inbox.reply_reconciled", entityType: "message", entityId: messageId, createdAt: now });
+      return { message: publicDocument(messageDoc), draft: { id: draftId, status: "sent" as const, sentAt: now } };
     });
   },
 
