@@ -23,7 +23,8 @@ const seedSchema = z.object({ confirm: z.literal(true), requestId: z.string().uu
 
 export async function registerTestLabRoutes(app: FastifyInstance) {
   app.addHook("onRequest", async (_request, reply) => {
-    if (!config.testLabEnabled) return reply.code(404).send({ code: "NOT_FOUND", message: "Test lab is disabled." });
+    if (config.nodeEnv === "production" || !config.testLabEnabled)
+      return reply.code(404).send({ code: "NOT_FOUND", message: "Test lab is disabled." });
   });
   app.get("/ui", async (_request, reply) => {
     const paths = [
