@@ -27,6 +27,7 @@ export function proxy(request: NextRequest) {
     url.pathname === "/"
       ? `/store/${subdomain}`
       : `/store/${subdomain}${url.pathname}`;
+  url.protocol = "http:";
   return NextResponse.rewrite(url);
 }
 
