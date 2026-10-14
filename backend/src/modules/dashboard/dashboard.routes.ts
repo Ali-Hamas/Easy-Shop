@@ -1,11 +1,17 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { connectDb } from "../../shared/db.js";
+
+const DASHBOARD_CACHE_TTL_MS = 5_000;
+const dashboardCache = new Map<string, { expiresAt: number; value: unknown }>();
+
 export async function registerDashboardRoutes(app: FastifyInstance) {
   app.get("/:shopId", async (request) => {
     const { shopId } = z
       .object({ shopId: z.string().uuid() })
       .parse(request.params);
+    const cached = dashboardCache.get(shopId);
+    if (cached && cached.expiresAt > Date.now()) return cached.value;
     const db = await connectDb();
     const [
       products,
@@ -115,7 +121,7 @@ export async function registerDashboardRoutes(app: FastifyInstance) {
         .limit(8)
         .toArray(),
     ]);
-    return {
+    const result = {
       shopId,
       inventory: {
         products,
@@ -130,5 +136,10 @@ export async function registerDashboardRoutes(app: FastifyInstance) {
       sentReplies,
       activity: activity.map(({ _id, ...event }) => ({ id: _id, ...event })),
     };
+    dashboardCache.set(shopId, {
+      value: result,
+      expiresAt: Date.now() + DASHBOARD_CACHE_TTL_MS,
+    });
+    return result;
   });
 }
