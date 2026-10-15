@@ -1,0 +1,85 @@
+Human build spec - no code - F-commerce platform
+Page 1
+PDF 12
+ AI Ad Creative Studio
+Creates ad copy, product hooks, image text ideas, video scripts, and campaign angles.
+Why this exists
+Small sellers need better ads but cannot hire copywriters and designers every week.
+Primary user
+Owner, marketer, content creator.
+Business value
+Paid add-on and high attraction feature.
+Build priority
+P1 - can launch before full ads manager.
+1. Page Goal
+- Generate ad ideas from selected products.
+- Create multiple copy variations for Facebook/Instagram.
+- Support Bangla, Banglish, English, Roman Urdu.
+- Create briefs for image/video creatives.
+2. How It Should Look
+Input panel: choose product, objective, offer, language, tone.
+Output tabs: primary text, headline, short hook, video script, image text, CTA.
+Variation grid: 10 hooks, 5 captions, 5 offers.
+Save/export: copy, download brief, send to campaign draft.
+3. Main Sections
+Product selector
+Pulls facts, price, benefits, reviews.
+Offer builder
+Discount, bundle, free delivery, limited stock.
+Copy generator
+Captions, headlines, CTAs, hooks.
+Video script
+15s/30s reel script with shot list.
+Brand memory
+Tone, banned claims, target audience.
+4. User Actions
+Action
+Result
+Edge case
+Generate ads
+Creates variations from product facts.
+If product data weak, ask for missing
+benefit.
+Rewrite tone
+Changes tone: premium, funny, urgent, mother-friendly,
+youth.
+Keep claims factual.
+
+Human build spec - no code - F-commerce platform
+Page 2
+Action
+Result
+Edge case
+Translate
+Converts copy across languages.
+Warn seller to review local slang.
+Save template
+Stores winning style.
+Do not overwrite without confirm.
+Export brief
+Creates content brief for designer/video editor.
+Include image sizes and text limits.
+5. Data Fields
+- Creative request: product, objective, offer, audience, language, tone.
+- Outputs: caption, headline, CTA, hook, script, visual notes.
+- Brand rules: banned words, claims, preferred terms, emojis yes/no.
+- Performance link: which creative was used in campaign and outcome later.
+6. AI / Automation Behavior
+- AI uses only real product facts and seller-approved claims.
+- AI warns against medical, financial, or unrealistic claims.
+- AI creates short mobile-first hooks.
+- AI learns from saved winning copy but never copies competitor text.
+7. Empty, Error, and Safety States
+- Empty state must show one clear next button, not a blank table.
+- Every destructive action needs confirm: delete, cancel order, disconnect account, refund mark.
+- If third-party API fails, keep local draft and show retry.
+- AI must never invent price, stock, delivery charge, delivery date, or policy.
+8. Acceptance Checklist
+- Generated ads need seller review before use.
+- Claims like guaranteed cure, instant fairness, impossible income are blocked/warned.
+- Outputs should fit Meta ad text constraints where possible.
+- Saved assets are searchable by product and date.
+9. Do Not Build Yet
+- No full video generation in V1 unless external tool is already available.
+- No auto-posting ads without review.
+- No competitor ad copying.

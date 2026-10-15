@@ -1,0 +1,83 @@
+Human build spec - no code - F-commerce platform
+Page 1
+PDF 04
+ AI Inbox for Messenger and Instagram
+The main money feature: AI reads customer messages and helps sell, support, and confirm orders.
+Why this exists
+Social sellers lose sales because replies are slow and staff copy-paste answers. This fixes that.
+Primary user
+Owner, sales staff, buyer.
+Business value
+Strongest subscription driver. Saves staff time and increases confirmed orders.
+Build priority
+P0 - hero feature.
+1. Page Goal
+- Unify Messenger and Instagram DMs in one inbox.
+- AI replies using product, inventory, policy, and customer history.
+- Support modes: suggest-only, auto-reply low-risk, human approve for orders.
+- Convert chat into draft/confirmed order without retyping.
+2. How It Should Look
+Left: conversation list with channel, unread, AI status, intent, order risk.
+Center: chat thread with buyer messages, AI drafts, staff replies.
+Right: customer card, cart/order draft, product suggestions, policy snippets.
+Top: filters for unread, needs human, order intent, complaint, VIP.
+3. Main Sections
+Unified inbox
+All customer DMs with search and filters.
+AI reply panel
+Shows draft, confidence, source facts, approve/edit/send.
+Order capture
+AI extracts name, phone, address, product, variant, quantity.
+Human handoff
+Assign to staff, pause AI, internal notes.
+Conversation memory
+Customer order history and previous issues.
+4. User Actions
+Action
+Result
+Edge case
+Approve AI reply
+Sends drafted response.
+If product data changed, regenerate first.
+Auto-reply toggle
+Lets AI answer selected intents automatically.
+High-risk intents stay approval-only.
+Create order
+Turns cart/details into order draft.
+Missing phone/address blocks confirm.
+
+Human build spec - no code - F-commerce platform
+Page 2
+Action
+Result
+Edge case
+Pause AI
+Stops automated replies for this chat.
+Auto resumes only if staff enables.
+Assign chat
+Routes conversation to staff.
+Unassigned urgent chats show alert.
+5. Data Fields
+- Conversation: channel, page, buyer ID, language, intent, status, assigned staff.
+- Message: sender, text, attachments, timestamp, AI confidence, source references.
+- Customer: name, phone, address, tags, order count, return history.
+- Order draft: items, variant, quantity, delivery area, payment method, notes.
+6. AI / Automation Behavior
+- AI classifies intent: price, availability, order, complaint, delivery status, return, spam.
+- AI asks one question at a time for missing order details.
+- AI cites internal source: product, policy, order, delivery status.
+- AI escalates low-confidence, angry customer, refund, legal, abuse, or VIP messages.
+7. Empty, Error, and Safety States
+- Empty state must show one clear next button, not a blank table.
+- Every destructive action needs confirm: delete, cancel order, disconnect account, refund mark.
+- If third-party API fails, keep local draft and show retry.
+- AI must never invent price, stock, delivery charge, delivery date, or policy.
+8. Acceptance Checklist
+- AI must not confirm unavailable stock.
+- AI must not promise exact delivery date unless courier status confirms it.
+- Staff can see why AI answered that way.
+- Every auto-sent message can be found in audit log.
+9. Do Not Build Yet
+- No voice-call AI in V1.
+- No fully autonomous refund/cancel actions.
+- No replying from personal staff Facebook accounts.

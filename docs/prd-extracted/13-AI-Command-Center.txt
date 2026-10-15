@@ -1,0 +1,85 @@
+Human build spec - no code - F-commerce platform
+Page 1
+PDF 13
+ AI Command Center
+Lets seller talk to the platform: ask questions, create drafts, update safe settings, and perform
+approved actions.
+Why this exists
+This makes the platform feel powerful without forcing sellers through many menus.
+Primary user
+Owner and authorized staff.
+Business value
+Differentiator. Saves time and makes advanced features easier to use.
+Build priority
+P1 - after core data/actions exist.
+1. Page Goal
+- Provide global AI command bar and dedicated AI page.
+- Answer business questions from orders, products, inventory, ads, and customers.
+- Draft actions and require confirmation for risky work.
+- Show exact preview before executing changes.
+2. How It Should Look
+Global command bar: 'Ask AI...' with suggestions by current page.
+AI page: chat history, suggested tasks, pending approvals, recent actions.
+Result cards: answer, chart/table, draft action, confirm button.
+Audit panel: what AI did, who approved, when.
+3. Main Sections
+Ask data
+Today sales, pending orders, low stock, best product.
+Draft work
+Create coupon, write campaign, prepare product description.
+Execute safe action
+Change draft text, tag customers, create report.
+Approval flow
+Confirm before courier, payment, bulk message, delete.
+Audit
+History of AI suggestions and actions.
+4. User Actions
+Action
+Result
+Edge case
+Ask question
+Returns answer from shop data.
+If data unavailable, say what is missing.
+Create draft
+Builds draft campaign/coupon/product text.
+Seller reviews before publish.
+
+Human build spec - no code - F-commerce platform
+Page 2
+Action
+Result
+Edge case
+Run action
+Executes approved safe command.
+Risky command shows preview and
+confirm.
+Undo
+Reverts supported AI action.
+If not undoable, explain before running.
+View source
+Shows data used for answer.
+Never expose another shop's data.
+5. Data Fields
+- Command: user, text, page context, intent, risk level, result.
+- Approval: approver, timestamp, before/after preview, action status.
+- Audit: source data, tool/action used, error, rollback status.
+- Permissions: which roles can ask, draft, approve, execute.
+6. AI / Automation Behavior
+- AI must classify command risk before acting.
+- AI can answer and draft freely; execution depends on permission/risk.
+- AI must cite shop data source for important business answers.
+- AI refuses actions outside connected shop or permissions.
+7. Empty, Error, and Safety States
+- Empty state must show one clear next button, not a blank table.
+- Every destructive action needs confirm: delete, cancel order, disconnect account, refund mark.
+- If third-party API fails, keep local draft and show retry.
+- AI must never invent price, stock, delivery charge, delivery date, or policy.
+8. Acceptance Checklist
+- Risky actions need preview and explicit approve.
+- AI cannot bypass staff role permissions.
+- Every executed command writes audit log.
+- Bad command or unclear instruction asks one clarifying question.
+9. Do Not Build Yet
+- No fully autonomous business manager in V1.
+- No silent background bulk changes.
+- No cross-shop benchmarking until privacy/legal is solved.

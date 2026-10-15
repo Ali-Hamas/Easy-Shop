@@ -1,0 +1,84 @@
+Human build spec - no code - F-commerce platform
+Page 1
+PDF 09
+ Payments, COD, and Reconciliation
+Tracks COD, advance payments, paid/unpaid orders, and courier cash settlement.
+Why this exists
+Sellers care about cash. If money records are confusing, they churn.
+Primary user
+Owner, accountant, support staff.
+Business value
+Keeps trust. Enables advance-payment risk control and financial clarity.
+Build priority
+P1 - after core order/courier flow.
+1. Page Goal
+- Support COD, partial advance, full online payment mark, manual proof.
+- Reconcile delivered COD with courier settlements.
+- Show unpaid, overpaid, refunded, and disputed orders.
+- Keep payment actions permission-protected.
+2. How It Should Look
+Payment dashboard: collected, pending COD, advance received, courier due, refunds.
+Order payment panel: method, amount, proof, transaction ID, status history.
+COD reconcile table: courier statement vs system orders.
+Advance request screen: payment link/instructions sent to buyer.
+3. Main Sections
+Payment methods
+COD, bKash/Nagad/manual, Easypaisa/JazzCash/manual.
+Advance rules
+Require advance by risk, area, amount, or product.
+COD ledger
+Expected vs received cash.
+Proof review
+Staff verifies screenshot/transaction ID.
+Settlement
+Courier payout matching.
+4. User Actions
+Action
+Result
+Edge case
+Request advance
+Sends buyer payment instructions/link.
+Order stays pending until paid/approved.
+Mark paid
+Updates paid amount and status.
+Needs permission and audit reason.
+Upload proof
+Attaches screenshot to payment record.
+If unreadable, request resend.
+
+Human build spec - no code - F-commerce platform
+Page 2
+Action
+Result
+Edge case
+Reconcile COD
+Matches courier settlement to delivered orders.
+Unmatched rows go to issue list.
+Refund mark
+Records refund action.
+Does not move real money unless gateway
+integrated.
+5. Data Fields
+- Payment: method, expected amount, paid amount, status, transaction ID, proof file.
+- COD: courier, tracking ID, collected amount, settlement date, fee deducted.
+- Advance rule: trigger, amount, message template, expiry.
+- Refund/dispute: reason, amount, staff, timestamp.
+6. AI / Automation Behavior
+- AI recommends advance for risky orders using configured rules.
+- AI reads payment proof only as assistant; staff confirms final paid status.
+- AI explains mismatch: delivered but no COD, paid but order cancelled, duplicate proof.
+- AI can draft buyer reminder for unpaid advance.
+7. Empty, Error, and Safety States
+- Empty state must show one clear next button, not a blank table.
+- Every destructive action needs confirm: delete, cancel order, disconnect account, refund mark.
+- If third-party API fails, keep local draft and show retry.
+- AI must never invent price, stock, delivery charge, delivery date, or policy.
+8. Acceptance Checklist
+- Money-changing status requires permission.
+- Every payment edit writes audit trail.
+- Manual gateway mode must clearly say 'marked paid', not 'bank-confirmed'.
+- Refund notes must not delete original payment history.
+9. Do Not Build Yet
+- No custom payment gateway in V1.
+- No automated bank settlement unless provider API exists.
+- No full accounting software replacement.

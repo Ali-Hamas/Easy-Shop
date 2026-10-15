@@ -1,0 +1,86 @@
+Human build spec - no code - F-commerce platform
+Page 1
+PDF 10
+ Customers, CRM, Coupons, and
+ Retention
+Turns one-time buyers into repeat buyers through customer history, tags, coupons, and safe
+broadcasts.
+Why this exists
+New customers are expensive. Repeat customers bring profit.
+Primary user
+Owner, marketing staff, support staff.
+Business value
+Creates recurring value after first order. Drives upsell plans.
+Build priority
+P1 - growth feature.
+1. Page Goal
+- Store buyer profile, order history, chat history, tags, and return behavior.
+- Segment customers by product, value, city, repeat, inactive, risky.
+- Create coupons and campaigns without spamming.
+- Track repeat purchase and campaign revenue.
+2. How It Should Look
+Customer list: name, phone, orders, total spent, last order, tags, risk.
+Customer profile: timeline, orders, chats, addresses, notes, coupons.
+Segments: filters with saved audience count.
+Campaign composer: audience, message, coupon, channel, preview, schedule.
+3. Main Sections
+Customer database
+All buyers and leads in one place.
+Tags/segments
+VIP, frequent return, Eid buyer, skincare buyer, city.
+Coupons
+Discount codes for website/order forms.
+Broadcasts
+WhatsApp/SMS/Messenger-safe messages.
+Retention analytics
+Repeat rate and campaign revenue.
+4. User Actions
+Action
+Result
+Edge case
+Create segment
+Saves filtered customer group.
+Warn if audience too broad.
+
+Human build spec - no code - F-commerce platform
+Page 2
+Action
+Result
+Edge case
+Add tag
+Marks customer manually or by rule.
+Staff permission controls sensitive tags.
+Create coupon
+Creates discount rule.
+Prevent invalid negative margin if cost
+exists.
+Send campaign
+Schedules message to opted-in customers.
+Block if consent/rate limit missing.
+Merge customer
+Combines duplicate phones/profiles.
+Preview before merge.
+5. Data Fields
+- Customer: name, phone, addresses, channels, language, tags, risk.
+- History: orders, chats, returns, complaints, payments, campaign clicks.
+- Coupon: code, type, value, min order, expiry, usage limit.
+- Consent: channel, opt-in source, timestamp, opt-out status.
+6. AI / Automation Behavior
+- AI suggests segments: likely repeat buyers, high-value buyers, inactive buyers.
+- AI writes campaign copy in Bangla/Banglish/English/Roman Urdu.
+- AI recommends product upsells from purchase history.
+- AI must respect opt-out and channel policy.
+7. Empty, Error, and Safety States
+- Empty state must show one clear next button, not a blank table.
+- Every destructive action needs confirm: delete, cancel order, disconnect account, refund mark.
+- If third-party API fails, keep local draft and show retry.
+- AI must never invent price, stock, delivery charge, delivery date, or policy.
+8. Acceptance Checklist
+- Broadcasts require preview and final confirmation.
+- Opt-out customers must never receive campaigns.
+- Duplicate customer merge must not lose order history.
+- Coupon abuse rules show usage limit and expiry clearly.
+9. Do Not Build Yet
+- No spam tools.
+- No cold lead scraping.
+- No complicated loyalty points in V1.

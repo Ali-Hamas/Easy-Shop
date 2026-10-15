@@ -1,0 +1,85 @@
+Human build spec - no code - F-commerce platform
+Page 1
+PDF 08
+ Delivery and Courier Integration
+One-click booking, tracking, failed delivery handling, and courier performance view.
+Why this exists
+Courier work is where many Facebook sellers waste time and lose COD money.
+Primary user
+Owner, packer, support staff.
+Business value
+Sticky feature. Once courier flow works, shops do not want to leave.
+Build priority
+P0/P1 depending on available courier APIs.
+1. Page Goal
+- Connect courier partners per country.
+- Book delivery from confirmed orders without retyping.
+- Track parcel status and sync updates to buyer/order.
+- Handle failed delivery, reschedule, return, and COD reconciliation.
+2. How It Should Look
+Courier settings: connected partners, pickup address, service type, default fees.
+Booking queue: ready orders, validation issues, one-click book.
+Tracking board: in transit, out for delivery, failed, delivered, returned.
+Courier analytics: delivery rate, average time, RTO rate, COD pending.
+3. Main Sections
+Partner setup
+Credentials, pickup, service area.
+Booking
+Create waybill from order.
+Tracking sync
+Pull status or receive webhook.
+Failed delivery
+Call/reschedule workflow.
+Performance
+Compare courier success and cost.
+4. User Actions
+Action
+Result
+Edge case
+Connect courier
+Saves credentials and tests API.
+If API fails, mark disconnected.
+Book order
+Creates shipment and tracking ID.
+If invalid address, return order to issue
+queue.
+
+Human build spec - no code - F-commerce platform
+Page 2
+Action
+Result
+Edge case
+Print label
+Downloads waybill/label.
+Fallback to invoice if courier label
+unavailable.
+Reschedule
+Requests new delivery attempt.
+If courier disallows, create support task.
+Mark delivered
+Updates local status.
+Prefer courier webhook over manual mark.
+5. Data Fields
+- Courier account: provider, credentials, pickup address, service type.
+- Shipment: order ID, tracking ID, fee, COD amount, pickup date, status.
+- Tracking event: status, timestamp, location, reason.
+- Failed delivery: reason, buyer contact result, reschedule date.
+6. AI / Automation Behavior
+- AI detects bad address before booking.
+- AI drafts buyer update messages based on tracking.
+- AI flags courier partners with high failed delivery rates.
+- AI suggests advance payment for risky areas/orders.
+7. Empty, Error, and Safety States
+- Empty state must show one clear next button, not a blank table.
+- Every destructive action needs confirm: delete, cancel order, disconnect account, refund mark.
+- If third-party API fails, keep local draft and show retry.
+- AI must never invent price, stock, delivery charge, delivery date, or policy.
+8. Acceptance Checklist
+- No shipment without complete buyer address and phone.
+- API downtime keeps retryable local booking draft.
+- Manual courier mode exists for partners without API.
+- Tracking status conflicts show source and last sync time.
+9. Do Not Build Yet
+- No own courier app.
+- No rider assignment in V1.
+- No international shipping unless seller base needs it.

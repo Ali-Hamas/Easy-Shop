@@ -25,16 +25,15 @@ export async function registerSystemRoutes(app: FastifyInstance) {
                     owns: { type: "array", items: { type: "string" } },
                     apiBase: { type: "string" },
                     apiDoc: { type: "string" },
-                    phase: { type: "string" }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
+                    phase: { type: "string" },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
     },
-    async () => ({ modules: backendModules })
+    async () => ({ modules: backendModules }),
   );
 }
-

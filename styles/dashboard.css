@@ -1,0 +1,514 @@
+.dashboard-operating {
+  max-width: 1440px;
+  margin-inline: auto;
+}
+.dashboard-masthead {
+  display: flex;
+  gap: 24px;
+  justify-content: space-between;
+  align-items: center;
+}
+.dashboard-eyebrow {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+.dashboard-masthead h1 {
+  font-size: 30px;
+  font-weight: 550;
+  letter-spacing: -1.1px;
+  line-height: 1.25;
+  margin: 14px 0 10px;
+}
+.dashboard-masthead p {
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+.dashboard-masthead > .button {
+  flex-shrink: 0;
+}
+.dashboard-state-strip {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: center;
+  margin-top: 34px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--border-default);
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+.dashboard-state-strip > span:first-child {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  color: var(--text);
+}
+.dashboard-state-strip .status-point {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--brand);
+}
+.operating-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  padding: 28px 0 32px;
+  gap: 24px;
+}
+.operating-metrics > div {
+  border-right: 1px solid var(--border-default);
+  padding-right: 16px;
+  min-width: 0;
+}
+.operating-metrics > div:last-child {
+  border: 0;
+}
+.operating-metrics span {
+  display: block;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+.operating-metrics strong {
+  display: block;
+  font-size: 22px;
+  font-weight: 500;
+  letter-spacing: -0.7px;
+  margin: 12px 0 8px;
+  line-height: 1.2;
+}
+.operating-metrics small {
+  font-size: 11px;
+  line-height: 1.65;
+  display: block;
+  color: var(--text-secondary);
+  overflow-wrap: anywhere;
+}
+.dashboard-primary {
+  display: grid;
+  grid-template-columns: 1.7fr 1fr;
+  gap: 28px;
+}
+.dashboard-next {
+  background: var(--surface);
+  border-radius: 12px;
+  padding: 30px;
+}
+.dashboard-section-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+.dashboard-next > h2 {
+  font-size: 30px;
+  font-weight: 500;
+  letter-spacing: -1px;
+  margin-top: 24px;
+  line-height: 1.25;
+}
+.dashboard-next > p {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.8;
+  margin-top: 10px;
+  max-width: 450px;
+}
+.dashboard-task-list {
+  margin-top: 24px;
+}
+.dashboard-task-list > a {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  border-top: 1px solid var(--border-subtle);
+  padding: 18px 0;
+  min-height: 78px;
+  transition: padding 0.15s;
+}
+.dashboard-task-list > a:hover {
+  padding-left: 6px;
+}
+.dashboard-task-list > a > span {
+  font-size: 11px;
+  color: var(--brand);
+  width: 24px;
+}
+.dashboard-task-list > a > div {
+  flex: 1;
+  min-width: 0;
+}
+.dashboard-task-list strong {
+  font-size: 13px;
+  font-weight: 550;
+  display: block;
+}
+.dashboard-task-list small {
+  font-size: 11px;
+  color: var(--text-secondary);
+  display: block;
+  margin-top: 5px;
+  line-height: 1.6;
+}
+.dashboard-task-list > a > svg {
+  color: var(--text-secondary);
+}
+.dashboard-task-list .task-done > span {
+  color: var(--success-text);
+}
+.dashboard-next > .dashboard-subtle-note {
+  font-size: 10px;
+  margin-top: 14px;
+}
+.dashboard-attention {
+  padding-top: 8px;
+}
+.attention-priority {
+  padding: 20px 0 28px;
+}
+.attention-symbol {
+  color: var(--brand);
+  display: block;
+  margin-bottom: 18px;
+}
+.attention-priority h2 {
+  font-size: 21px;
+  letter-spacing: -0.5px;
+  line-height: 1.35;
+  font-weight: 500;
+  max-width: 260px;
+}
+.attention-priority p {
+  font-size: 13px;
+  line-height: 1.8;
+  color: var(--text-secondary);
+  margin: 12px 0;
+  max-width: 300px;
+}
+.attention-priority a {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--brand);
+  font-size: 12px;
+  min-height: 40px;
+}
+.dashboard-ai-state {
+  background: var(--brand-soft);
+  padding: 24px;
+  border-radius: 10px;
+}
+.dashboard-ai-state > svg {
+  color: var(--brand);
+}
+.dashboard-ai-state h3 {
+  font-size: 18px;
+  font-weight: 500;
+  margin-top: 16px;
+}
+.dashboard-ai-state p {
+  font-size: 12px;
+  line-height: 1.85;
+  color: var(--text-secondary);
+  margin: 12px 0;
+}
+.dashboard-ai-state > span {
+  display: flex;
+  gap: 7px;
+  font-size: 11px;
+  align-items: center;
+  color: var(--brand);
+}
+.dashboard-ai-state > a {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--brand);
+  margin-top: 20px;
+  line-height: 1.6;
+  min-height: 40px;
+}
+.dashboard-health {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 28px;
+  margin-top: 38px;
+  padding-bottom: 30px;
+  border-bottom: 1px solid var(--border-default);
+}
+.dashboard-health > h2 {
+  grid-column: 1/-1;
+  font-size: 18px;
+  font-weight: 550;
+  letter-spacing: -0.4px;
+  margin-bottom: 0;
+}
+.dashboard-health > div {
+  border-right: 1px solid var(--border-default);
+  padding-right: 20px;
+}
+.dashboard-health > div:last-child {
+  border: 0;
+}
+.dashboard-health svg {
+  color: var(--text-secondary);
+}
+.dashboard-health h3 {
+  font-size: 13px;
+  font-weight: 550;
+  margin: 12px 0;
+}
+.dashboard-health p {
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.7;
+}
+.dashboard-health small {
+  display: block;
+  font-size: 10px;
+  line-height: 1.7;
+  color: var(--text-secondary);
+  margin-top: 10px;
+}
+.dashboard-health a {
+  font-size: 11px;
+  color: var(--brand);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+}
+.dashboard-activity {
+  margin-top: 26px;
+}
+.dashboard-activity h2 {
+  font-size: 16px;
+  font-weight: 550;
+  color: var(--text);
+}
+.dashboard-activity ol {
+  list-style: none;
+  padding: 0;
+  margin-top: 18px;
+}
+.dashboard-activity li {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 0;
+  border-top: 1px solid var(--border-subtle);
+}
+.activity-point {
+  height: 5px;
+  width: 5px;
+  border-radius: 50%;
+  background: var(--brand);
+}
+.dashboard-activity strong {
+  font-size: 12px;
+  font-weight: 500;
+}
+.dashboard-activity small {
+  display: block;
+  font-size: 10px;
+  color: var(--text-secondary);
+  margin-top: 4px;
+}
+.dashboard-activity li > span:last-child {
+  margin-left: auto;
+  font-size: 10px;
+  color: var(--text-secondary);
+}
+.activity-empty {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  margin-top: 24px;
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+.activity-empty small {
+  margin-top: 6px;
+}
+.dashboard-message {
+  padding: 20px;
+  background: var(--surface);
+  margin-top: 20px;
+  font-size: 13px;
+  line-height: 1.8;
+}
+.dashboard-message.error {
+  background: var(--warning-soft);
+  color: var(--warning-text);
+}
+.dashboard-message > .button {
+  margin-right: 16px;
+}
+.dashboard-message a {
+  text-decoration: underline;
+}
+.dashboard-operating :focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 4px;
+}
+@media (max-width: 1100px) {
+  .dashboard-primary {
+    grid-template-columns: 1.4fr 1fr;
+    gap: 22px;
+  }
+  .dashboard-next {
+    padding: 24px;
+  }
+  .operating-metrics {
+    gap: 16px;
+  }
+  .operating-metrics strong {
+    font-size: 20px;
+  }
+  .dashboard-masthead h1 {
+    font-size: 27px;
+  }
+  .dashboard-next > h2 {
+    font-size: 26px;
+  }
+}
+@media (max-width: 899px) {
+  .dashboard-masthead {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 20px;
+  }
+  .dashboard-primary {
+    grid-template-columns: 1fr;
+  }
+  .dashboard-attention {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+  }
+  .dashboard-attention > .dashboard-eyebrow {
+    grid-column: 1/-1;
+  }
+  .attention-priority {
+    padding: 0;
+  }
+  .dashboard-state-strip {
+    align-items: flex-start;
+  }
+  .dashboard-state-strip > span:last-child {
+    max-width: 230px;
+    text-align: right;
+    line-height: 1.7;
+  }
+}
+@media (max-width: 599px) {
+  .dashboard-masthead h1 {
+    font-size: 28px;
+  }
+  .dashboard-masthead p {
+    line-height: 1.8;
+    font-size: 13px;
+  }
+  .dashboard-masthead > .button {
+    width: 100%;
+  }
+  .dashboard-state-strip {
+    display: block;
+    margin-top: 26px;
+  }
+  .dashboard-state-strip > span:last-child {
+    display: block;
+    max-width: none;
+    text-align: left;
+    font-size: 10px;
+    margin-top: 10px;
+  }
+  .operating-metrics {
+    grid-template-columns: 1fr 1fr;
+    gap: 24px 18px;
+    padding-block: 24px;
+  }
+  .operating-metrics > div:nth-child(2) {
+    border: 0;
+  }
+  .operating-metrics strong {
+    font-size: 21px;
+  }
+  .operating-metrics small {
+    font-size: 10px;
+  }
+  .dashboard-next {
+    padding: 22px 18px;
+  }
+  .dashboard-section-top {
+    font-size: 10px;
+  }
+  .dashboard-next > h2 {
+    font-size: 25px;
+  }
+  .dashboard-task-list > a {
+    gap: 12px;
+  }
+  .dashboard-task-list strong {
+    font-size: 12px;
+  }
+  .dashboard-task-list small {
+    font-size: 10px;
+  }
+  .dashboard-attention {
+    display: block;
+  }
+  .attention-priority {
+    padding: 20px 4px;
+  }
+  .dashboard-ai-state {
+    padding: 22px;
+  }
+  .dashboard-health {
+    grid-template-columns: 1fr;
+    gap: 0;
+    margin-top: 28px;
+  }
+  .dashboard-health > h2 {
+    margin-bottom: 8px;
+  }
+  .dashboard-health > div {
+    border-right: 0;
+    border-bottom: 1px solid var(--border-default);
+    padding: 20px 0;
+    display: grid;
+    grid-template-columns: 28px 1fr;
+    gap: 8px 12px;
+  }
+  .dashboard-health h3 {
+    margin: 0;
+  }
+  .dashboard-health p,
+  .dashboard-health small,
+  .dashboard-health a {
+    grid-column: 2;
+    margin: 0;
+  }
+  .dashboard-health > div:last-child {
+    padding-bottom: 0;
+  }
+  .dashboard-activity .dashboard-section-top {
+    align-items: flex-start;
+  }
+  .dashboard-activity h2 {
+    font-size: 15px;
+  }
+  .dashboard-activity .dashboard-section-top > span {
+    font-size: 9px;
+  }
+  .activity-empty p {
+    line-height: 1.7;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .dashboard-operating * {
+    transition: none !important;
+  }
+}

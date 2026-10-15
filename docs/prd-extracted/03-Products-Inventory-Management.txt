@@ -1,0 +1,83 @@
+Human build spec - no code - F-commerce platform
+Page 1
+PDF 03
+ Products and Inventory Management
+Single source of truth for product data that AI, website, ads, orders, and courier use.
+Why this exists
+Bad product data makes AI lie and orders fail. Inventory must be simple but strict.
+Primary user
+Owner, product manager, staff.
+Business value
+Keeps AI useful, reduces overselling, enables ads/catalog and repeat orders.
+Build priority
+P0 - AI depends on it.
+1. Page Goal
+- Add and manage products, variants, stock, images, pricing, and delivery details.
+- Support bulk import/export for sellers moving from spreadsheets.
+- Track low stock and reserved stock from pending orders.
+- Give AI approved product facts only.
+2. How It Should Look
+Products table: image, name, price, stock, status, category, actions.
+Product editor: left fields, right live product card preview.
+Inventory view: stock in hand, reserved, sold, returned, low stock.
+Bulk import modal: upload, map columns, validate, confirm.
+3. Main Sections
+Product list
+Search, filter, status, bulk update.
+Product editor
+Core info, variants, images, stock, SEO, AI notes.
+Inventory ledger
+Stock change history with reason and staff name.
+Categories
+Website navigation and AI recommendation grouping.
+Import/export
+Excel/CSV in and out.
+4. User Actions
+Action
+Result
+Edge case
+Add product
+Creates product draft.
+Cannot publish without name and price.
+Update stock
+Changes stock and writes ledger entry.
+Require reason for negative adjustment.
+Bulk edit
+Updates selected products.
+Preview changes before apply.
+
+Human build spec - no code - F-commerce platform
+Page 2
+Action
+Result
+Edge case
+Mark inactive
+Hides product from store and AI.
+Existing orders still keep product snapshot.
+Import file
+Validates rows and creates/updates items.
+Duplicate SKU asks merge or create new.
+5. Data Fields
+- Product: name, SKU, category, description, price, compare price, cost optional.
+- Inventory: stock, reserved, low stock threshold, warehouse optional V2.
+- Variants: size, color, material, image, price override, stock.
+- AI facts: selling points, who it is for, care instructions, policy exceptions.
+6. AI / Automation Behavior
+- AI answers only from active products and stock.
+- AI recommends alternatives when requested item is out of stock.
+- AI flags missing product fields that weaken replies.
+- AI can create draft descriptions from image/name, owner approves.
+7. Empty, Error, and Safety States
+- Empty state must show one clear next button, not a blank table.
+- Every destructive action needs confirm: delete, cancel order, disconnect account, refund mark.
+- If third-party API fails, keep local draft and show retry.
+- AI must never invent price, stock, delivery charge, delivery date, or policy.
+8. Acceptance Checklist
+- Stock never goes below zero unless seller enables backorder.
+- Bulk import gives clear row-level errors.
+- Order creation reserves stock; cancellation releases stock.
+- Inventory ledger shows who changed what and when.
+9. Do Not Build Yet
+- No complex manufacturing/BOM inventory.
+- No multi-warehouse in V1 unless one seller truly needs it.
+- No barcode system until offline warehouse flow exists.

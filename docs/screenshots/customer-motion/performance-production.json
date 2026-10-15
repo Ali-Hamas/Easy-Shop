@@ -1,0 +1,56 @@
+[
+  {
+    "selector": ".studio-hero",
+    "frames": 66,
+    "p95": 17,
+    "over33ms": 0,
+    "layoutCount": 0,
+    "layoutSeconds": 0,
+    "scriptSeconds": 0.014288
+  },
+  {
+    "selector": "#story",
+    "frames": 70,
+    "p95": 17.100000000000364,
+    "over33ms": 0,
+    "layoutCount": 11,
+    "layoutSeconds": 0.003707,
+    "scriptSeconds": 0.020686999999999997
+  },
+  {
+    "selector": "#storefront",
+    "frames": 72,
+    "p95": 17.099999999999454,
+    "over33ms": 0,
+    "layoutCount": 4,
+    "layoutSeconds": 0.001425,
+    "scriptSeconds": 0.013908000000000004
+  },
+  {
+    "selector": "#ai-replies",
+    "frames": 72,
+    "p95": 17,
+    "over33ms": 0,
+    "layoutCount": 0,
+    "layoutSeconds": 0,
+    "scriptSeconds": 0.017944
+  },
+  {
+    "selector": "#workflow",
+    "frames": 81,
+    "p95": 17,
+    "over33ms": 0,
+    "layoutCount": 3,
+    "layoutSeconds": 0.005867000000000001,
+    "scriptSeconds": 0.033760999999999985
+  },
+  {
+    "selector": ".studio-finale",
+    "frames": 78,
+    "p95": 17.100000000000364,
+    "over33ms": 0,
+    "layoutCount": 1,
+    "layoutSeconds": 0.00028199999999999753,
+    "scriptSeconds": 0.0066839999999999955
+  }
+]

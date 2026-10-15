@@ -1,0 +1,83 @@
+Human build spec - no code - F-commerce platform
+Page 1
+PDF 07
+ Orders Management Dashboard
+The operations center for every order from chat, website, staff, and manual entry.
+Why this exists
+Sellers need one truth for order status, buyer details, courier, payment, and chat link.
+Primary user
+Owner, order confirmer, packer.
+Business value
+Reduces missed orders and staff mistakes. Critical for retention.
+Build priority
+P0 - daily operations.
+1. Page Goal
+- Show all orders with status and next action.
+- Connect each order to source chat and courier tracking.
+- Support bulk confirm, print, book courier, cancel, export.
+- Make mobile order cards usable for small teams.
+2. How It Should Look
+Top metrics: new, pending confirm, packed, shipped, delivered, returned.
+Filter bar: date, source, status, courier, staff, risk, payment.
+Table/card: order ID, buyer, item, total, status, courier, actions.
+Order detail drawer: timeline, chat, customer, items, payment, courier.
+3. Main Sections
+Order list
+Central table/card for all orders.
+Order detail
+Full order record and timeline.
+Bulk actions
+Print invoice, book courier, export, assign.
+Status pipeline
+New -> Confirmed -> Packed -> Shipped -> Delivered/Returned.
+Issue queue
+Failed delivery, missing payment, duplicate, high risk.
+4. User Actions
+Action
+Result
+Edge case
+Open order
+Shows detail drawer.
+Keep user in same list position after close.
+Change status
+Moves order through pipeline.
+Restrict backward moves with reason.
+Print invoice
+Generates invoice/packing slip.
+If printer fails, allow PDF download.
+
+Human build spec - no code - F-commerce platform
+Page 2
+Action
+Result
+Edge case
+Bulk book
+Books selected orders with courier.
+Skip invalid orders and show why.
+Export
+Downloads filtered orders.
+Respect staff permission.
+5. Data Fields
+- Order: ID, source, status, timestamps, staff owner, notes.
+- Buyer: name, phone, address, customer tags, chat link.
+- Items: product snapshot, quantity, price, discount, total.
+- Courier/payment: partner, tracking, fee, COD amount, paid status.
+6. AI / Automation Behavior
+- AI summarizes long chat into order note.
+- AI flags suspicious duplicates and bad addresses.
+- AI suggests next action: call, require advance, book courier, follow up.
+- AI can answer owner questions about orders through command center.
+7. Empty, Error, and Safety States
+- Empty state must show one clear next button, not a blank table.
+- Every destructive action needs confirm: delete, cancel order, disconnect account, refund mark.
+- If third-party API fails, keep local draft and show retry.
+- AI must never invent price, stock, delivery charge, delivery date, or policy.
+8. Acceptance Checklist
+- Order timeline must show every status change.
+- Cancelled/returned orders keep history and stock logic.
+- Bulk actions preview affected order count before running.
+- Staff permissions prevent accidental deletion/export.
+9. Do Not Build Yet
+- No warehouse scanner app in V1.
+- No complex accounting ledger inside orders.
+- No marketplace seller payout system.

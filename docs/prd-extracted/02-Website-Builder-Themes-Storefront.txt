@@ -1,0 +1,84 @@
+Human build spec - no code - F-commerce platform
+Page 1
+PDF 02
+ Website Builder, Themes, and
+ Storefront
+Seller-facing builder and buyer-facing shopname.ourdomain.com storefront.
+Why this exists
+Website gives trust, order forms, product catalog, tracking, and a shareable link for social sellers.
+Primary user
+Seller and buyer.
+Business value
+Attracts signups. Converts social traffic into trackable orders.
+Build priority
+P0 - trust and checkout surface.
+1. Page Goal
+- Give every shop a mobile-first website with zero code.
+- Let seller pick prebuilt design, colors, logo, banners, and sections.
+- Make product discovery and COD checkout very fast.
+- Support order tracking and customer trust elements.
+2. How It Should Look
+Builder: left settings panel, center mobile/desktop preview, top publish button.
+Storefront: header, search, categories, hero/banner, product grid, cart, checkout.
+Product page: photos, price, variant, stock, delivery charge, COD note, order button.
+Tracking page: phone/order ID lookup with status timeline.
+3. Main Sections
+Theme picker
+Prebuilt templates for fashion, cosmetics, gadgets, food, digital products.
+Homepage sections
+Hero banner, categories, best sellers, reviews, policy strip, footer.
+Product page
+Image gallery, variant selector, price, delivery, checkout CTA.
+Checkout
+Name, phone, address, area, delivery method, COD/advance.
+Tracking
+Order status for buyers without logging in.
+4. User Actions
+Action
+Result
+Edge case
+Preview theme
+Shows live mobile and desktop preview.
+Warn if image sizes make page slow.
+
+Human build spec - no code - F-commerce platform
+Page 2
+Action
+Result
+Edge case
+Publish
+Pushes changes to live subdomain.
+If domain fails, keep draft and retry.
+Add section
+Adds selected section to homepage.
+Limit sections to keep speed.
+Buy now
+Starts single-product checkout.
+If out of stock, show notify button.
+Track order
+Shows status by phone + order ID.
+Never expose another buyer's address.
+5. Data Fields
+- Theme: id, colors, font set, homepage sections, banner images.
+- Storefront: title, meta description, logo, favicon, policy links.
+- Checkout: required fields, delivery zones, payment methods, COD rules.
+- SEO/share: product slug, social image, product description, schema basics.
+6. AI / Automation Behavior
+- AI can generate product descriptions, homepage banner copy, FAQs, and policy text.
+- AI can suggest best template by business category.
+- AI must not publish policy changes without seller approval.
+- AI can compress/recommend image fixes, but original images stay stored.
+7. Empty, Error, and Safety States
+- Empty state must show one clear next button, not a blank table.
+- Every destructive action needs confirm: delete, cancel order, disconnect account, refund mark.
+- If third-party API fails, keep local draft and show retry.
+- AI must never invent price, stock, delivery charge, delivery date, or policy.
+8. Acceptance Checklist
+- Store opens fast on low-end Android and 4G.
+- Buyer can place order in under 60 seconds.
+- Every product page has Messenger/WhatsApp fallback.
+- No broken layout with long Bangla or Urdu product names.
+9. Do Not Build Yet
+- No drag-and-drop page builder in V1.
+- No custom code injection for normal sellers.
+- No 30 themes; start with 5 excellent themes.

@@ -1,0 +1,207 @@
+[
+  {
+    "theme": "fashion-lifestyle",
+    "width": 1440,
+    "violations": []
+  },
+  {
+    "theme": "fashion-lifestyle",
+    "width": 390,
+    "violations": []
+  },
+  {
+    "theme": "fashion-lifestyle",
+    "width": 320,
+    "violations": []
+  },
+  {
+    "theme": "fashion-lifestyle",
+    "surface": "checkout",
+    "violations": [],
+    "errors": []
+  },
+  {
+    "theme": "fashion-lifestyle",
+    "catalogSize": 0,
+    "violations": []
+  },
+  {
+    "theme": "fashion-lifestyle",
+    "catalogSize": 1,
+    "violations": []
+  },
+  {
+    "theme": "fashion-lifestyle",
+    "catalogSize": 8,
+    "violations": []
+  },
+  {
+    "theme": "fashion-lifestyle",
+    "motion": "scroll responds; reduced motion disables transforms",
+    "violations": []
+  },
+  {
+    "theme": "beauty-cosmetics",
+    "width": 1440,
+    "violations": []
+  },
+  {
+    "theme": "beauty-cosmetics",
+    "width": 390,
+    "violations": []
+  },
+  {
+    "theme": "beauty-cosmetics",
+    "width": 320,
+    "violations": []
+  },
+  {
+    "theme": "beauty-cosmetics",
+    "surface": "checkout",
+    "violations": [],
+    "errors": []
+  },
+  {
+    "theme": "beauty-cosmetics",
+    "catalogSize": 0,
+    "violations": []
+  },
+  {
+    "theme": "beauty-cosmetics",
+    "catalogSize": 1,
+    "violations": []
+  },
+  {
+    "theme": "beauty-cosmetics",
+    "catalogSize": 8,
+    "violations": []
+  },
+  {
+    "theme": "beauty-cosmetics",
+    "motion": "scroll responds; reduced motion disables transforms",
+    "violations": []
+  },
+  {
+    "theme": "electronics-gadgets",
+    "width": 1440,
+    "violations": []
+  },
+  {
+    "theme": "electronics-gadgets",
+    "width": 390,
+    "violations": []
+  },
+  {
+    "theme": "electronics-gadgets",
+    "width": 320,
+    "violations": []
+  },
+  {
+    "theme": "electronics-gadgets",
+    "surface": "checkout",
+    "violations": [],
+    "errors": []
+  },
+  {
+    "theme": "electronics-gadgets",
+    "catalogSize": 0,
+    "violations": []
+  },
+  {
+    "theme": "electronics-gadgets",
+    "catalogSize": 1,
+    "violations": []
+  },
+  {
+    "theme": "electronics-gadgets",
+    "catalogSize": 8,
+    "violations": []
+  },
+  {
+    "theme": "electronics-gadgets",
+    "motion": "scroll responds; reduced motion disables transforms",
+    "violations": []
+  },
+  {
+    "theme": "food-restaurant",
+    "width": 1440,
+    "violations": []
+  },
+  {
+    "theme": "food-restaurant",
+    "width": 390,
+    "violations": []
+  },
+  {
+    "theme": "food-restaurant",
+    "width": 320,
+    "violations": []
+  },
+  {
+    "theme": "food-restaurant",
+    "surface": "checkout",
+    "violations": [],
+    "errors": []
+  },
+  {
+    "theme": "food-restaurant",
+    "catalogSize": 0,
+    "violations": []
+  },
+  {
+    "theme": "food-restaurant",
+    "catalogSize": 1,
+    "violations": []
+  },
+  {
+    "theme": "food-restaurant",
+    "catalogSize": 8,
+    "violations": []
+  },
+  {
+    "theme": "food-restaurant",
+    "motion": "scroll responds; reduced motion disables transforms",
+    "violations": []
+  },
+  {
+    "theme": "modern-general",
+    "width": 1440,
+    "violations": []
+  },
+  {
+    "theme": "modern-general",
+    "width": 390,
+    "violations": []
+  },
+  {
+    "theme": "modern-general",
+    "width": 320,
+    "violations": []
+  },
+  {
+    "theme": "modern-general",
+    "surface": "checkout",
+    "violations": [],
+    "errors": []
+  },
+  {
+    "theme": "modern-general",
+    "catalogSize": 0,
+    "violations": []
+  },
+  {
+    "theme": "modern-general",
+    "catalogSize": 1,
+    "violations": []
+  },
+  {
+    "theme": "modern-general",
+    "catalogSize": 8,
+    "violations": []
+  },
+  {
+    "theme": "modern-general",
+    "motion": "scroll responds; reduced motion disables transforms",
+    "violations": []
+  }
+]
