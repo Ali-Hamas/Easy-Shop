@@ -1,3 +1,4 @@
+import { commerceUi } from "./commerce-ui";
 import {
   LayoutDashboard,
   MessagesSquare,
@@ -12,6 +13,7 @@ import {
   Sparkles,
   ChartNoAxesCombined,
   Settings2,
+  Star,
 } from "lucide-react";
 export const navigation = [
   {
@@ -114,6 +116,17 @@ export const navigation = [
     action: "Explore inbox",
   },
   {
+    slug: "reviews",
+    label: "Reviews",
+    icon: Star,
+    group: "Workspace",
+    description: "Verified customer feedback and public replies.",
+    empty: "Listen to your customers",
+    detail: "Delivered orders unlock verified reviews.",
+    next: "orders",
+    action: "View orders",
+  },
+  {
     slug: "marketing",
     label: "Marketing",
     icon: Megaphone,
@@ -183,6 +196,7 @@ export const releaseNavigation: ReadonlyArray<(typeof navigation)[number]> =
   navigation.filter(
     (item) =>
       item.group !== "Growth" &&
+      (commerceUi.orders || item.slug !== "orders") &&
       item.slug !== "delivery" &&
       item.slug !== "payments",
   );

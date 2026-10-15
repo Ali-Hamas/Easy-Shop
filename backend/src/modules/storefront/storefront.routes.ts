@@ -1,7 +1,8 @@
+import { publicStorefrontContent } from "./content.schema.js";
 import type { FastifyInstance } from "fastify";
 import { connectDb } from "../../shared/db.js";
 import { collections, amount } from "../../shared/models.js";
-import { templateCatalog } from "../onboarding/template-catalog.js";
+import { templateCatalog, resolveTemplateId } from "../onboarding/template-catalog.js";
 
 const toSlug = (text: string) =>
   text
@@ -25,11 +26,8 @@ export async function registerStorefrontRoutes(app: FastifyInstance) {
     const isOwner = Boolean(
       request.authUser && request.authUser.id === shop.ownerId,
     );
-    const isPreview = Boolean(
-      (request.query as { preview?: string })?.preview === "true" ||
-        request.headers["x-preview-mode"] === "true" ||
-        isOwner,
-    );
+    const isPreview =
+      isOwner && (request.query as { preview?: string })?.preview === "true";
 
     if (shop.status !== "launched" && !isPreview) {
       return reply
@@ -48,7 +46,7 @@ export async function registerStorefrontRoutes(app: FastifyInstance) {
     const products = [];
     for (const p of documents) {
       const variants = await c.variants
-        .find({ shopId: shop._id, productId: p._id })
+        .find({ shopId: shop._id, productId: p._id, status: "active" })
         .toArray();
       const entries = await c.ledger
         .find({
@@ -57,41 +55,38 @@ export async function registerStorefrontRoutes(app: FastifyInstance) {
         })
         .toArray();
       const imgDocs = await c.images
-        .find({ shopId: shop._id, productId: p._id })
+        .find({ shopId: shop._id, productId: p._id, status: "active" })
         .sort({ sortOrder: 1 })
         .toArray();
       const assetImages: string[] = [];
       for (const img of imgDocs) {
-        const a = await c.assets.findOne({ _id: img.assetId, shopId: shop._id });
+        const a = await c.assets.findOne({
+          _id: img.assetId,
+          shopId: shop._id,
+        });
         if (a?.publicUrl) assetImages.push(a.publicUrl);
       }
       const rawImages: string[] =
         Array.isArray(p.images) && p.images.length > 0
           ? p.images
           : assetImages.length > 0
-          ? assetImages
-          : p.imageUrl
-          ? [p.imageUrl]
-          : [];
+            ? assetImages
+            : p.imageUrl
+              ? [p.imageUrl]
+              : [];
       const productImages = Array.from(new Set(rawImages.filter(Boolean)));
       const imageUrl =
-        productImages[0] ||
-        variants.find((v) => v.image)?.image ||
-        null;
+        productImages[0] || variants.find((v) => v.image)?.image || null;
 
       let stock = entries.reduce((n, e) => n + e.deltaQuantity, 0);
-      if (stock === 0 && p.stock) {
+      if (entries.length === 0 && p.stock) {
         stock = Number(p.stock);
       }
-      if (stock === 0 && variants.length > 0) {
-        stock = variants.reduce(
-          (sum, v) => sum + (v.openingStock || 0),
-          0,
-        );
+      if (entries.length === 0 && stock === 0 && variants.length > 0) {
+        stock = variants.reduce((sum, v) => sum + (v.openingStock || 0), 0);
       }
 
-      const canonicalSlug =
-        p.slug || toSlug(p.name) || `product-${p._id}`;
+      const canonicalSlug = p.slug || toSlug(p.name) || `product-${p._id}`;
 
       products.push({
         id: p._id,
@@ -109,23 +104,23 @@ export async function registerStorefrontRoutes(app: FastifyInstance) {
           sku: v.sku ?? null,
           title: v.title,
           price: amount(v.price),
-          stock:
-            entries
-              .filter((e) => e.variantId === v._id)
-              .reduce((n, e) => n + e.deltaQuantity, 0) ||
-            (v.openingStock || 0),
+          stock: entries.some((e) => e.variantId === v._id)
+            ? entries
+                .filter((e) => e.variantId === v._id)
+                .reduce((n, e) => n + e.deltaQuantity, 0)
+            : v.openingStock || 0,
         })),
       });
     }
 
     const template =
-      templateCatalog.find((t) => t.id === shop.selectedTemplateId) ??
+      templateCatalog.find((t) => t.id === resolveTemplateId(shop.selectedTemplateId)) ??
       templateCatalog[0];
 
     return {
       shop: {
         id: shop._id,
-        displayName: shop.displayName,
+        displayName: publicStorefrontContent(isPreview ? shop.storefrontConfig?.draftContent ?? shop.storefrontConfig?.content : shop.storefrontConfig?.content).storeName || shop.displayName,
         subdomain: shop.subdomain,
         category: shop.category,
         country: shop.country,
@@ -133,9 +128,10 @@ export async function registerStorefrontRoutes(app: FastifyInstance) {
         logoUrl: shop.logoUrl ?? null,
         language: shop.language,
         status: shop.status,
+        ownerPreview: isPreview,
         policyDefaults: shop.policyDefaults,
         selectedTemplateId: template.id,
-        config: shop.storefrontConfig,
+        content: publicStorefrontContent(isPreview ? shop.storefrontConfig?.draftContent ?? shop.storefrontConfig?.content : shop.storefrontConfig?.content),
       },
       template,
       products,
@@ -158,11 +154,8 @@ export async function registerStorefrontRoutes(app: FastifyInstance) {
     const isOwner = Boolean(
       request.authUser && request.authUser.id === shop.ownerId,
     );
-    const isPreview = Boolean(
-      (request.query as { preview?: string })?.preview === "true" ||
-        request.headers["x-preview-mode"] === "true" ||
-        isOwner,
-    );
+    const isPreview =
+      isOwner && (request.query as { preview?: string })?.preview === "true";
 
     if (shop.status !== "launched" && !isPreview) {
       return reply
@@ -189,7 +182,7 @@ export async function registerStorefrontRoutes(app: FastifyInstance) {
     }
 
     const variants = await c.variants
-      .find({ shopId: p.shopId, productId: p._id })
+      .find({ shopId: p.shopId, productId: p._id, status: "active" })
       .sort({ createdAt: 1, _id: 1 })
       .toArray();
 
@@ -201,7 +194,7 @@ export async function registerStorefrontRoutes(app: FastifyInstance) {
       .toArray();
 
     const imgDocs = await c.images
-      .find({ shopId: p.shopId, productId: p._id })
+      .find({ shopId: p.shopId, productId: p._id, status: "active" })
       .sort({ sortOrder: 1 })
       .toArray();
     const assetImages: string[] = [];
@@ -213,15 +206,13 @@ export async function registerStorefrontRoutes(app: FastifyInstance) {
       Array.isArray(p.images) && p.images.length > 0
         ? p.images
         : assetImages.length > 0
-        ? assetImages
-        : p.imageUrl
-        ? [p.imageUrl]
-        : [];
+          ? assetImages
+          : p.imageUrl
+            ? [p.imageUrl]
+            : [];
     const productImages = Array.from(new Set(rawImages.filter(Boolean)));
     const imageUrl =
-      productImages[0] ||
-      variants.find((v) => v.image)?.image ||
-      null;
+      productImages[0] || variants.find((v) => v.image)?.image || null;
 
     const mappedVariants =
       variants.length > 0
@@ -230,11 +221,11 @@ export async function registerStorefrontRoutes(app: FastifyInstance) {
             sku: v.sku ?? null,
             title: v.title,
             price: amount(v.price),
-            stock:
-              entries
-                .filter((e) => e.variantId === v._id)
-                .reduce((n, e) => n + e.deltaQuantity, 0) ||
-              (v.openingStock || 0),
+            stock: entries.some((e) => e.variantId === v._id)
+              ? entries
+                  .filter((e) => e.variantId === v._id)
+                  .reduce((n, e) => n + e.deltaQuantity, 0)
+              : v.openingStock || 0,
           }))
         : [
             {
@@ -264,4 +255,3 @@ export async function registerStorefrontRoutes(app: FastifyInstance) {
     };
   });
 }
-

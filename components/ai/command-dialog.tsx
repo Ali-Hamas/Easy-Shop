@@ -70,7 +70,7 @@ export function CommandDialog({
           ))
         ) : (
           <p className="muted">
-            No matching pages. Try “orders” or “products”.
+            No matching pages. Try “website” or “products”.
           </p>
         )}
       </div>

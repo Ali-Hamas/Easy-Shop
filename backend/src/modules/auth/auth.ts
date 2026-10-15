@@ -110,22 +110,24 @@ export function installAuth(app: FastifyInstance) {
   app.addHook("preHandler", async (request, reply) => {
     const path = request.url.split("?")[0];
     const protectedRoute =
-      /^\/api\/v1\/(onboarding|inventory|customers|inbox|dashboard)(\/|$)/.test(
+      /^\/api\/v1\/(onboarding|inventory|customers|inbox|dashboard|orders|reviews)(\/|$)/.test(
         path,
       );
     const authRoute = path.startsWith("/api/v1/auth/");
-    if (!protectedRoute && !authRoute) return;
+    const ownerPreview =
+      path.startsWith("/api/v1/storefront/") &&
+      new URL(request.url, "http://localhost").searchParams.get("preview") ===
+        "true";
+    if (!protectedRoute && !authRoute && !ownerPreview) return;
     reply.header("Cache-Control", "no-store");
     if (
       !["GET", "HEAD", "OPTIONS"].includes(request.method) &&
       request.headers.origin !== config.appOrigin
     ) {
-      return reply
-        .code(403)
-        .send({
-          code: "ORIGIN_REJECTED",
-          message: "Use the application to submit this request.",
-        });
+      return reply.code(403).send({
+        code: "ORIGIN_REJECTED",
+        message: "Use the application to submit this request.",
+      });
     }
     const user = await resolveSession(request);
     if (user) {
@@ -140,7 +142,13 @@ export function installAuth(app: FastifyInstance) {
         .send({ code: "AUTH_REQUIRED", message: "Log in to continue." });
     const shopId = (request.params as { shopId?: string }).shopId;
     if (shopId) {
-      if (!z.string().uuid().safeParse(shopId).success) return reply.code(400).send({ code: "VALIDATION_ERROR", message: "Invalid shop identifier." });
+      if (!z.string().uuid().safeParse(shopId).success)
+        return reply
+          .code(400)
+          .send({
+            code: "VALIDATION_ERROR",
+            message: "Invalid shop identifier.",
+          });
       const db = await connectDb();
       if (
         !(await db
@@ -240,23 +248,19 @@ export async function registerAuthRoutes(app: FastifyInstance) {
           .collection<User>("users")
           .findOne({ email: input.email });
         if (action === "register" && user)
-          return reply
-            .code(409)
-            .send({
-              code: "ACCOUNT_EXISTS",
-              message:
-                "An account already uses this email. Log in with your existing credentials.",
-            });
+          return reply.code(409).send({
+            code: "ACCOUNT_EXISTS",
+            message:
+              "An account already uses this email. Log in with your existing credentials.",
+          });
         if (
           action === "login" &&
           !(await verifyPassword(input.password, user?.passwordHash))
         )
-          return reply
-            .code(401)
-            .send({
-              code: "INVALID_CREDENTIALS",
-              message: "Email or password is incorrect.",
-            });
+          return reply.code(401).send({
+            code: "INVALID_CREDENTIALS",
+            message: "Email or password is incorrect.",
+          });
         const newUser =
           action === "register"
             ? {
@@ -270,12 +274,10 @@ export async function registerAuthRoutes(app: FastifyInstance) {
             : null;
         user = newUser ?? user;
         if (!user)
-          return reply
-            .code(401)
-            .send({
-              code: "INVALID_CREDENTIALS",
-              message: "Email or password is incorrect.",
-            });
+          return reply.code(401).send({
+            code: "INVALID_CREDENTIALS",
+            message: "Email or password is incorrect.",
+          });
         const token = randomBytes(32).toString("hex");
         const old = sessionToken(request);
         try {
@@ -288,26 +290,22 @@ export async function registerAuthRoutes(app: FastifyInstance) {
               await database
                 .collection<Session>("authSessions")
                 .deleteOne({ _id: digest(old) }, { session });
-            await database
-              .collection<Session>("authSessions")
-              .insertOne(
-                {
-                  _id: digest(token),
-                  userId: user!._id,
-                  createdAt: new Date(),
-                  expiresAt: new Date(Date.now() + lifetime * 1000),
-                },
-                { session },
-              );
+            await database.collection<Session>("authSessions").insertOne(
+              {
+                _id: digest(token),
+                userId: user!._id,
+                createdAt: new Date(),
+                expiresAt: new Date(Date.now() + lifetime * 1000),
+              },
+              { session },
+            );
           });
         } catch (error) {
           if (error instanceof MongoServerError && error.code === 11000)
-            return reply
-              .code(409)
-              .send({
-                code: "ACCOUNT_EXISTS",
-                message: "An account already uses this email.",
-              });
+            return reply.code(409).send({
+              code: "ACCOUNT_EXISTS",
+              message: "An account already uses this email.",
+            });
           throw error;
         }
         return reply

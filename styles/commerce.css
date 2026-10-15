@@ -692,3 +692,9 @@
     font-size: 26px;
   }
 }
+.buyer-brand-logo {
+  width: 44px;
+  height: 44px;
+  object-fit: contain;
+  border-radius: 8px;
+}

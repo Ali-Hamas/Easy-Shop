@@ -10,7 +10,7 @@ const cdp = await page.context().newCDPSession(page);
 await cdp.send("Performance.enable");
 const results = [];
 for (const selector of [
-  ".studio-hero",
+  ".connected-hero",
   "#story",
   "#storefront",
   "#ai-replies",

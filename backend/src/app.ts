@@ -1,3 +1,11 @@
+import {
+  registerGuestOrders,
+  registerSellerOrders,
+} from "./modules/orders/orders.routes.js";
+import {
+  registerStorefrontReviews,
+  registerSellerReviews,
+} from "./modules/storefront/reviews.routes.js";
 import { registerDashboardRoutes } from "./modules/dashboard/dashboard.routes.js";
 import { registerStorefrontMessaging } from "./modules/storefront/messaging.routes.js";
 import { installAuth, registerAuthRoutes } from "./modules/auth/auth.js";
@@ -87,5 +95,11 @@ export async function buildApp() {
   await app.register(registerStorefrontMessaging, {
     prefix: "/api/v1/storefront",
   });
+  await app.register(registerStorefrontReviews, {
+    prefix: "/api/v1/storefront",
+  });
+  await app.register(registerGuestOrders, { prefix: "/api/v1/storefront" });
+  await app.register(registerSellerOrders, { prefix: "/api/v1/orders" });
+  await app.register(registerSellerReviews, { prefix: "/api/v1/reviews" });
   return app;
 }

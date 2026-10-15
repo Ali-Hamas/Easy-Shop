@@ -571,3 +571,112 @@
     top: 0;
   }
 }
+.reply-story-path {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 12px;
+  margin: 40px 0;
+}
+.reply-story-step {
+  position: relative;
+  text-align: center;
+}
+.reply-story-step > span {
+  position: relative;
+  z-index: 1;
+  width: 44px;
+  height: 44px;
+  margin: 0 auto 12px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--indigo-100);
+  border-radius: 50%;
+  color: var(--brand);
+  background: var(--surface);
+}
+.reply-story-step strong {
+  font-size: 12px;
+  font-weight: 500;
+}
+.reply-story-line {
+  position: absolute;
+  top: 22px;
+  left: 7%;
+  right: 7%;
+  height: 2px;
+  background: var(--border-default);
+}
+.reply-story-line span {
+  display: block;
+  height: 100%;
+  background: var(--brand);
+  transform-origin: left;
+}
+@media (max-width: 600px) {
+  .reply-story-path {
+    gap: 16px 8px;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+  .reply-story-line {
+    display: none;
+  }
+  .reply-story-step strong {
+    font-size: 10px;
+  }
+  .reply-story-step > span {
+    width: 36px;
+    height: 36px;
+    margin-bottom: 8px;
+  }
+}
+.reply-choreography span:not([data-active="true"]),
+.closing-msg-author small,
+.closing-product-meta,
+.closing-env-url,
+.closing-panel-tag {
+  color: var(--neutral-600);
+}
+.closing-wordmark {
+  color: var(--neutral-500);
+}
+.studio-site .scene-chip {
+  color: var(--brand-pressed);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .studio-site .launch-header {
+    animation: connected-nav-enter 300ms ease-out both;
+  }
+  .connected-hero .connected-store {
+    animation: connected-panel-enter 500ms 500ms both;
+  }
+  .connected-hero .connected-stock {
+    animation: connected-panel-enter 500ms 650ms both;
+  }
+  .connected-hero .connected-person {
+    animation: connected-panel-enter 500ms 800ms both;
+  }
+  .connected-hero .connected-reply {
+    animation: connected-panel-enter 500ms 950ms both;
+  }
+}
+@keyframes connected-nav-enter {
+  from {
+    opacity: 0;
+    translate: 0 -8px;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+@keyframes connected-panel-enter {
+  from {
+    opacity: 0;
+    translate: 0 20px;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}

@@ -605,3 +605,54 @@ export const inventoryService = {
     };
   },
 };
+
+/** Order transitions share the same balance lock and ledger as manual adjustments. */
+export async function orderStock(
+  db: Db,
+  session: ClientSession,
+  shopId: string,
+  productId: string,
+  variantId: string,
+  quantity: number,
+  kind: "reserve" | "release" | "sale",
+  orderId: string,
+) {
+  const variant = await vcol(db).findOneAndUpdate(
+    { _id: variantId, shopId, productId },
+    { $inc: { inventoryRevision: 1 } },
+    { session },
+  );
+  if (!variant)
+    throw new InventoryError(
+      "VARIANT_NOT_FOUND",
+      "An ordered variant no longer exists.",
+    );
+  const before = await balance(db, shopId, variantId, productId, session),
+    after = { ...before, version: before.version + 1 };
+  if (kind === "reserve") after.reserved += quantity;
+  if (kind === "release") after.reserved -= quantity;
+  if (kind === "sale") {
+    after.reserved -= quantity;
+    after.onHand -= quantity;
+    after.sold += quantity;
+  }
+  if (after.reserved < 0 || after.onHand < 0 || after.reserved > after.onHand)
+    throw new InventoryError(
+      "INVALID_STOCK",
+      "Stock changed. Check this order before confirming.",
+    );
+  await bcol(db).replaceOne({ _id: variantId, shopId }, after, {
+    upsert: true,
+    session,
+  });
+  await writeLedger(
+    db,
+    session,
+    before,
+    after,
+    `Order ${orderId}: ${kind}`,
+    kind,
+    `${orderId}:${variantId}:${kind}`,
+    fingerprint({ orderId, variantId, kind, quantity }),
+  );
+}

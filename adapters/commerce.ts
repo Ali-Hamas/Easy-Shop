@@ -2,7 +2,8 @@ import type { PublicProduct } from "@/types/commerce";
 /** Prefer canonical slugs; normalization remains a compatibility fallback for older servers. */
 export function productPath(
   subdomain: string,
-  product: PublicProduct,
+  product: Pick<PublicProduct, "id" | "name" | "slug">,
+  previewTheme?: string,
 ): string | null {
   const slug =
     product.slug ??
@@ -13,7 +14,7 @@ export function productPath(
       .replace(/^-+|-+$/g, "")
       .replace(/-{2,}/g, "-");
   return slug
-    ? `/store/${encodeURIComponent(subdomain)}/products/${encodeURIComponent(slug)}?productId=${encodeURIComponent(product.id)}`
+    ? `/store/${encodeURIComponent(subdomain)}/products/${encodeURIComponent(slug)}?productId=${encodeURIComponent(product.id)}${previewTheme ? `&preview=true&theme=${encodeURIComponent(previewTheme)}` : ""}`
     : null;
 }
 export function formatMoney(value: number, currency: string) {

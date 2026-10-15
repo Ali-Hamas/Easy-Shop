@@ -43,7 +43,9 @@ export function ClosingScene() {
                 <span className="closing-pulse-dot" />
                 Storefront Live
               </span>
-              <span className="closing-env-url">easy-shop.app/store/sunday-studio</span>
+              <span className="closing-env-url">
+                easy-shop.app/store/sunday-studio
+              </span>
             </div>
             <div className="closing-env-supervision">
               <Lock size={13} />
@@ -67,7 +69,9 @@ export function ClosingScene() {
                 </div>
                 <div className="closing-product-details">
                   <span className="closing-product-name">Everyday tote</span>
-                  <span className="closing-product-meta">Olive · Relaxed carry</span>
+                  <span className="closing-product-meta">
+                    Olive · Relaxed carry
+                  </span>
                   <div className="closing-product-price-row">
                     <strong className="closing-product-price">৳ 850</strong>
                     <span className="closing-product-stock">24 in stock</span>
@@ -115,14 +119,17 @@ export function ClosingScene() {
                     <span>Fact-grounded draft</span>
                   </div>
                   <p className="closing-reply-text">
-                    “Hi Nadia! The everyday tote is available in olive for ৳ 850. Would you like a closer look?”
+                    “Hi Nadia! The everyday tote is available in olive for ৳
+                    850. Would you like a closer look?”
                   </p>
                   <div className="closing-reply-footer">
                     <span className="closing-verified-tag">
                       <ShieldCheck size={14} />
                       Verified against live catalog
                     </span>
-                    <span className="closing-action-chip">Ready for merchant send</span>
+                    <span className="closing-action-chip">
+                      Ready for merchant send
+                    </span>
                   </div>
                 </ScrollLayer>
               </div>
@@ -138,14 +145,16 @@ export function ClosingScene() {
           settled={settled}
           className="closing-conclusion"
         >
-          <span className="closing-eyebrow">Your store. In every conversation.</span>
+          <span className="closing-eyebrow">
+            Your store. In every conversation.
+          </span>
           <h2 className="closing-headline">
             A little more clarity.
-            <br />
-            A lot more room to grow.
+            <br />A lot more room to grow.
           </h2>
           <p className="closing-supporting">
-            Give your products a home and every conversation its context. Start with your store. Build from there.
+            Give your products a home and every conversation its context. Start
+            with your store. Build from there.
           </p>
 
           {/* Stage 4: CTA appears last */}
@@ -172,4 +181,3 @@ export function ClosingScene() {
     </section>
   );
 }
-

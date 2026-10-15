@@ -159,7 +159,11 @@ export class OnboardingService {
           createdAt = now();
         const ownerId = input.ownerUserId;
         if (!ownerId || !(await c.users.findOne({ _id: ownerId }, { session })))
-          throw new OnboardingError("Authenticated owner required.", 401, "AUTH_REQUIRED");
+          throw new OnboardingError(
+            "Authenticated owner required.",
+            401,
+            "AUTH_REQUIRED",
+          );
         const shop: ShopDocument = {
           _id: shopId,
           ownerId,
@@ -264,7 +268,14 @@ export class OnboardingService {
       return entry;
     });
     return {
-      owner: { id: owner._id, name: owner.name, email: owner.email, phone: owner.phone, language: owner.language, createdAt: owner.createdAt },
+      owner: {
+        id: owner._id,
+        name: owner.name,
+        email: owner.email,
+        phone: owner.phone,
+        language: owner.language,
+        createdAt: owner.createdAt,
+      },
       shop,
       products,
       channels,
@@ -372,6 +383,7 @@ export class OnboardingService {
             _id: productId,
             shopId,
             name: input.name,
+            ...(input.imageUrl ? { imageUrl: input.imageUrl } : {}),
             slug: normalizeSubdomain(input.name),
             status: "active",
             price: money(input.price),

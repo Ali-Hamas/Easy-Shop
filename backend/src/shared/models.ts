@@ -236,6 +236,16 @@ export async function ensureIndexes(db: Db) {
     .collection("passwordResetOtps")
     .createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 });
   await db.collection("passwordResetOtps").createIndex({ email: 1 });
+  await db
+    .collection("verifiedReviews")
+    .createIndex({ shopId: 1, orderId: 1, target: 1 }, { unique: true });
+  await db
+    .collection("verifiedReviews")
+    .createIndex({ shopId: 1, target: 1, createdAt: -1, _id: -1 });
+  await db
+    .collection("orders")
+    .createIndex({ shopId: 1, requestId: 1 }, { unique: true });
+  await db.collection("orders").createIndex({ shopId: 1, createdAt: -1 });
 }
 export function publicDocument<T extends { _id: string }>(
   document: T,

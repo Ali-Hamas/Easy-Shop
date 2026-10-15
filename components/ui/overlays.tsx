@@ -12,6 +12,9 @@ import { IconButton } from "./button";
 import { duration, ease } from "@/config/motion";
 import { cn } from "@/lib/utils";
 export type OverlayProps = {
+  "data-store-theme"?: string;
+  "data-store-accent"?: string;
+  "data-store-font"?: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   title: string;
@@ -35,6 +38,7 @@ function Overlay({
   className,
   initialFocusRef,
   kind = "modal",
+  ...dataAttributes
 }: { kind?: "modal" | "detail" | "navigation" } & OverlayProps) {
   const reduced = useReducedMotion();
   const previousFocus = useRef<HTMLElement | null>(null);
@@ -70,6 +74,7 @@ function Overlay({
               }}
             >
               <motion.section
+                {...dataAttributes}
                 className={cn(
                   "overlay-panel",
                   isDrawer ? `drawer drawer-${kind}` : "modal",

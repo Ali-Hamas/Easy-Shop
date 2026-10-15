@@ -1,6 +1,18 @@
 import type { NextRequest } from "next/server";
 const uuid = "[a-fA-F0-9-]{36}";
 function permitted(path: string, method: string) {
+  if (/^storefront\/[a-z0-9-]+\/(checkout|orders\/track)$/.test(path))
+    return method === "POST";
+  if (new RegExp(`^orders/${uuid}$`).test(path)) return method === "GET";
+  if (new RegExp(`^orders/${uuid}/${uuid}$`).test(path))
+    return method === "PATCH";
+  if (new RegExp(`^reviews/${uuid}$`).test(path)) return method === "GET";
+  if (new RegExp(`^reviews/${uuid}/${uuid}/reply$`).test(path))
+    return method === "PATCH";
+  if (/^storefront\/[a-z0-9-]+\/reviews$/.test(path))
+    return method === "GET" || method === "POST";
+  if (new RegExp(`^onboarding/${uuid}/storefront-content$`).test(path))
+    return method === "GET" || method === "PATCH";
   if (new RegExp(`^dashboard/${uuid}$`).test(path)) return method === "GET";
   if (/^storefront\/[a-z0-9-]+\/chat\/(session|messages)$/.test(path))
     return (
@@ -106,7 +118,11 @@ async function forward(
       "ORIGIN_REJECTED",
       "Open this form from the same local application.",
     );
-  const bodyLimit = path.startsWith("inventory/") ? 15 * 1024 * 1024 : 20000;
+  const bodyLimit = path.startsWith("inventory/")
+    ? 15 * 1024 * 1024
+    : path.endsWith("/storefront-content")
+      ? 5 * 1024 * 1024
+      : 20000;
   if (Number(request.headers.get("content-length") ?? 0) > bodyLimit)
     return fail(413, "REQUEST_TOO_LARGE", "The submitted form is too large.");
   try {
@@ -164,6 +180,10 @@ async function forward(
           "This record changed. Reload the latest data before saving.",
         SKU_CONFLICT:
           "This SKU or product address is already used. Review the existing product.",
+        CONTENT_CONFLICT:
+          "This storefront changed in another tab. Reload saved content before saving.",
+        PRODUCT_SELECTION_INVALID:
+          "A selected product is unavailable. Review your selections.",
         INVALID_STOCK:
           "This would make stock invalid. Check on-hand, reserved and sold quantities.",
         INVALID_QUANTITY: "Enter a positive quantity for this operation.",
@@ -191,16 +211,13 @@ async function forward(
           "The shop service is temporarily unavailable. Your input has been kept.",
         OTP_EXPIRED:
           "This verification code has expired (codes are valid for 10 minutes). Please request a new code.",
-        OTP_INVALID:
-          "Incorrect verification code. Please check and try again.",
+        OTP_INVALID: "Incorrect verification code. Please check and try again.",
         OTP_NOT_FOUND:
           "No verification code was requested for this email. Please request a code first.",
-        RATE_LIMITED:
-          "Please wait a moment before requesting another code.",
+        RATE_LIMITED: "Please wait a moment before requesting another code.",
         TOO_MANY_ATTEMPTS:
           "Too many incorrect attempts. Please request a new code.",
-        ACCOUNT_NOT_FOUND:
-          "No account found with this email address.",
+        ACCOUNT_NOT_FOUND: "No account found with this email address.",
         RESET_TOKEN_INVALID:
           "Password reset session has expired or is invalid. Please request a new code.",
       };

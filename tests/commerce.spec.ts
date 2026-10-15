@@ -139,6 +139,16 @@ test("API bridge rejects unapproved paths and cross-origin writes", async ({
 test("onboarding keeps input after failure and storefront handles empty catalog", async ({
   page,
 }) => {
+  const suffix = Date.now().toString(36);
+  const registration = await page.request.post("/api/commerce/auth/register", {
+    headers: { Origin: "http://localhost:3000" },
+    data: {
+      name: "Test Owner",
+      email: `commerce-error-${suffix}@example.test`,
+      password: `Test-Commerce-${suffix}-Only`,
+    },
+  });
+  expect(registration.ok()).toBe(true);
   await page.route("**/api/commerce/onboarding/templates", (r) =>
     r.fulfill({ json: { templates: [] } }),
   );
@@ -155,7 +165,7 @@ test("onboarding keeps input after failure and storefront handles empty catalog"
   await page.getByLabel("Your name", { exact: true }).fill("Test Owner");
   await page.getByLabel("Shop name", { exact: true }).fill("Test Shop");
   await page.getByLabel("Shop address", { exact: true }).fill("test-shop");
-  await page.getByRole("button", { name: "Create development shop" }).click();
+  await page.getByRole("button", { name: "Create shop", exact: true }).click();
   await expect(page.locator(".setup-error")).toContainText(
     "temporarily unavailable",
   );

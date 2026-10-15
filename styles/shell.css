@@ -192,6 +192,7 @@
   min-width: 170px;
 }
 .shop-switcher {
+  min-width: 0;
   border: 0;
   background: transparent;
   display: flex;
@@ -208,6 +209,7 @@
   background: var(--surface-inset);
 }
 .shop-switcher > span:not(.shop-icon) {
+  min-width: 0;
   max-width: 175px;
   overflow: hidden;
   text-overflow: ellipsis;

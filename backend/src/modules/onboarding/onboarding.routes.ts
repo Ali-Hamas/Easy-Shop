@@ -1,3 +1,4 @@
+import { registerStorefrontEditorRoutes } from "./storefront-editor.routes.js";
 import type { FastifyInstance } from "fastify";
 import { ZodError, type ZodTypeAny } from "zod";
 import { onboardingService, OnboardingError } from "./onboarding.service.js";
@@ -38,6 +39,7 @@ function handleError(error: unknown) {
 }
 
 export async function registerOnboardingRoutes(app: FastifyInstance) {
+  await registerStorefrontEditorRoutes(app);
   app.get("/templates", async () => onboardingService.listTemplates());
 
   app.post("/subdomain/check", async (request, reply) => {

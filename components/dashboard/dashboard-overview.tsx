@@ -1,7 +1,8 @@
 "use client";
 import Link from "next/link";
 import { useEffect, useState, useSyncExternalStore } from "react";
-import { motion } from "framer-motion";
+import { useMotionPreference } from "@/hooks/use-motion-preference";
+import { AnimatePresence, motion } from "framer-motion";
 import {
   ArrowUpRight,
   Check,
@@ -47,6 +48,7 @@ const actionLabels: Record<string, string> = {
 };
 export default function DashboardOverview() {
   const { user } = useSession();
+  const reduced = useMotionPreference();
   const shopId = useSyncExternalStore(
     subscribeShop,
     rememberedShop,
@@ -166,126 +168,130 @@ export default function DashboardOverview() {
         </div>
       ) : (
         <>
-            <section className="focus-storefront">
-              <div className="focus-storefront-header">
-                <Store size={24} strokeWidth={1.3} />
+          <section className="focus-storefront">
+            <div className="focus-storefront-header">
+              <Store size={24} strokeWidth={1.3} />
+              <span
+                className={cn(
+                  "store-status-badge",
+                  launched
+                    ? "status-live"
+                    : state
+                      ? "status-draft"
+                      : "status-none",
+                )}
+              >
                 <span
                   className={cn(
-                    "store-status-badge",
-                    launched
-                      ? "status-live"
-                      : state
-                        ? "status-draft"
-                        : "status-none",
+                    "status-dot",
+                    launched ? "live" : state ? "draft" : "none",
                   )}
-                >
-                  <span
-                    className={cn(
-                      "status-dot",
-                      launched ? "live" : state ? "draft" : "none",
-                    )}
-                  />
-                  {launched ? "Live" : state ? "Draft" : "Not set up"}
-                </span>
-              </div>
+                />
+                {launched ? "Live" : state ? "Draft" : "Not set up"}
+              </span>
+            </div>
 
-              <h2 className="focus-shop-name">
-                {state?.shop.displayName ??
-                  (shopId ? "Your shop" : "Your storefront")}
-              </h2>
+            <h2 className="focus-shop-name">
+              {state?.shop.displayName ??
+                (shopId ? "Your shop" : "Your storefront")}
+            </h2>
 
-              <p className="focus-storefront-desc">
-                {launched
-                  ? "Your customer-facing boutique is active and accessible online."
-                  : state
-                    ? "Your storefront is currently in draft. Complete setup to publish."
-                    : "Create a shop and add your first product to open your storefront."}
-              </p>
+            <p className="focus-storefront-desc">
+              {launched
+                ? "Your customer-facing boutique is active and accessible online."
+                : state
+                  ? "Your storefront is currently in draft. Complete setup to publish."
+                  : "Create a shop and add your first product to open your storefront."}
+            </p>
 
-              <div className="store-url-box">
-                <span className="store-url-label">Storefront address</span>
-                <code className="store-url-text">
-                  {state?.shop.subdomain
-                    ? `/store/${state.shop.subdomain}`
-                    : "No store address yet"}
-                </code>
-              </div>
+            <div className="store-url-box">
+              <span className="store-url-label">Storefront address</span>
+              <code className="store-url-text">
+                {state?.shop.subdomain
+                  ? `/store/${state.shop.subdomain}`
+                  : "No store address yet"}
+              </code>
+            </div>
 
-              <div className="focus-storefront-actions">
-                {launched ? (
-                  <>
-                    <Link
-                      className="button button-primary view-store-button focus-storefront-btn"
-                      href={`/store/${state.shop.subdomain}`}
+            <div className="focus-storefront-actions">
+              {launched ? (
+                <>
+                  <Link
+                    className="button button-primary view-store-button focus-storefront-btn"
+                    href={`/store/${state.shop.subdomain}`}
+                  >
+                    View Store
+                    <ArrowUpRight size={15} />
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={copyStoreLink}
+                    className="button button-secondary copy-store-link-button store-copy-link-btn"
+                    aria-label="Copy customer-facing storefront URL"
+                  >
+                    <Copy size={14} />
+                    {copied ? "Store link copied." : "Copy Link"}
+                  </button>
+                </>
+              ) : (
+                <>
+                  <div
+                    className="view-store-disabled-wrapper"
+                    title="Please set up your store first."
+                    tabIndex={0}
+                    aria-label="View Store unavailable. Please set up your store first."
+                  >
+                    <button
+                      type="button"
+                      disabled
+                      className="button button-primary view-store-button disabled focus-storefront-btn-disabled"
+                      aria-disabled="true"
+                      title="Please set up your store first."
                     >
                       View Store
                       <ArrowUpRight size={15} />
-                    </Link>
-                    <button
-                      type="button"
-                      onClick={copyStoreLink}
-                      className="button button-secondary copy-store-link-button store-copy-link-btn"
-                      aria-label="Copy customer-facing storefront URL"
-                    >
-                      <Copy size={14} />
-                      {copied ? "Store link copied." : "Copy Link"}
                     </button>
-                  </>
-                ) : (
-                  <>
-                    <div
-                      className="view-store-disabled-wrapper"
-                      title="Please set up your store first."
-                      tabIndex={0}
-                      aria-label="View Store unavailable. Please set up your store first."
-                    >
-                      <button
-                        type="button"
-                        disabled
-                        className="button button-primary view-store-button disabled focus-storefront-btn-disabled"
-                        aria-disabled="true"
-                        title="Please set up your store first."
-                      >
-                        View Store
-                        <ArrowUpRight size={15} />
-                      </button>
-                      <span className="view-store-disabled-hint" role="note">
-                        Please set up your store first.
-                      </span>
-                    </div>
+                    <span className="view-store-disabled-hint" role="note">
+                      Please set up your store first.
+                    </span>
+                  </div>
+                  <Link
+                    className="button button-secondary setup-store-button focus-setup-store-btn"
+                    href="/onboarding"
+                  >
+                    {state ? "Complete Setup / Launch" : "Set Up Store"}
+                    <ArrowUpRight size={15} />
+                  </Link>
+                  {state?.shop?.subdomain && (
                     <Link
-                      className="button button-secondary setup-store-button focus-setup-store-btn"
-                      href="/onboarding"
+                      className="button button-secondary view-store-preview-button store-preview-action-btn"
+                      href={`/store/${state.shop.subdomain}?preview=true`}
                     >
-                      {state ? "Complete Setup / Launch" : "Set Up Store"}
-                      <ArrowUpRight size={15} />
+                      Preview Store
+                      <ArrowUpRight size={14} />
                     </Link>
-                    {state?.shop?.subdomain && (
-                      <Link
-                        className="button button-secondary view-store-preview-button store-preview-action-btn"
-                        href={`/store/${state.shop.subdomain}?preview=true`}
-                      >
-                        Preview Store
-                        <ArrowUpRight size={14} />
-                      </Link>
-                    )}
-                  </>
-                )}
-              </div>
-
-              {copyError && <p role="alert">Copy is unavailable. Select and copy the store address above.</p>}
-              {copied && (
-                <p role="status" className="store-copy-status">
-                  Store link copied.
-                </p>
+                  )}
+                </>
               )}
+            </div>
 
-              <small className="focus-storefront-note">
-                {launched
-                  ? "Ready to share with customers via bio link or direct message."
-                  : "View Store becomes active as soon as your storefront is published."}
-              </small>
-            </section>
+            {copyError && (
+              <p role="alert">
+                Copy is unavailable. Select and copy the store address above.
+              </p>
+            )}
+            {copied && (
+              <p role="status" className="store-copy-status">
+                Store link copied.
+              </p>
+            )}
+
+            <small className="focus-storefront-note">
+              {launched
+                ? "Ready to share with customers via bio link or direct message."
+                : "View Store becomes active as soon as your storefront is published."}
+            </small>
+          </section>
           <div className="focus-primary-grid">
             <section className="focus-attention">
               <div className="focus-section-top">
@@ -369,7 +375,7 @@ export default function DashboardOverview() {
             </section>
             <motion.section
               className="focus-ai"
-              initial={{ opacity: 0, y: 8 }}
+              initial={{ opacity: 0, y: reduced ? 0 : 8 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.24 }}
             >
@@ -392,10 +398,12 @@ export default function DashboardOverview() {
                   ? "AI is currently off for this shop."
                   : "Drafts use your product and stock facts. Every reply waits for your approval and explicit send."}
               </p>
-              <div className="focus-ai-count">
-                <strong>{summary?.sentReplies ?? 0}</strong>
-                <span>reviewed AI replies sent</span>
-              </div>
+              {summary && summary.sentReplies > 0 && (
+                <div className="focus-ai-count">
+                  <strong>{summary?.sentReplies ?? 0}</strong>
+                  <span>reviewed AI replies sent</span>
+                </div>
+              )}
               <Link
                 href={shopId ? "/inbox" : "/onboarding"}
                 className="text-link"
@@ -405,37 +413,49 @@ export default function DashboardOverview() {
               </Link>
             </motion.section>
           </div>
-          {summary && summary.inventory.products > 0 && <section className="focus-facts" aria-label="Current shop totals">
-            {[
-              {
-                label: "Products",
-                value: summary?.inventory.products ?? 0,
-                href: "/products",
-                icon: Package,
-              },
-              {
-                label: "Available units",
-                value: summary?.inventory.available ?? 0,
-                href: "/products",
-                icon: Store,
-              },
-              {
-                label: "Customers",
-                value: summary?.customers ?? 0,
-                href: "/customers",
-                icon: Users,
-              },
-            ].map(({ label, value, href, icon: Icon }) => (
-              <Link href={href} key={label}>
-                <span>
-                  <Icon size={16} />
-                  {label}
-                </span>
-                <strong>{value.toLocaleString()}</strong>
-                <ArrowUpRight size={16} />
-              </Link>
-            ))}
-          </section>}
+          {summary && summary.inventory.products > 0 && (
+            <section className="focus-facts" aria-label="Current shop totals">
+              {[
+                {
+                  label: "Products",
+                  value: summary?.inventory.products ?? 0,
+                  href: "/products",
+                  icon: Package,
+                },
+                {
+                  label: "Available units",
+                  value: summary?.inventory.available ?? 0,
+                  href: "/products",
+                  icon: Store,
+                },
+                {
+                  label: "Customers",
+                  value: summary?.customers ?? 0,
+                  href: "/customers",
+                  icon: Users,
+                },
+              ].map(({ label, value, href, icon: Icon }) => (
+                <Link href={href} key={label}>
+                  <span>
+                    <Icon size={16} />
+                    {label}
+                  </span>
+                  <AnimatePresence mode="popLayout" initial={false}>
+                    <motion.strong
+                      key={value}
+                      initial={{ opacity: 0, y: reduced ? 0 : 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: reduced ? 0 : -10 }}
+                      transition={{ duration: 0.18 }}
+                    >
+                      {value.toLocaleString()}
+                    </motion.strong>
+                  </AnimatePresence>
+                  <ArrowUpRight size={16} />
+                </Link>
+              ))}
+            </section>
+          )}
           <div className="focus-secondary-grid">
             <section className="focus-activity">
               <h2>What changed</h2>
@@ -467,7 +487,6 @@ export default function DashboardOverview() {
                 </p>
               )}
             </section>
-
           </div>
         </>
       )}

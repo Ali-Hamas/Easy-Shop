@@ -10,7 +10,6 @@ import {
 } from "framer-motion";
 import {
   Package,
-  MessageCircle,
   ShieldCheck,
   Layers2,
   Users,
@@ -19,8 +18,9 @@ import {
   LayoutDashboard,
 } from "lucide-react";
 import { StorefrontMotionScene, InventoryMotionScene } from "./motion-scenes";
-import { LaunchHeader, ReplyExperience } from "./public-experience";
+import { LaunchHeader } from "./public-experience";
 import { ConnectedHero, ConnectedStory } from "./connected-opening";
+import { ReplyStory } from "./reply-story";
 import { ClosingScene } from "./closing-scene";
 import { WorkspaceScene, CustomerScene } from "./product-scenes";
 const flow = [
@@ -194,24 +194,7 @@ export default function CommerceLaunch() {
                   preview the next step.
                 </p>
               </div>
-              <div className="source-ribbon">
-                <span>
-                  <MessageCircle size={15} /> Conversation
-                </span>
-                <i />
-                <span>
-                  <Package size={15} /> Product + stock
-                </span>
-                <i />
-                <span>
-                  <Users size={15} /> Customer context
-                </span>
-                <i />
-                <span>
-                  <ShieldCheck size={15} /> Your review
-                </span>
-              </div>
-              <ReplyExperience />
+              <ReplyStory />
               <p className="ai-evidence">
                 Source status: example product and customer facts only.
                 Confidence is not scored; no model is connected. This demo never
@@ -236,9 +219,9 @@ export default function CommerceLaunch() {
                 Your approval stays yours.
               </p>
               <small>
-                The scenes here use illustrative data. Inside your workspace,
-                AI drafts use your shop’s facts. You review and approve every
-                reply before sending it to a storefront customer.
+                The scenes here use illustrative data. Inside your workspace, AI
+                drafts use your shop’s facts. You review and approve every reply
+                before sending it to a storefront customer.
               </small>
             </div>
           </section>

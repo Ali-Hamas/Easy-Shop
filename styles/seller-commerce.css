@@ -1,0 +1,161 @@
+.seller-commerce {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 32px;
+}
+.seller-commerce > header {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  align-items: center;
+  margin-bottom: 32px;
+}
+.seller-commerce h1 {
+  font-size: 28px;
+  font-weight: 600;
+  letter-spacing: -0.04em;
+}
+.seller-commerce header p,
+.seller-commerce-note {
+  font-size: 13px;
+  color: var(--text-secondary, #596574);
+  margin-top: 8px;
+  line-height: 1.7;
+}
+.seller-commerce-filter {
+  display: flex;
+  align-items: end;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+.seller-commerce-filter label {
+  display: grid;
+  gap: 8px;
+  font-size: 13px;
+}
+.seller-commerce-filter select {
+  padding: 10px 16px;
+  background: white;
+  border: 1px solid #d9dde5;
+  border-radius: 8px;
+  min-height: 44px;
+}
+.seller-order,
+.seller-review {
+  padding: 24px;
+  background: white;
+  border: 1px solid #e7e9ee;
+  border-radius: 12px;
+  margin-bottom: 16px;
+}
+.seller-order-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  font-size: 15px;
+}
+.seller-order-heading > div {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.seller-order-heading span {
+  font-size: 12px;
+  color: #526371;
+}
+.seller-order-reference {
+  font-size: 12px;
+  color: #596574;
+  overflow-wrap: anywhere;
+  margin: 12px 0 24px;
+}
+.seller-order-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 32px;
+}
+.seller-commerce h2 {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+.seller-order-columns p,
+.seller-review > p {
+  font-size: 14px;
+  line-height: 1.8;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+.seller-order details {
+  margin-top: 20px;
+  font-size: 13px;
+}
+.seller-order summary {
+  cursor: pointer;
+  padding: 12px 0;
+}
+.seller-order li {
+  padding: 6px 0;
+}
+.seller-order-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 20px;
+  flex-wrap: wrap;
+}
+.seller-commerce-empty {
+  background: white;
+  border: 1px dashed #d9dde5;
+  padding: 48px;
+  border-radius: 12px;
+  line-height: 1.8;
+}
+.seller-commerce-empty p {
+  font-size: 14px;
+  max-width: 60ch;
+  margin-bottom: 16px;
+}
+.seller-review h2 {
+  margin-top: 20px;
+}
+.seller-review time {
+  display: block;
+  font-size: 12px;
+  color: #596574;
+  margin: 12px 0 24px;
+}
+.seller-review form {
+  display: grid;
+  gap: 16px;
+  max-width: 760px;
+}
+.seller-commerce [role="alert"] {
+  padding: 16px;
+  background: #fff0f0;
+  color: #9e2929;
+  border-radius: 8px;
+}
+.seller-commerce [role="status"] {
+  font-size: 13px;
+  color: #176345;
+}
+@media (max-width: 767px) {
+  .seller-commerce {
+    padding: 20px 16px;
+  }
+  .seller-order-columns {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+  .seller-order,
+  .seller-review {
+    padding: 20px;
+  }
+  .seller-commerce > header {
+    align-items: start;
+  }
+  .seller-commerce-empty {
+    padding: 24px;
+  }
+}

@@ -1,3 +1,4 @@
+import type { StorefrontContent } from "./storefront-content";
 export const languages = ["bn", "bn-en", "en", "ur-roman", "ur"] as const;
 export const aiModes = ["off", "suggest", "auto_low_risk"] as const;
 export const onboardingSteps = [
@@ -62,7 +63,7 @@ export type StoreTemplate = {
   stack: string[];
   bestFor: string[];
   notes: string;
-  status: "test_only" | "candidate" | "reference_only";
+  status: "test_only" | "candidate" | "reference_only" | "available";
 };
 
 export type FirstProduct = {
@@ -180,7 +181,11 @@ export type PublicStore = {
     | "status"
     | "policyDefaults"
     | "selectedTemplateId"
-  >;
+  > & {
+    ownerPreview?: boolean;
+    logoUrl?: string | null;
+    content?: StorefrontContent;
+  };
   template: StoreTemplate;
   products: PublicProduct[];
 };

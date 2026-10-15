@@ -1,6 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import { commerceUi } from "@/config/commerce-ui";
+import { StorefrontCatalog } from "./storefront-catalog";
+import { ProductContact } from "./product-contact";
 import Image from "next/image";
 import { useEffect, useState, useMemo } from "react";
 import { useMotionPreference } from "@/hooks/use-motion-preference";
@@ -12,7 +15,6 @@ import {
   Package,
   Store,
   RefreshCw,
-  ShieldCheck,
   ShoppingBag,
   Search,
   X,
@@ -22,14 +24,32 @@ import {
   Plus,
   Minus,
   Check,
-  MessageCircle,
 } from "lucide-react";
+import {
+  StorefrontHero,
+  StorefrontCollections,
+  StorefrontDetails,
+} from "./storefront-brand";
+import { emptyStorefrontContent } from "@/types/storefront-content";
 import { StorefrontChat } from "./storefront-chat";
 import { storefrontService } from "@/services/commerce";
 import { ApiError } from "@/lib/api/client";
 import { formatMoney, productPath } from "@/adapters/commerce";
 import type { PublicStore, ProductDetail } from "@/types/commerce";
 import "@/styles/storefront.css";
+import "@/styles/storefront-redesign.css";
+import "@/styles/storefront-themes.css";
+import "@/styles/storefront-refinement.css";
+import { getStorefrontTheme } from "@/config/storefront-themes";
+import {
+  StorefrontSection,
+  StorefrontSectionLayout,
+} from "./storefront-sections";
+import { StorefrontProgress, StorefrontReveal } from "./storefront-motion";
+import { useRouter } from "next/navigation";
+import { useGuestCart } from "./use-guest-cart";
+import { GuestCheckout, GuestTracking } from "./guest-checkout";
+import { StorefrontReviews } from "./storefront-reviews";
 
 type CartItem = {
   productId: string;
@@ -62,11 +82,18 @@ function ProductVisual({
   return (
     <div className={`buyer-product-visual ${className || ""}`}>
       {valid && !failed ? (
-        <img
+        <Image
+          unoptimized
+          width={800}
+          height={800}
           src={url!}
           alt={name}
           className="buyer-product-visual-img"
-          loading="lazy"
+          loading={
+            className?.includes("detail") || className?.includes("spotlight")
+              ? "eager"
+              : "lazy"
+          }
           referrerPolicy="no-referrer"
           onError={() => setFailed(true)}
         />
@@ -90,6 +117,7 @@ export default function StorefrontExperience({
   expectedId?: string;
 }) {
   const reduced = useMotionPreference();
+  const router = useRouter();
   const [store, setStore] = useState<PublicStore | null>(null);
   const [product, setProduct] = useState<ProductDetail | null>(null);
   const [variant, setVariant] = useState("");
@@ -105,12 +133,15 @@ export default function StorefrontExperience({
 
   // Cart state
   const [cartOpen, setCartOpen] = useState(false);
-  const [cartItems, setCartItems] = useState<CartItem[]>([]);
+  const [checkoutOpen, setCheckoutOpen] = useState(false);
+  const [cartItems, setCartItems] = useGuestCart(subdomain, store?.products);
   const [addedNotice, setAddedNotice] = useState<string | null>(null);
 
   const isPreview = useMemo(() => {
     if (typeof window === "undefined") return false;
-    return new URLSearchParams(window.location.search).get("preview") === "true";
+    return (
+      new URLSearchParams(window.location.search).get("preview") === "true"
+    );
   }, []);
 
   useEffect(() => {
@@ -159,19 +190,32 @@ export default function StorefrontExperience({
     return () => controller.abort();
   }, [subdomain, slug, expectedId, version, isPreview]);
 
+  const content = { ...emptyStorefrontContent, ...store?.shop.content };
+  const previewTheme =
+    store?.shop.ownerPreview && typeof window !== "undefined"
+      ? new URLSearchParams(window.location.search).get("theme")
+      : null;
+  const theme = getStorefrontTheme(
+    previewTheme || content.design.themeId || store?.shop.selectedTemplateId,
+  );
+  const show = (
+    section: import("@/types/storefront-content").StorefrontSectionId,
+  ) =>
+    (section !== "tracking" || commerceUi.orders) &&
+    content.design.sections.includes(section);
+  const ownerPreviewTheme = store?.shop.ownerPreview ? theme.id : undefined;
+  const storeHome = `/store/${encodeURIComponent(subdomain)}${ownerPreviewTheme ? `?preview=true&theme=${encodeURIComponent(ownerPreviewTheme)}` : ""}`;
   const selectedVariant = useMemo(() => {
-    return product?.variants.find((v) => v.id === variant) ?? product?.variants[0];
+    return (
+      product?.variants.find((v) => v.id === variant) ?? product?.variants[0]
+    );
   }, [product, variant]);
 
   // Derived real categories
   const realCategories = useMemo(() => {
     if (!store?.products) return [];
     return Array.from(
-      new Set(
-        store.products
-          .map((p) => p.category)
-          .filter(Boolean),
-      ),
+      new Set(store.products.map((p) => p.category).filter(Boolean)),
     ) as string[];
   }, [store]);
 
@@ -210,6 +254,24 @@ export default function StorefrontExperience({
     },
     qty = 1,
   ) {
+    const catalogProduct = store?.products.find((p) => p.id === item.productId);
+    const options =
+      catalogProduct?.variants.filter(
+        (v): v is Exclude<typeof v, string> => typeof v !== "string",
+      ) ?? [];
+    if (!item.variantId && options.length > 1) {
+      const path = productPath(subdomain, catalogProduct!, ownerPreviewTheme);
+      if (path) router.push(path);
+      return;
+    }
+    if (!item.variantId && options.length === 1) {
+      item = {
+        ...item,
+        variantId: options[0].id,
+        variantTitle: options[0].title,
+        price: options[0].price,
+      };
+    }
     setCartItems((prev) => {
       const existing = prev.find(
         (i) => i.productId === item.productId && i.variantId === item.variantId,
@@ -217,28 +279,33 @@ export default function StorefrontExperience({
       if (existing) {
         return prev.map((i) =>
           i.productId === item.productId && i.variantId === item.variantId
-            ? { ...i, quantity: i.quantity + qty }
+            ? { ...i, quantity: Math.min(99, i.quantity + qty) }
             : i,
         );
       }
-      return [...prev, { ...item, quantity: qty }];
+      return [...prev, { ...item, quantity: Math.min(99, qty) }];
     });
     setAddedNotice(`Added "${item.productName}" to your bag.`);
     setTimeout(() => setAddedNotice(null), 3500);
     setCartOpen(true);
   }
 
-  function updateCartQuantity(productId: string, variantId: string | undefined, delta: number) {
-    setCartItems((prev) =>
-      prev
-        .map((i) => {
-          if (i.productId === productId && i.variantId === variantId) {
-            const nextQty = i.quantity + delta;
-            return nextQty > 0 ? { ...i, quantity: nextQty } : null;
-          }
-          return i;
-        })
-        .filter(Boolean) as CartItem[],
+  function updateCartQuantity(
+    productId: string,
+    variantId: string | undefined,
+    delta: number,
+  ) {
+    setCartItems(
+      (prev) =>
+        prev
+          .map((i) => {
+            if (i.productId === productId && i.variantId === variantId) {
+              const nextQty = Math.min(99, i.quantity + delta);
+              return nextQty > 0 ? { ...i, quantity: nextQty } : null;
+            }
+            return i;
+          })
+          .filter(Boolean) as CartItem[],
     );
   }
 
@@ -260,7 +327,12 @@ export default function StorefrontExperience({
     : "ES";
 
   return (
-    <div className="buyer-site">
+    <div
+      className="buyer-site"
+      data-store-theme={theme.id}
+      data-store-accent={content.design.accent}
+      data-store-font={content.design.fontSet}
+    >
       {/* Floating Chat Assistant */}
       {store && !loading && (
         <StorefrontChat
@@ -270,12 +342,14 @@ export default function StorefrontExperience({
       )}
 
       {/* Store Preview Banner when in Draft mode */}
-      {store?.shop.status === "draft" && (
+      {store?.shop.ownerPreview && (
         <aside className="store-preview-banner" aria-label="Store Preview Mode">
           <div className="store-preview-banner-inner">
             <span className="store-preview-tag">Draft Preview</span>
             <p className="store-preview-text">
-              This shop is currently in draft. Complete setup from your seller dashboard to launch it for buyers.
+              This is your private design preview. Publish from Store Design
+              when you are ready. Checkout and review submission are disabled
+              here.
             </p>
             <div className="store-preview-actions">
               <Link href="/onboarding" className="store-preview-dash-link">
@@ -289,14 +363,26 @@ export default function StorefrontExperience({
         </aside>
       )}
 
+      {content.announcement && (
+        <div className="brand-announcement">{content.announcement}</div>
+      )}
+      <StorefrontProgress />
       {/* Store Header */}
       <header className="buyer-header">
         <div className="buyer-header-left">
-          <Link
-            href={`/store/${encodeURIComponent(subdomain)}`}
-            className="buyer-brand-group"
-          >
-            <span className="buyer-brand-monogram">{shopInitials}</span>
+          <Link href={storeHome} className="buyer-brand-group">
+            {content.logoUrl || store?.shop.logoUrl ? (
+              <Image
+                className="buyer-brand-logo"
+                unoptimized
+                src={content.logoUrl || store!.shop.logoUrl!}
+                alt=""
+                width={44}
+                height={44}
+              />
+            ) : (
+              <span className="buyer-brand-monogram">{shopInitials}</span>
+            )}
             <div className="buyer-brand-text">
               <span className="buyer-brand-name buyer-brand-title">
                 {store?.shop.displayName ?? "Storefront"}
@@ -335,24 +421,26 @@ export default function StorefrontExperience({
               )}
             </div>
           ) : (
-            <Link href={`/store/${encodeURIComponent(subdomain)}`} className="buyer-link">
+            <Link href={storeHome} className="buyer-link">
               Browse products
             </Link>
           )}
 
           {/* Cart / Bag Button */}
-          <button
-            type="button"
-            className="buyer-bag-button buyer-bag-btn"
-            onClick={() => setCartOpen(true)}
-            aria-label={`Shopping bag with ${cartCount} items`}
-          >
-            <ShoppingBag size={18} />
-            <span className="buyer-bag-label">Bag</span>
-            <span className="buyer-bag-badge" aria-hidden>
-              {cartCount}
-            </span>
-          </button>
+          {commerceUi.orders && (
+            <button
+              type="button"
+              className="buyer-bag-button buyer-bag-btn"
+              onClick={() => setCartOpen(true)}
+              aria-label={`Shopping bag with ${cartCount} items`}
+            >
+              <ShoppingBag size={18} />
+              <span className="buyer-bag-label">Bag</span>
+              <span className="buyer-bag-badge" aria-hidden>
+                {cartCount}
+              </span>
+            </button>
+          )}
         </div>
       </header>
 
@@ -409,10 +497,7 @@ export default function StorefrontExperience({
               </button>
             )}
             {slug && (
-              <Link
-                href={`/store/${encodeURIComponent(subdomain)}`}
-                className="buyer-link"
-              >
+              <Link href={storeHome} className="buyer-link">
                 <ArrowLeft size={15} /> Back to shop
               </Link>
             )}
@@ -423,7 +508,7 @@ export default function StorefrontExperience({
              =================================================== */
           <div className="buyer-detail-container">
             <nav className="buyer-breadcrumb" aria-label="Breadcrumb">
-              <Link href={`/store/${subdomain}`}>
+              <Link href={storeHome}>
                 <ArrowLeft size={14} /> All products
               </Link>
               <span aria-hidden>·</span>
@@ -440,9 +525,7 @@ export default function StorefrontExperience({
                   ).filter(Boolean) as string[];
 
                   const activeSrc =
-                    productImages[activeImageIndex] ??
-                    product.imageUrl ??
-                    null;
+                    productImages[activeImageIndex] ?? product.imageUrl ?? null;
 
                   return (
                     <div className="buyer-gallery-wrapper">
@@ -470,7 +553,7 @@ export default function StorefrontExperience({
                       {productImages.length > 1 && (
                         <div
                           className="buyer-gallery-thumbnails"
-                          role="tablist"
+                          role="group"
                           aria-label="Product image thumbnails"
                         >
                           {productImages.map((thumbUrl, idx) => {
@@ -479,16 +562,14 @@ export default function StorefrontExperience({
                               <button
                                 key={idx}
                                 type="button"
-                                role="tab"
-                                aria-selected={isCurrent}
+                                aria-pressed={isCurrent}
                                 aria-label={`View photo ${idx + 1}`}
                                 className={`buyer-gallery-thumb-btn ${isCurrent ? "active" : ""}`}
                                 onClick={() => setActiveImageIndex(idx)}
                               >
-                                <img
-                                  src={thumbUrl}
-                                  alt={`${product.name} thumbnail ${idx + 1}`}
-                                  className="buyer-gallery-thumb-img"
+                                <ProductVisual
+                                  url={thumbUrl}
+                                  name={`${product.name} photo ${idx + 1}`}
                                 />
                               </button>
                             );
@@ -505,7 +586,9 @@ export default function StorefrontExperience({
                   {store.shop.category || "Curated"} · {store.shop.country}
                 </span>
 
-                <h1 className="buyer-product-headline buyer-detail-title">{product.name}</h1>
+                <h1 className="buyer-product-headline buyer-detail-title">
+                  {product.name}
+                </h1>
 
                 <div className="buyer-price-row">
                   <span className="buyer-main-price buyer-detail-price">
@@ -543,13 +626,16 @@ export default function StorefrontExperience({
                 {product.variants.length > 1 && (
                   <div className="buyer-variants-section">
                     <span className="buyer-variants-title">Select Option</span>
-                    <div className="buyer-variant-buttons" role="radiogroup">
+                    <div
+                      className="buyer-variant-buttons"
+                      role="group"
+                      aria-label="Choose a product option"
+                    >
                       {product.variants.map((v) => (
                         <button
                           key={v.id}
                           type="button"
-                          role="radio"
-                          aria-checked={variant === v.id}
+                          aria-pressed={variant === v.id}
                           className={`buyer-variant-card ${
                             variant === v.id ? "active" : ""
                           }`}
@@ -562,7 +648,9 @@ export default function StorefrontExperience({
                         >
                           <span className="variant-card-title">{v.title}</span>
                           <span className="variant-card-stock">
-                            {v.stock > 0 ? `${v.stock} in stock` : "Out of stock"}
+                            {v.stock > 0
+                              ? `${v.stock} in stock`
+                              : "Out of stock"}
                           </span>
                         </button>
                       ))}
@@ -570,68 +658,92 @@ export default function StorefrontExperience({
                   </div>
                 )}
 
+                <ProductContact
+                  content={content}
+                  shopName={store.shop.displayName}
+                  productName={product.name}
+                  price={formatMoney(
+                    selectedVariant?.price ?? product.price,
+                    store.shop.currency,
+                  )}
+                  path={
+                    productPath(subdomain, product) || `/store/${subdomain}`
+                  }
+                  variant={
+                    selectedVariant?.title === "Default"
+                      ? ""
+                      : selectedVariant?.title
+                  }
+                  themeId={theme.id}
+                />
                 {/* Quantity and Add to Bag */}
-                <div className="buyer-purchase-actions">
-                  <div className="buyer-qty-selector" aria-label="Select quantity">
-                    <button
-                      type="button"
-                      disabled={quantity <= 1}
-                      onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-                      aria-label="Decrease quantity"
+                {commerceUi.orders && (
+                  <div className="buyer-purchase-actions">
+                    <div
+                      className="buyer-qty-selector"
+                      aria-label="Select quantity"
                     >
-                      <Minus size={14} />
-                    </button>
-                    <span className="buyer-qty-display">{quantity}</span>
+                      <button
+                        type="button"
+                        disabled={quantity <= 1}
+                        onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+                        aria-label="Decrease quantity"
+                      >
+                        <Minus size={14} />
+                      </button>
+                      <span className="buyer-qty-display">{quantity}</span>
+                      <button
+                        type="button"
+                        disabled={
+                          selectedVariant
+                            ? quantity >= selectedVariant.stock
+                            : false
+                        }
+                        onClick={() =>
+                          setQuantity((q) =>
+                            selectedVariant
+                              ? Math.min(selectedVariant.stock, q + 1)
+                              : q + 1,
+                          )
+                        }
+                        aria-label="Increase quantity"
+                      >
+                        <Plus size={14} />
+                      </button>
+                    </div>
+
                     <button
                       type="button"
-                      disabled={
-                        selectedVariant
-                          ? quantity >= selectedVariant.stock
-                          : false
-                      }
+                      disabled={!selectedVariant || selectedVariant.stock <= 0}
                       onClick={() =>
-                        setQuantity((q) =>
-                          selectedVariant
-                            ? Math.min(selectedVariant.stock, q + 1)
-                            : q + 1,
+                        addToCart(
+                          {
+                            productId: product.id,
+                            productName: product.name,
+                            slug: product.slug,
+                            variantId: selectedVariant?.id,
+                            variantTitle: selectedVariant?.title,
+                            price: selectedVariant?.price ?? product.price,
+                            imageUrl: product.imageUrl,
+                          },
+                          quantity,
                         )
                       }
-                      aria-label="Increase quantity"
+                      className="buyer-add-to-bag-button buyer-add-to-bag-btn"
                     >
-                      <Plus size={14} />
+                      <ShoppingBag size={18} />
+                      <span>
+                        {selectedVariant && selectedVariant.stock > 0
+                          ? `Add to Bag · ${formatMoney(
+                              (selectedVariant.price ?? product.price) *
+                                quantity,
+                              product.currency,
+                            )}`
+                          : "Out of Stock"}
+                      </span>
                     </button>
                   </div>
-
-                  <button
-                    type="button"
-                    disabled={!selectedVariant || selectedVariant.stock <= 0}
-                    onClick={() =>
-                      addToCart(
-                        {
-                          productId: product.id,
-                          productName: product.name,
-                          slug: product.slug,
-                          variantId: selectedVariant?.id,
-                          variantTitle: selectedVariant?.title,
-                          price: selectedVariant?.price ?? product.price,
-                          imageUrl: product.imageUrl,
-                        },
-                        quantity,
-                      )
-                    }
-                    className="buyer-add-to-bag-button buyer-add-to-bag-btn"
-                  >
-                    <ShoppingBag size={18} />
-                    <span>
-                      {selectedVariant && selectedVariant.stock > 0
-                        ? `Add to Bag · ${formatMoney(
-                            (selectedVariant.price ?? product.price) * quantity,
-                            product.currency,
-                          )}`
-                        : "Out of Stock"}
-                    </span>
-                  </button>
-                </div>
+                )}
 
                 {/* Description */}
                 {product.description && (
@@ -663,7 +775,8 @@ export default function StorefrontExperience({
                     <div>
                       <strong>Returns & Exchange</strong>
                       <span>
-                        {store.shop.policyDefaults.returnDays} days return window
+                        {store.shop.policyDefaults.returnDays} days return
+                        window
                       </span>
                     </div>
                   </div>
@@ -675,695 +788,582 @@ export default function StorefrontExperience({
                       <span>
                         {store.shop.policyDefaults.codAllowed
                           ? "Cash on delivery available"
-                          : "Direct electronic payment"}
+                          : "Ask the seller about payment"}
                       </span>
                     </div>
                   </div>
                 </div>
               </div>
             </section>
+            {show("reviews") && (
+              <>
+                <StorefrontReviews
+                  key={product.id}
+                  subdomain={subdomain}
+                  name={store.shop.displayName}
+                  productId={product.id}
+                  published={
+                    store.shop.status === "launched" && !store.shop.ownerPreview
+                  }
+                />
+              </>
+            )}
+            {show("tracking") && <GuestTracking subdomain={subdomain} />}
           </div>
         ) : store ? (
           /* ===================================================
              STOREFRONT CATALOG (1 vs 2-4 vs 5+ Products)
              =================================================== */
           <>
-            {/* Storefront Hero / Introduction */}
-            <motion.section
-              className="buyer-hero"
-              initial={{ opacity: 0, y: reduced ? 0 : 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4 }}
+            <nav className="brand-navigation" aria-label="Store navigation">
+              {show("catalog") && <a href="#collection">Shop collection</a>}
+              {show("reviews") && <a href="#store-reviews">Reviews</a>}
+              {show("tracking") && <a href="#order-tracking">Track order</a>}
+              {show("about") && content.story && (
+                <a href="#our-story">Our story</a>
+              )}
+              {show("contact") &&
+                (content.faqs.length > 0 ||
+                  content.email ||
+                  content.phone ||
+                  content.address) && <a href="#store-help">Help & contact</a>}
+            </nav>
+            <StorefrontSectionLayout
+              sections={content.design.sections.filter(show)}
             >
-              <div className="buyer-hero-inner buyer-hero-brand">
-                <span className="buyer-hero-badge">
-                  Independent Boutique · {store.shop.country}
-                </span>
-
-                <h1 className="buyer-hero-title">{store.shop.displayName}</h1>
-
-                <p className="buyer-hero-desc">
-                  Curated contemporary essentials, handcrafted with enduring quality and timeless design. Explore the new season collection below.
-                </p>
-
-                <div className="buyer-hero-meta">
-                  <div className="buyer-hero-meta-item">
-                    <span className="meta-dot" />
-                    <span>
-                      <strong>{store.products.length}</strong>{" "}
-                      {store.products.length === 1 ? "curated item" : "curated items"} in catalog
-                    </span>
-                  </div>
-                  <div className="buyer-hero-meta-item">
-                    <span className="meta-dot" />
-                    <span>
-                      Delivery:{" "}
-                      <strong>
-                        {store.shop.policyDefaults.deliveryCharge === 0
-                          ? "Free"
-                          : formatMoney(
-                              store.shop.policyDefaults.deliveryCharge,
-                              store.shop.currency,
-                            )}
-                      </strong>
-                    </span>
-                  </div>
-                  <div className="buyer-hero-meta-item">
-                    <span className="meta-dot" />
-                    <span>
-                      COD:{" "}
-                      <strong>
-                        {store.shop.policyDefaults.codAllowed
-                          ? "Supported"
-                          : "Inquire"}
-                      </strong>
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </motion.section>
-
-            {/* Catalog Presentation */}
-            {store.products.length === 0 ? (
-              <section className="buyer-empty">
-                <Package size={40} strokeWidth={1.2} />
-                <h2>A collection is on its way.</h2>
-                <p>
-                  This boutique is open, but no active products have been published yet.
-                </p>
-                {store.shop.status === "draft" && (
-                  <Link
-                    href="/products"
-                    className="buyer-button"
-                    style={{ marginTop: 16 }}
+              <StorefrontSection sectionId="hero">
+                <StorefrontHero
+                  content={content}
+                  name={store.shop.displayName}
+                  category={store.shop.category}
+                  image={store.products[0]?.imageUrl}
+                />
+              </StorefrontSection>
+              <StorefrontSection sectionId="categories">
+                {realCategories.length > 1 && (
+                  <nav
+                    className="store-category-navigation"
+                    aria-label="Browse categories"
                   >
-                    Add products in Seller Workspace <ArrowRight size={15} />
-                  </Link>
+                    <span>Shop by category</span>
+                    <div>
+                      {realCategories.map((cat) => (
+                        <button
+                          type="button"
+                          key={cat}
+                          aria-pressed={selectedCategory === cat}
+                          onClick={() => {
+                            setSelectedCategory(cat);
+                            document
+                              .getElementById("collection")
+                              ?.scrollIntoView({
+                                behavior: reduced ? "auto" : "smooth",
+                              });
+                          }}
+                        >
+                          {cat}
+                          <ArrowRight size={16} />
+                        </button>
+                      ))}
+                    </div>
+                  </nav>
                 )}
-              </section>
-            ) : filteredProducts.length === 0 ? (
-              <section className="buyer-empty">
-                <Search size={36} strokeWidth={1.2} />
-                <h2>No products match “{searchQuery}”.</h2>
-                <p>Try searching for a different term or clear your search query.</p>
-                <button
-                  type="button"
-                  onClick={() => setSearchQuery("")}
-                  className="buyer-button"
-                >
-                  Clear search query
-                </button>
-              </section>
-            ) : filteredProducts.length === 1 && !searchQuery ? (
-              /* ===================================================
+              </StorefrontSection>
+              <StorefrontSection sectionId="featured">
+                <StorefrontReveal>
+                  <StorefrontCollections
+                    content={content}
+                    products={store.products}
+                    subdomain={subdomain}
+                    currency={store.shop.currency}
+                    previewTheme={ownerPreviewTheme}
+                  />
+                </StorefrontReveal>
+              </StorefrontSection>
+              <StorefrontSection sectionId="catalog">
+                <div id="collection" className="brand-catalog-heading">
+                  <h2>Explore the collection</h2>
+                  <span>
+                    {store.products.length} product
+                    {store.products.length === 1 ? "" : "s"}
+                  </span>
+                </div>
+                {/* Catalog Presentation */}
+                {store.products.length === 0 ? (
+                  <section className="buyer-empty">
+                    <Package size={40} strokeWidth={1.2} />
+                    <h2>A collection is on its way.</h2>
+                    <p>
+                      This boutique is open, but no active products have been
+                      published yet.
+                    </p>
+                    {store.shop.status === "draft" && (
+                      <Link
+                        href="/products"
+                        className="buyer-button"
+                        style={{ marginTop: 16 }}
+                      >
+                        Add products in Seller Workspace{" "}
+                        <ArrowRight size={15} />
+                      </Link>
+                    )}
+                  </section>
+                ) : filteredProducts.length === 0 ? (
+                  <section className="buyer-empty">
+                    <Search size={36} strokeWidth={1.2} />
+                    <h2>No products match “{searchQuery}”.</h2>
+                    <p>
+                      Try searching for a different term or clear your search
+                      query.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => setSearchQuery("")}
+                      className="buyer-button"
+                    >
+                      Clear search query
+                    </button>
+                  </section>
+                ) : filteredProducts.length === 1 && !searchQuery ? (
+                  /* ===================================================
                  CASE 1: EXACTLY 1 PRODUCT -> LUXURY SPOTLIGHT SHOWCASE
                  =================================================== */
-              <section className="buyer-spotlight-section" aria-label="Featured Product Spotlight">
-                <div className="buyer-section-heading">
-                  <span>Curated Collection</span>
-                  <h2>Featured Spotlight</h2>
-                </div>
+                  <section
+                    className="buyer-spotlight-section"
+                    aria-label="Featured Product Spotlight"
+                  >
+                    <div className="buyer-section-heading">
+                      <span>The collection</span>
+                      <h2>In focus</h2>
+                    </div>
 
-                {(() => {
-                  const p = filteredProducts[0];
-                  const path = productPath(subdomain, p);
-                  return (
-                    <article className="buyer-spotlight-card">
-                      <div className="buyer-spotlight-visual-wrap">
-                        <ProductVisual
-                          url={p.imageUrl}
-                          name={p.name}
-                          className="buyer-spotlight-img"
-                        />
-                        <span className="buyer-spotlight-tag">In focus</span>
-                      </div>
-
-                      <div className="buyer-spotlight-info">
-                        <span className="buyer-overline">
-                          {store.shop.category || "Independent Piece"}
-                        </span>
-
-                        <h3 className="buyer-spotlight-title buyer-spotlight-name">{p.name}</h3>
-
-                        <div className="buyer-spotlight-price-row">
-                          <span className="buyer-spotlight-price">
-                            {formatMoney(p.price, store.shop.currency)}
-                          </span>
-                          <span
-                            className={`buyer-stock-pill ${
-                              p.stock > 0
-                                ? p.stock <= 5
-                                  ? "low"
-                                  : "available"
-                                : "out"
-                            }`}
-                          >
-                            {p.stock > 0
-                              ? p.stock <= 5
-                                ? `Low stock · ${p.stock} left`
-                                : `In stock · ${p.stock} available`
-                              : "Out of stock"}
-                          </span>
-                        </div>
-
-                        <p className="buyer-spotlight-subtext">
-                          {p.description || `Explore ${p.name} from ${store.shop.displayName}. View the details or ask the seller a question.`}
-                        </p>
-
-                        <div className="buyer-spotlight-policies">
-                          <div>
-                            <Truck size={16} />
-                            <span>
-                              {store.shop.policyDefaults.deliveryCharge === 0
-                                ? "Free delivery"
-                                : formatMoney(
-                                    store.shop.policyDefaults.deliveryCharge,
-                                    store.shop.currency,
-                                  )}
+                    {(() => {
+                      const p = filteredProducts[0];
+                      const path = productPath(subdomain, p, ownerPreviewTheme);
+                      return (
+                        <article className="buyer-spotlight-card">
+                          <div className="buyer-spotlight-visual-wrap">
+                            <ProductVisual
+                              url={p.imageUrl}
+                              name={p.name}
+                              className="buyer-spotlight-img"
+                            />
+                            <span className="buyer-spotlight-tag">
+                              In focus
                             </span>
                           </div>
-                          <div>
-                            <RotateCcw size={16} />
-                            <span>{store.shop.policyDefaults.returnDays} days return</span>
-                          </div>
-                          <div>
-                            <CreditCard size={16} />
-                            <span>
-                              {store.shop.policyDefaults.codAllowed
-                                ? "Cash on delivery"
-                                : "Ask about payment"}
+
+                          <div className="buyer-spotlight-info">
+                            <span className="buyer-overline">
+                              {store.shop.category || "Independent Piece"}
                             </span>
-                          </div>
-                        </div>
 
-                        <div className="buyer-spotlight-actions">
-                          {path && (
-                            <Link href={path} className="buyer-spotlight-primary-link buyer-spotlight-detail-btn">
-                              View Product Details <ArrowRight size={16} />
-                            </Link>
-                          )}
-                          <button
-                            type="button"
-                            disabled={p.stock <= 0}
-                            onClick={() =>
-                              addToCart({
-                                productId: p.id,
-                                productName: p.name,
-                                slug: p.slug,
-                                price: p.price,
-                                imageUrl: p.imageUrl,
-                              })
-                            }
-                            className="buyer-spotlight-bag-button"
-                          >
-                            <ShoppingBag size={16} />
-                            <span>Add to Bag</span>
-                          </button>
-                        </div>
-                      </div>
-                    </article>
-                  );
-                })()}
-              </section>
-            ) : filteredProducts.length >= 2 && filteredProducts.length <= 4 && !searchQuery ? (
-              /* ===================================================
-                 CASE 2: 2 TO 4 PRODUCTS -> BALANCED EDITORIAL GRID
-                 =================================================== */
-              <section className="buyer-curated-section" aria-label="Curated Collection">
-                <div className="buyer-collection-toolbar">
-                  <div className="buyer-section-heading">
-                    <span>Our Collection</span>
-                    <h2>The collection ({filteredProducts.length} pieces)</h2>
-                  </div>
-                  {realCategories.length >= 2 && (
-                    <div className="buyer-category-filter-group" role="tablist" aria-label="Filter by category">
-                      <button
-                        type="button"
-                        className={`buyer-category-pill ${!selectedCategory ? "active" : ""}`}
-                        onClick={() => setSelectedCategory(null)}
-                      >
-                        All Products ({store.products.length})
-                      </button>
-                      {realCategories.map((cat) => (
-                        <button
-                          key={cat}
-                          type="button"
-                          className={`buyer-category-pill ${selectedCategory === cat ? "active" : ""}`}
-                          onClick={() => setSelectedCategory(cat)}
-                        >
-                          {cat}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
+                            <h3 className="buyer-spotlight-title buyer-spotlight-name">
+                              {p.name}
+                            </h3>
 
-                <div className="buyer-grid-curated">
-                  {filteredProducts.map((p) => {
-                    const path = productPath(subdomain, p);
-                    return (
-                      <motion.article layout key={p.id} initial={{ opacity: 0, y: reduced ? 0 : 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.24 }} className="buyer-card buyer-card-curated">
-                        <div className="buyer-card-media-wrap">
-                          <ProductVisual url={p.imageUrl} name={p.name} />
-                          <span
-                            className={`buyer-stock-pill ${
-                              p.stock > 0
-                                ? p.stock <= 5
-                                  ? "low"
-                                  : "available"
-                                : "out"
-                            }`}
-                          >
-                            {p.stock > 0
-                              ? p.stock <= 5
-                                ? `${p.stock} left`
-                                : "In stock"
-                              : "Out of stock"}
-                          </span>
-                        </div>
+                            <div className="buyer-spotlight-price-row">
+                              <span className="buyer-spotlight-price">
+                                {formatMoney(p.price, store.shop.currency)}
+                              </span>
+                              <span
+                                className={`buyer-stock-pill ${
+                                  p.stock > 0
+                                    ? p.stock <= 5
+                                      ? "low"
+                                      : "available"
+                                    : "out"
+                                }`}
+                              >
+                                {p.stock > 0
+                                  ? p.stock <= 5
+                                    ? `Low stock · ${p.stock} left`
+                                    : `In stock · ${p.stock} available`
+                                  : "Out of stock"}
+                              </span>
+                            </div>
 
-                        <div className="buyer-card-body">
-                          <span className="buyer-card-category">
-                            {store.shop.category || "Item"}
-                          </span>
-                          <h3 className="buyer-card-title">
-                            {path ? (
-                              <Link href={path}>{p.name}</Link>
-                            ) : (
-                              p.name
-                            )}
-                          </h3>
+                            <p className="buyer-spotlight-subtext">
+                              {p.description ||
+                                `Explore ${p.name} from ${store.shop.displayName}. View the details or ask the seller a question.`}
+                            </p>
 
-                          <div className="buyer-card-price-row">
-                            <strong className="buyer-card-price">
-                              {formatMoney(p.price, store.shop.currency)}
-                            </strong>
-                            <small className="buyer-card-units">
-                              {p.stock} units
-                            </small>
-                          </div>
+                            <div className="buyer-spotlight-policies">
+                              <div>
+                                <Truck size={16} />
+                                <span>
+                                  {store.shop.policyDefaults.deliveryCharge ===
+                                  0
+                                    ? "Free delivery"
+                                    : formatMoney(
+                                        store.shop.policyDefaults
+                                          .deliveryCharge,
+                                        store.shop.currency,
+                                      )}
+                                </span>
+                              </div>
+                              <div>
+                                <RotateCcw size={16} />
+                                <span>
+                                  {store.shop.policyDefaults.returnDays} days
+                                  return
+                                </span>
+                              </div>
+                              <div>
+                                <CreditCard size={16} />
+                                <span>
+                                  {store.shop.policyDefaults.codAllowed
+                                    ? "Cash on delivery"
+                                    : "Ask about payment"}
+                                </span>
+                              </div>
+                            </div>
 
-                          <div className="buyer-card-footer">
-                            {path && (
-                              <Link href={path} className="buyer-card-detail-link">
-                                View details <ArrowRight size={14} />
-                              </Link>
-                            )}
-                            <button
-                              type="button"
-                              disabled={p.stock <= 0}
-                              onClick={() =>
-                                addToCart({
-                                  productId: p.id,
-                                  productName: p.name,
-                                  slug: p.slug,
-                                  price: p.price,
-                                  imageUrl: p.imageUrl,
-                                })
+                            <ProductContact
+                              content={content}
+                              shopName={store.shop.displayName}
+                              productName={p.name}
+                              price={formatMoney(p.price, store.shop.currency)}
+                              path={
+                                productPath(subdomain, p) ||
+                                `/store/${subdomain}`
                               }
-                              className="buyer-card-add-btn"
-                              aria-label={`Add ${p.name} to bag`}
-                            >
-                              <ShoppingBag size={14} />
-                            </button>
+                              themeId={theme.id}
+                            />
+                            <div className="buyer-spotlight-actions">
+                              {path && (
+                                <Link
+                                  href={path}
+                                  className="buyer-spotlight-primary-link buyer-spotlight-detail-btn"
+                                >
+                                  View Product Details <ArrowRight size={16} />
+                                </Link>
+                              )}
+                              {commerceUi.orders && (
+                                <button
+                                  type="button"
+                                  disabled={p.stock <= 0}
+                                  onClick={() =>
+                                    addToCart({
+                                      productId: p.id,
+                                      productName: p.name,
+                                      slug: p.slug,
+                                      price: p.price,
+                                      imageUrl: p.imageUrl,
+                                    })
+                                  }
+                                  className="buyer-spotlight-bag-button"
+                                >
+                                  <ShoppingBag size={16} />
+                                  <span>Add to Bag</span>
+                                </button>
+                              )}
+                            </div>
                           </div>
-                        </div>
-                      </motion.article>
-                    );
-                  })}
-                </div>
-              </section>
-            ) : (
-              /* ===================================================
-                 CASE 3: 5+ PRODUCTS OR SEARCH FILTER ACTIVE -> STANDARD RESPONSIVE GRID
-                 =================================================== */
-              <section className="buyer-catalog-section" aria-label="Product Catalog">
-                <div className="buyer-collection-toolbar">
-                  <div className="buyer-section-heading">
-                    <span>Catalog</span>
-                    <h2>All Products ({filteredProducts.length})</h2>
-                  </div>
-                  {realCategories.length >= 2 && (
-                    <div className="buyer-category-filter-group" role="tablist" aria-label="Filter by category">
-                      <button
-                        type="button"
-                        className={`buyer-category-pill ${!selectedCategory ? "active" : ""}`}
-                        onClick={() => setSelectedCategory(null)}
-                      >
-                        All Products ({store.products.length})
-                      </button>
-                      {realCategories.map((cat) => (
-                        <button
-                          key={cat}
-                          type="button"
-                          className={`buyer-category-pill ${selectedCategory === cat ? "active" : ""}`}
-                          onClick={() => setSelectedCategory(cat)}
-                        >
-                          {cat}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                <div className="buyer-catalog-grid">
-                  {filteredProducts.map((p) => {
-                    const path = productPath(subdomain, p);
-                    return (
-                      <motion.article layout key={p.id} initial={{ opacity: 0, y: reduced ? 0 : 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.24 }} className="buyer-card">
-                        <div className="buyer-card-media-wrap">
-                          <ProductVisual url={p.imageUrl} name={p.name} />
-                          <span
-                            className={`buyer-stock-pill ${
-                              p.stock > 0
-                                ? p.stock <= 5
-                                  ? "low"
-                                  : "available"
-                                : "out"
-                            }`}
-                          >
-                            {p.stock > 0
-                              ? p.stock <= 5
-                                ? `${p.stock} left`
-                                : "In stock"
-                              : "Out of stock"}
-                          </span>
-                        </div>
-
-                        <div className="buyer-card-body">
-                          <span className="buyer-card-category">
-                            {store.shop.category || "Item"}
-                          </span>
-                          <h3 className="buyer-card-title">
-                            {path ? (
-                              <Link href={path}>{p.name}</Link>
-                            ) : (
-                              p.name
-                            )}
-                          </h3>
-
-                          <div className="buyer-card-price-row">
-                            <strong className="buyer-card-price">
-                              {formatMoney(p.price, store.shop.currency)}
-                            </strong>
-                            <small className="buyer-card-units">
-                              {p.stock} available
-                            </small>
-                          </div>
-
-                          <div className="buyer-card-footer">
-                            {path && (
-                              <Link href={path} className="buyer-card-detail-link">
-                                Details <ArrowRight size={14} />
-                              </Link>
-                            )}
-                            <button
-                              type="button"
-                              disabled={p.stock <= 0}
-                              onClick={() =>
-                                addToCart({
-                                  productId: p.id,
-                                  productName: p.name,
-                                  slug: p.slug,
-                                  price: p.price,
-                                  imageUrl: p.imageUrl,
-                                })
-                              }
-                              className="buyer-card-add-btn"
-                              aria-label={`Add ${p.name} to bag`}
-                            >
-                              <ShoppingBag size={14} />
-                            </button>
-                          </div>
-                        </div>
-                      </motion.article>
-                    );
-                  })}
-                </div>
-              </section>
-            )}
-
-            {/* Store Policies & Trust Strip */}
-            <section className="buyer-policies-strip">
-              <div className="buyer-policy-box">
-                <Truck size={22} strokeWidth={1.3} />
-                <h3>Fast Delivery</h3>
-                <p>
-                  {store.shop.policyDefaults.deliveryCharge === 0
-                    ? "Complimentary delivery on all orders."
-                    : `${formatMoney(
-                        store.shop.policyDefaults.deliveryCharge,
-                        store.shop.currency,
-                      )} flat rate delivery.`}
-                </p>
-              </div>
-
-              <div className="buyer-policy-box">
-                <RotateCcw size={22} strokeWidth={1.3} />
-                <h3>Clear Returns</h3>
-                <p>
-                  {store.shop.policyDefaults.returnDays} days return and replacement
-                  policy for buyer confidence.
-                </p>
-              </div>
-
-              <div className="buyer-policy-box">
-                <CreditCard size={22} strokeWidth={1.3} />
-                <h3>Payment Methods</h3>
-                <p>
-                  {store.shop.policyDefaults.codAllowed
-                    ? "Cash on delivery available upon package arrival."
-                    : "Ask the seller about accepted payment methods."}
-                </p>
-              </div>
-
-              <div className="buyer-policy-box">
-                <ShieldCheck size={22} strokeWidth={1.3} />
-                <h3>Contact the shop</h3>
-                <p>
-                  Ask the seller about products before placing an order.
-                </p>
-              </div>
-            </section>
+                        </article>
+                      );
+                    })()}
+                  </section>
+                ) : (
+                  <StorefrontCatalog
+                    products={filteredProducts}
+                    subdomain={subdomain}
+                    currency={store.shop.currency}
+                    previewTheme={ownerPreviewTheme}
+                    categories={realCategories}
+                    selectedCategory={selectedCategory}
+                    onCategory={setSelectedCategory}
+                    onAdd={(p) =>
+                      addToCart({
+                        productId: p.id,
+                        productName: p.name,
+                        slug: p.slug,
+                        price: p.price,
+                        imageUrl: p.imageUrl,
+                      })
+                    }
+                  />
+                )}
+              </StorefrontSection>
+              <StorefrontSection sectionId="reviews">
+                {" "}
+                <StorefrontReviews
+                  subdomain={subdomain}
+                  name={store.shop.displayName}
+                  published={
+                    store.shop.status === "launched" && !store.shop.ownerPreview
+                  }
+                />
+              </StorefrontSection>
+              <StorefrontSection sectionId="tracking">
+                {" "}
+                <GuestTracking subdomain={subdomain} />
+              </StorefrontSection>
+              {(["about", "policies", "contact"] as const).map((part) => (
+                <StorefrontSection key={part} sectionId={part}>
+                  <StorefrontReveal>
+                    <StorefrontDetails
+                      content={content}
+                      name={store.shop.displayName}
+                      part={part}
+                    />
+                  </StorefrontReveal>
+                </StorefrontSection>
+              ))}
+            </StorefrontSectionLayout>
           </>
         ) : null}
       </main>
 
+      {commerceUi.orders && store && checkoutOpen && (
+        <GuestCheckout
+          open={checkoutOpen}
+          onOpenChange={setCheckoutOpen}
+          store={store}
+          items={cartItems}
+          onComplete={() => setCartItems([])}
+        />
+      )}
       {/* Cart Drawer */}
-      <Dialog.Root open={cartOpen} onOpenChange={setCartOpen}>
-      <AnimatePresence>
-        {cartOpen && (
-          <>
-            <Dialog.Overlay forceMount asChild><motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="buyer-cart-backdrop"
-              onClick={() => setCartOpen(false)}
-              aria-hidden
-            /></Dialog.Overlay>
-            <Dialog.Content forceMount asChild aria-describedby={undefined}><motion.aside
-              initial={{ x: reduced ? 0 : "100%" }}
-              animate={{ x: 0 }}
-              exit={{ x: reduced ? 0 : "100%" }}
-              transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-              className="buyer-cart-drawer"
-              role="dialog"
-              aria-modal="true"
-              aria-label="Shopping Bag"
-            >
-              <div className="buyer-cart-header">
-                <div>
-                  <Dialog.Title asChild><h2>Shopping Bag</h2></Dialog.Title>
-                  <span>
-                    {cartCount} {cartCount === 1 ? "item" : "items"}
-                  </span>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setCartOpen(false)}
-                  className="buyer-cart-close buyer-cart-close-btn"
-                  aria-label="Close shopping bag"
-                >
-                  <X size={20} />
-                </button>
-              </div>
-
-              <div className="buyer-cart-content">
-                {cartItems.length === 0 ? (
-                  <div className="buyer-cart-empty">
-                    <ShoppingBag size={40} strokeWidth={1.2} />
-                    <p>Your shopping bag is empty.</p>
-                    <button
-                      type="button"
-                      onClick={() => setCartOpen(false)}
-                      className="buyer-button"
-                    >
-                      Explore the collection
-                    </button>
-                  </div>
-                ) : (
-                  <ul className="buyer-cart-list">
-                    {cartItems.map((item) => (
-                      <li
-                        key={`${item.productId}-${item.variantId ?? "default"}`}
-                        className="buyer-cart-item"
+      {commerceUi.orders && (
+        <Dialog.Root open={cartOpen} onOpenChange={setCartOpen}>
+          <AnimatePresence>
+            {cartOpen && (
+              <>
+                <Dialog.Overlay forceMount asChild>
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="buyer-cart-backdrop"
+                    onClick={() => setCartOpen(false)}
+                    aria-hidden
+                  />
+                </Dialog.Overlay>
+                <Dialog.Content forceMount asChild aria-describedby={undefined}>
+                  <motion.aside
+                    initial={{ x: reduced ? 0 : "100%" }}
+                    animate={{ x: 0 }}
+                    exit={{ x: reduced ? 0 : "100%" }}
+                    transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+                    data-store-theme={theme.id}
+                    data-store-accent={content.design.accent}
+                    data-store-font={content.design.fontSet}
+                    className="buyer-cart-drawer"
+                    role="dialog"
+                    aria-modal="true"
+                    aria-label="Shopping Bag"
+                  >
+                    <div className="buyer-cart-header">
+                      <div>
+                        <Dialog.Title asChild>
+                          <h2>Shopping Bag</h2>
+                        </Dialog.Title>
+                        <span>
+                          {cartCount} {cartCount === 1 ? "item" : "items"}
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setCartOpen(false)}
+                        className="buyer-cart-close buyer-cart-close-btn"
+                        aria-label="Close shopping bag"
                       >
-                        <div className="buyer-cart-thumb">
-                          {item.imageUrl ? (
-                            <Image
-                              unoptimized
-                              width={80}
-                              height={80}
-                              src={item.imageUrl}
-                              alt={item.productName}
-                            />
-                          ) : (
-                            <Package size={22} />
-                          )}
-                        </div>
+                        <X size={20} />
+                      </button>
+                    </div>
 
-                        <div className="buyer-cart-item-details">
-                          <strong className="buyer-cart-item-title">{item.productName}</strong>
-                          {item.variantTitle && (
-                            <small>{item.variantTitle}</small>
-                          )}
-                          <span className="buyer-cart-item-price">
+                    <div className="buyer-cart-content">
+                      {cartItems.length === 0 ? (
+                        <div className="buyer-cart-empty">
+                          <ShoppingBag size={40} strokeWidth={1.2} />
+                          <p>Your shopping bag is empty.</p>
+                          <button
+                            type="button"
+                            onClick={() => setCartOpen(false)}
+                            className="buyer-button"
+                          >
+                            Explore the collection
+                          </button>
+                        </div>
+                      ) : (
+                        <ul className="buyer-cart-list">
+                          {cartItems.map((item) => (
+                            <li
+                              key={`${item.productId}-${item.variantId ?? "default"}`}
+                              className="buyer-cart-item"
+                            >
+                              <div className="buyer-cart-thumb">
+                                {item.imageUrl ? (
+                                  <Image
+                                    unoptimized
+                                    width={80}
+                                    height={80}
+                                    src={item.imageUrl}
+                                    alt={item.productName}
+                                  />
+                                ) : (
+                                  <Package size={22} />
+                                )}
+                              </div>
+
+                              <div className="buyer-cart-item-details">
+                                <strong className="buyer-cart-item-title">
+                                  {item.productName}
+                                </strong>
+                                {item.variantTitle && (
+                                  <small>{item.variantTitle}</small>
+                                )}
+                                <span className="buyer-cart-item-price">
+                                  {formatMoney(
+                                    item.price,
+                                    store?.shop.currency ?? "BDT",
+                                  )}
+                                </span>
+
+                                <div className="buyer-cart-qty-row">
+                                  <div className="buyer-cart-stepper">
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        updateCartQuantity(
+                                          item.productId,
+                                          item.variantId,
+                                          -1,
+                                        )
+                                      }
+                                      aria-label="Decrease quantity"
+                                    >
+                                      <Minus size={12} />
+                                    </button>
+                                    <span>{item.quantity}</span>
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        updateCartQuantity(
+                                          item.productId,
+                                          item.variantId,
+                                          1,
+                                        )
+                                      }
+                                      aria-label="Increase quantity"
+                                    >
+                                      <Plus size={12} />
+                                    </button>
+                                  </div>
+
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      removeFromCart(
+                                        item.productId,
+                                        item.variantId,
+                                      )
+                                    }
+                                    className="buyer-cart-remove"
+                                  >
+                                    Remove
+                                  </button>
+                                </div>
+                              </div>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+
+                    {cartItems.length > 0 && (
+                      <div className="buyer-cart-footer">
+                        <div className="buyer-cart-subtotal-row">
+                          <span>Subtotal</span>
+                          <strong className="buyer-cart-subtotal-val">
                             {formatMoney(
-                              item.price,
+                              cartSubtotal,
                               store?.shop.currency ?? "BDT",
                             )}
-                          </span>
-
-                          <div className="buyer-cart-qty-row">
-                            <div className="buyer-cart-stepper">
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  updateCartQuantity(
-                                    item.productId,
-                                    item.variantId,
-                                    -1,
-                                  )
-                                }
-                                aria-label="Decrease quantity"
-                              >
-                                <Minus size={12} />
-                              </button>
-                              <span>{item.quantity}</span>
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  updateCartQuantity(
-                                    item.productId,
-                                    item.variantId,
-                                    1,
-                                  )
-                                }
-                                aria-label="Increase quantity"
-                              >
-                                <Plus size={12} />
-                              </button>
-                            </div>
-
-                            <button
-                              type="button"
-                              onClick={() =>
-                                removeFromCart(item.productId, item.variantId)
-                              }
-                              className="buyer-cart-remove"
-                            >
-                              Remove
-                            </button>
-                          </div>
+                          </strong>
                         </div>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
 
-              {cartItems.length > 0 && (
-                <div className="buyer-cart-footer">
-                  <div className="buyer-cart-subtotal-row">
-                    <span>Subtotal</span>
-                    <strong className="buyer-cart-subtotal-val">
-                      {formatMoney(
-                        cartSubtotal,
-                        store?.shop.currency ?? "BDT",
-                      )}
-                    </strong>
-                  </div>
-
-                  <p className="buyer-cart-disclaimer">
-                    Your bag is a selection, not a placed order. Confirm availability, payment and delivery with the seller.
-                  </p>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setCartOpen(false);
-                      const chatLauncher = document.querySelector(
-                        ".storefront-chat-launcher",
-                      ) as HTMLButtonElement | null;
-                      chatLauncher?.click();
-                    }}
-                    className="buyer-cart-order-btn"
-                  >
-                    <MessageCircle size={18} />
-                    <span>Ask about your bag</span>
-                  </button>
-                </div>
-              )}
-            </motion.aside></Dialog.Content>
-          </>
-        )}
-      </AnimatePresence>
-
-      </Dialog.Root>
+                        <p className="buyer-cart-disclaimer">
+                          Checkout without an account. Final stock and delivery
+                          availability are confirmed by the seller.
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setCartOpen(false);
+                            setCheckoutOpen(true);
+                          }}
+                          className="buyer-cart-order-btn"
+                          disabled={
+                            store?.shop.status !== "launched" ||
+                            store?.shop.ownerPreview
+                          }
+                        >
+                          <ShoppingBag size={18} />
+                          <span>Continue to checkout</span>
+                        </button>
+                      </div>
+                    )}
+                  </motion.aside>
+                </Dialog.Content>
+              </>
+            )}
+          </AnimatePresence>
+        </Dialog.Root>
+      )}
 
       {/* Storefront Footer */}
-      <footer className="buyer-footer">
-        <div className="buyer-footer-top">
-          <div>
-            <span className="buyer-footer-brand buyer-footer-name">
-              {store?.shop.displayName ?? subdomain}
-            </span>
-            <p className="buyer-footer-tagline">
-              {store?.shop.category ? `${store.shop.category} · ` : ""}{store?.shop.country ?? ""}
-            </p>
+      {store && show("footer") && (
+        <footer className="buyer-footer">
+          <div className="buyer-footer-top">
+            <div>
+              <span className="buyer-footer-brand buyer-footer-name">
+                {store?.shop.displayName ?? subdomain}
+              </span>
+              <p className="buyer-footer-tagline">
+                {store?.shop.category ? `${store.shop.category} · ` : ""}
+                {store?.shop.country ?? ""}
+              </p>
+            </div>
+
+            <div className="buyer-footer-policies">
+              <span>
+                Delivery:{" "}
+                {store?.shop.policyDefaults.deliveryCharge === 0
+                  ? "Free"
+                  : store?.shop.policyDefaults
+                    ? formatMoney(
+                        store.shop.policyDefaults.deliveryCharge,
+                        store.shop.currency,
+                      )
+                    : "Standard"}
+              </span>
+              <span>·</span>
+              <span>
+                Returns: {store?.shop.policyDefaults.returnDays ?? 3} days
+              </span>
+              <span>·</span>
+              <span>
+                COD:{" "}
+                {store?.shop.policyDefaults.codAllowed
+                  ? "Available"
+                  : "Ask the seller"}
+              </span>
+            </div>
           </div>
 
-          <div className="buyer-footer-policies">
-            <span>
-              Delivery:{" "}
-              {store?.shop.policyDefaults.deliveryCharge === 0
-                ? "Free"
-                : store?.shop.policyDefaults
-                  ? formatMoney(
-                      store.shop.policyDefaults.deliveryCharge,
-                      store.shop.currency,
-                    )
-                  : "Standard"}
-            </span>
-            <span>·</span>
-            <span>
-              Returns: {store?.shop.policyDefaults.returnDays ?? 3} days
-            </span>
-            <span>·</span>
-            <span>
-              COD: {store?.shop.policyDefaults.codAllowed ? "Available" : "Ask the seller"}
-            </span>
+          <div className="buyer-footer-bottom">
+            <small>
+              © {new Date().getFullYear()}{" "}
+              {store?.shop.displayName ?? subdomain}. All rights reserved.
+            </small>
+            <Link href="/" className="buyer-powered-link">
+              Powered by Easy-Shop
+            </Link>
           </div>
-        </div>
-
-        <div className="buyer-footer-bottom">
-          <small>© {new Date().getFullYear()} {store?.shop.displayName ?? subdomain}. All rights reserved.</small>
-          <Link href="/" className="buyer-powered-link">
-            Powered by Easy-Shop
-          </Link>
-        </div>
-      </footer>
+        </footer>
+      )}
     </div>
   );
 }

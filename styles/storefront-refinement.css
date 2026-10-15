@@ -1,0 +1,401 @@
+/* Catalog-first refinement: shared density, individual theme geometry. */
+.buyer-site[data-store-theme] .store-product-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 40px 24px;
+  align-items: start;
+}
+.store-catalog {
+  padding-bottom: 56px;
+}
+.store-catalog-filters {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 4px 0 24px;
+}
+.store-catalog-filters button {
+  min-height: 44px;
+  padding: 10px 18px;
+  border: 1px solid var(--theme-line);
+  border-radius: 999px;
+  white-space: nowrap;
+  cursor: pointer;
+  background: transparent;
+}
+.store-catalog-filters button[aria-pressed="true"] {
+  background: var(--theme-ink);
+  color: white;
+  border-color: var(--theme-ink);
+}
+.store-product-card {
+  min-width: 0;
+}
+.store-product-media {
+  position: relative;
+  aspect-ratio: 4 / 5;
+  overflow: hidden;
+  background: var(--theme-tint);
+  border-radius: var(--theme-radius);
+  isolation: isolate;
+}
+.store-product-image {
+  position: absolute;
+  inset: -16px 0;
+}
+.store-product-image > img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 650ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.store-product-card:hover .store-product-image > img {
+  transform: scale(1.045);
+}
+.store-product-image-link {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+}
+.store-product-image-link > svg {
+  position: absolute;
+  right: 14px;
+  bottom: 14px;
+  width: 42px;
+  height: 42px;
+  padding: 10px;
+  background: white;
+  color: var(--theme-ink);
+  border-radius: 50%;
+  transform: translateY(5px);
+  transition: transform 180ms ease;
+  box-shadow: 0 2px 10px #182b4010;
+}
+.store-product-card:is(:hover, :focus-within) .store-product-image-link > svg {
+  transform: translateY(0) rotate(45deg);
+}
+.store-product-availability {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  z-index: 2;
+  pointer-events: none;
+  background: var(--theme-paper);
+  color: var(--theme-ink);
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+}
+.store-product-info {
+  padding-top: 18px;
+}
+.store-product-category {
+  display: block;
+  color: var(--theme-muted);
+  font-size: 12px;
+  margin-bottom: 7px;
+}
+.store-product-info h3 {
+  margin: 0;
+  font-size: 18px;
+  line-height: 1.4;
+  font-weight: 550;
+  letter-spacing: -0.025em;
+  overflow-wrap: anywhere;
+}
+.store-product-description {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  color: var(--theme-muted);
+  font-size: 13px;
+  line-height: 1.7;
+  margin-top: 10px;
+}
+.store-product-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-block: 14px;
+}
+.store-product-bottom strong {
+  font-size: 14px;
+  font-weight: 600;
+}
+.store-product-bottom button {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--theme-radius);
+  background: var(--theme-tint);
+  border: 0;
+}
+.store-product-details {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-top: 1px solid var(--theme-line);
+  min-height: 44px;
+  font-size: 12px;
+  font-weight: 550;
+}
+.buyer-site[data-store-theme] .brand-catalog-heading {
+  margin: 56px 0 28px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--theme-line);
+}
+.buyer-site[data-store-theme] .brand-catalog-heading h2 {
+  font-size: clamp(28px, 3.1vw, 46px);
+}
+.buyer-site[data-store-theme] .brand-hero {
+  margin-bottom: 48px;
+}
+.buyer-site[data-store-theme] .brand-hero-copy {
+  transform-origin: left center;
+}
+.buyer-site[data-store-theme] .brand-collection {
+  gap: 32px;
+}
+.buyer-site[data-store-theme]
+  .brand-collection:has(.brand-edit-product:only-child) {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr);
+  align-items: center;
+  padding: 28px 32px;
+  margin-block: 20px;
+  background: var(--theme-tint);
+  border-radius: var(--theme-radius);
+}
+.buyer-site[data-store-theme]
+  .brand-collection:has(.brand-edit-product:only-child)
+  .brand-edit-product {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 0.8fr);
+  gap: 8px 24px;
+  flex-basis: 100%;
+  align-items: center;
+}
+.buyer-site[data-store-theme]
+  .brand-collection:has(.brand-edit-product:only-child)
+  .brand-edit-product
+  > div {
+  grid-row: 1 / 3;
+  aspect-ratio: 1.2;
+}
+.buyer-site[data-store-theme]
+  .brand-collection:has(.brand-edit-product:only-child)
+  .brand-edit-product
+  h3 {
+  align-self: end;
+  margin: 0;
+  font-size: 20px;
+}
+.buyer-site[data-store-theme]
+  .brand-collection:has(.brand-edit-product:only-child)
+  .brand-edit-product
+  p {
+  align-self: start;
+  font-size: 14px;
+}
+.buyer-site[data-store-theme] .brand-help {
+  margin-top: 40px;
+}
+.buyer-site[data-store-theme] .brand-story {
+  margin-top: 48px;
+}
+.buyer-site[data-store-theme="fashion-lifestyle"] .store-product-info h3 {
+  font-family: var(--theme-heading);
+  font-size: 22px;
+  font-weight: 400;
+}
+.buyer-site[data-store-theme="fashion-lifestyle"] .store-product-media {
+  aspect-ratio: 3/4;
+}
+.buyer-site[data-store-theme="fashion-lifestyle"] .brand-hero-image {
+  min-height: min(740px, 78svh);
+}
+.buyer-site[data-store-theme="fashion-lifestyle"] .brand-hero-copy h1 {
+  font-size: clamp(52px, 6.2vw, 94px);
+}
+.buyer-site[data-store-theme="fashion-lifestyle"]
+  .brand-collection:has(.brand-edit-product:only-child) {
+  background: transparent;
+  border-block: 1px solid var(--theme-line);
+  padding-inline: 0;
+}
+.buyer-site[data-store-theme="beauty-cosmetics"] .store-product-media {
+  border-radius: 42% 42% 20px 20px;
+}
+.buyer-site[data-store-theme="beauty-cosmetics"] .store-product-info {
+  text-align: center;
+  padding-inline: 8px;
+}
+.buyer-site[data-store-theme="beauty-cosmetics"] .store-product-bottom {
+  justify-content: center;
+}
+.buyer-site[data-store-theme="beauty-cosmetics"] .brand-hero-copy {
+  transform-origin: center;
+}
+.buyer-site[data-store-theme="beauty-cosmetics"]
+  .brand-collection:has(.brand-edit-product:only-child) {
+  text-align: left;
+}
+.buyer-site[data-store-theme="beauty-cosmetics"] .brand-hero-image {
+  max-height: 620px;
+}
+.buyer-site[data-store-theme="electronics-gadgets"] .store-product-card {
+  background: white;
+  border: 1px solid var(--theme-line);
+  border-radius: 10px;
+  padding: 12px;
+}
+.buyer-site[data-store-theme="electronics-gadgets"] .store-product-media {
+  aspect-ratio: 1;
+  background: #edf1f5;
+}
+.buyer-site[data-store-theme="electronics-gadgets"] .store-product-image > img {
+  object-fit: contain;
+  padding: 24px;
+}
+.buyer-site[data-store-theme="electronics-gadgets"] .store-product-info {
+  padding-inline: 4px;
+}
+.buyer-site[data-store-theme="electronics-gadgets"]
+  .store-product-image-link
+  > svg {
+  border-radius: 6px;
+}
+.buyer-site[data-store-theme="food-restaurant"] .store-product-media {
+  aspect-ratio: 1;
+  border-radius: 50%;
+}
+.buyer-site[data-store-theme="food-restaurant"] .store-product-availability {
+  top: auto;
+  bottom: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+.buyer-site[data-store-theme="food-restaurant"] .store-product-info {
+  padding-inline: 8px;
+}
+.buyer-site[data-store-theme="food-restaurant"] .store-product-info h3 {
+  font-size: 21px;
+}
+.buyer-site[data-store-theme="modern-general"] .store-product-media {
+  aspect-ratio: 1;
+  border-radius: 12px 48px 12px 12px;
+}
+.buyer-site[data-store-theme="modern-general"] .store-product-details {
+  border-top: 0;
+  border-bottom: 1px solid var(--theme-line);
+}
+.buyer-site[data-store-theme] .store-scroll-progress {
+  background: var(--theme-accent);
+}
+@media (min-width: 768px) and (max-width: 1199px) {
+  .buyer-site[data-store-theme] .store-product-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 32px 20px;
+  }
+}
+@media (max-width: 767px) {
+  .buyer-site[data-store-theme] .buyer-header {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 16px;
+  }
+  .buyer-site[data-store-theme] .buyer-header-left,
+  .buyer-site[data-store-theme] .buyer-header-right {
+    width: 100%;
+    min-width: 0;
+  }
+  .buyer-site[data-store-theme] .buyer-brand-name {
+    max-width: none;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+  .buyer-site[data-store-theme] .buyer-search-input-wrap {
+    width: 100%;
+    max-width: none;
+  }
+  .buyer-site[data-store-theme="beauty-cosmetics"] .store-product-availability {
+    top: auto;
+    bottom: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    white-space: nowrap;
+  }
+  .buyer-site[data-store-theme] .store-product-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 30px 14px;
+  }
+  .store-product-info h3,
+  .buyer-site[data-store-theme="food-restaurant"] .store-product-info h3 {
+    font-size: 15px;
+  }
+  .buyer-site[data-store-theme="fashion-lifestyle"] .store-product-info h3 {
+    font-size: 19px;
+  }
+  .store-product-description {
+    font-size: 12px;
+  }
+  .store-product-availability {
+    top: 8px;
+    left: 8px;
+    padding: 5px 7px;
+    font-size: 10px;
+  }
+  .store-product-image-link > svg {
+    width: 32px;
+    height: 32px;
+    padding: 7px;
+    right: 8px;
+    bottom: 8px;
+  }
+  .store-product-bottom strong {
+    font-size: 13px;
+  }
+  .buyer-site[data-store-theme="electronics-gadgets"] .store-product-card {
+    padding: 8px;
+  }
+  .buyer-site[data-store-theme="electronics-gadgets"]
+    .store-product-image
+    > img {
+    padding: 12px;
+  }
+  .buyer-site[data-store-theme]
+    .brand-collection:has(.brand-edit-product:only-child) {
+    grid-template-columns: 1fr;
+    gap: 20px;
+    padding: 24px;
+  }
+  .buyer-site[data-store-theme]
+    .brand-collection:has(.brand-edit-product:only-child)
+    .brand-edit-product
+    h3 {
+    font-size: 17px;
+  }
+  .buyer-site[data-store-theme]
+    .brand-collection:has(.brand-edit-product:only-child)
+    .brand-edit-product {
+    gap: 8px 16px;
+  }
+  .buyer-site[data-store-theme="fashion-lifestyle"] .brand-hero-image {
+    min-height: 420px;
+  }
+  .buyer-site[data-store-theme="fashion-lifestyle"] .brand-hero-copy h1 {
+    font-size: clamp(44px, 12vw, 68px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .store-product-image > img,
+  .store-product-image-link > svg {
+    transition: none;
+  }
+  .store-product-card:hover .store-product-image > img {
+    transform: none;
+  }
+}

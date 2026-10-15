@@ -26,7 +26,7 @@ export const updateShopSchema = z.object({
   category: optionalText,
   country: optionalText,
   currency: z.string().trim().min(3).max(8).optional(),
-  address: optionalText,
+  address: z.string().trim().max(200).optional(),
   logoUrl: z.string().trim().url().optional(),
   language: z.enum(languages).optional(),
   policyDefaults: z

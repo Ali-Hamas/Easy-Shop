@@ -62,7 +62,7 @@ export type StoreTemplate = {
   stack: string[];
   bestFor: string[];
   notes: string;
-  status: "test_only" | "candidate" | "reference_only";
+  status: "test_only" | "candidate" | "reference_only" | "available";
 };
 
 export type FirstProduct = {

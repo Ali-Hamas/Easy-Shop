@@ -23,9 +23,14 @@
   --buyer-accent-fg: #ffffff;
   --buyer-ring: rgba(15, 23, 42, 0.08);
   --buyer-shadow-xs: 0 1px 2px rgba(15, 23, 42, 0.04);
-  --buyer-shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.06), 0 1px 2px rgba(15, 23, 42, 0.04);
-  --buyer-shadow-md: 0 4px 16px -2px rgba(15, 23, 42, 0.06), 0 2px 4px -1px rgba(15, 23, 42, 0.03);
-  --buyer-shadow-lg: 0 12px 32px -4px rgba(15, 23, 42, 0.08), 0 4px 8px -2px rgba(15, 23, 42, 0.04);
+  --buyer-shadow-sm:
+    0 1px 3px rgba(15, 23, 42, 0.06), 0 1px 2px rgba(15, 23, 42, 0.04);
+  --buyer-shadow-md:
+    0 4px 16px -2px rgba(15, 23, 42, 0.06),
+    0 2px 4px -1px rgba(15, 23, 42, 0.03);
+  --buyer-shadow-lg:
+    0 12px 32px -4px rgba(15, 23, 42, 0.08),
+    0 4px 8px -2px rgba(15, 23, 42, 0.04);
   --buyer-radius-sm: 6px;
   --buyer-radius-md: 10px;
   --buyer-radius-lg: 16px;
@@ -35,7 +40,14 @@
   min-height: 100vh;
   background: var(--buyer-paper);
   color: var(--buyer-ink);
-  font-family: var(--font-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+  font-family:
+    var(--font-sans),
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Roboto,
+    "Helvetica Neue",
+    sans-serif;
   font-size: 15px;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
@@ -105,7 +117,9 @@
   font-size: 12px;
   font-weight: 600;
   border: 1px solid #334155;
-  transition: background 0.15s ease, border-color 0.15s ease;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease;
 }
 .store-preview-dash-link:hover {
   background: #334155;
@@ -322,7 +336,9 @@
   gap: 10px;
   font-size: 13px;
   font-weight: 600;
-  box-shadow: 0 10px 25px -3px rgba(15, 23, 42, 0.2), 0 4px 6px -2px rgba(15, 23, 42, 0.1);
+  box-shadow:
+    0 10px 25px -3px rgba(15, 23, 42, 0.2),
+    0 4px 6px -2px rgba(15, 23, 42, 0.1);
   border: 1px solid #1e293b;
   z-index: 60;
 }
@@ -604,7 +620,9 @@
   align-items: center;
   gap: 8px;
   min-height: 48px;
-  transition: background 0.15s ease, transform 0.12s ease;
+  transition:
+    background 0.15s ease,
+    transform 0.12s ease;
   box-shadow: 0 2px 6px rgba(15, 23, 42, 0.12);
 }
 .buyer-spotlight-primary-link:hover {
@@ -661,7 +679,10 @@
   display: flex;
   flex-direction: column;
   box-shadow: var(--buyer-shadow-xs);
-  transition: border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    border-color 0.2s ease,
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
 }
 .buyer-card:hover {
   border-color: var(--buyer-line-strong);
@@ -792,7 +813,9 @@
   border-radius: var(--buyer-radius-lg);
   padding: 24px;
   box-shadow: var(--buyer-shadow-xs);
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
 }
 .buyer-policy-box:hover {
   border-color: var(--buyer-line-strong);
@@ -902,7 +925,9 @@
   padding: 0;
   cursor: pointer;
   overflow: hidden;
-  transition: transform 0.15s ease, border-color 0.15s ease;
+  transition:
+    transform 0.15s ease,
+    border-color 0.15s ease;
   flex-shrink: 0;
   position: relative;
 }
@@ -1092,7 +1117,9 @@
   align-items: center;
   justify-content: center;
   gap: 10px;
-  transition: background 0.15s ease, transform 0.12s ease;
+  transition:
+    background 0.15s ease,
+    transform 0.12s ease;
   box-shadow: 0 2px 6px rgba(15, 23, 42, 0.12);
 }
 .buyer-add-to-bag-button:hover:not(:disabled) {
@@ -1205,7 +1232,9 @@
   padding: 6px;
   border-radius: var(--buyer-radius-sm);
   display: flex;
-  transition: color 0.15s ease, background 0.15s ease;
+  transition:
+    color 0.15s ease,
+    background 0.15s ease;
 }
 .buyer-cart-close:hover {
   color: var(--buyer-ink);
@@ -1368,7 +1397,9 @@
   align-items: center;
   justify-content: center;
   gap: 10px;
-  transition: background 0.15s ease, transform 0.12s ease;
+  transition:
+    background 0.15s ease,
+    transform 0.12s ease;
   box-shadow: 0 2px 6px rgba(15, 23, 42, 0.12);
 }
 .buyer-cart-order-btn:hover {
@@ -1701,5 +1732,100 @@
   .buyer-card:hover,
   .buyer-card:hover .buyer-product-visual img {
     transform: none;
+  }
+}
+/* Three-area UI pass: editorial commerce layout and comfortable mobile controls. */
+.buyer-hero-badge,
+.buyer-overline,
+.buyer-section-heading > span {
+  text-transform: none;
+  letter-spacing: 0;
+}
+.buyer-hero-title {
+  font-size: clamp(36px, 5.8vw, 76px);
+  letter-spacing: -0.04em;
+}
+.buyer-hero-desc {
+  max-width: 500px;
+}
+.buyer-spotlight-card {
+  border: 0;
+  background: var(--buyer-soft);
+  border-radius: 16px;
+  overflow: hidden;
+}
+.buyer-spotlight-info {
+  padding: clamp(24px, 4vw, 64px);
+}
+.buyer-grid-curated {
+  align-items: start;
+  gap: 40px;
+}
+.buyer-grid-curated .buyer-card:nth-child(even) {
+  margin-top: 64px;
+}
+.buyer-card-add-btn,
+.buyer-category-pill {
+  min-width: 44px;
+  min-height: 44px;
+}
+.buyer-add-to-bag-button {
+  min-height: 48px;
+  flex-shrink: 0;
+}
+.buyer-detail-title {
+  font-size: clamp(32px, 4.5vw, 64px);
+  line-height: 1.12;
+}
+.buyer-detail-copy {
+  align-self: center;
+}
+.buyer-brand-logo {
+  width: 44px;
+  height: 44px;
+  object-fit: contain;
+  border-radius: 8px;
+}
+.buyer-gallery-thumb-btn .buyer-product-visual {
+  height: 100%;
+  width: 100%;
+  border-radius: inherit;
+}
+.buyer-gallery-thumb-btn .buyer-visual-fallback {
+  padding: 4px;
+  min-height: 0;
+}
+.buyer-gallery-thumb-btn .buyer-visual-fallback span {
+  display: none;
+}
+@media (max-width: 767px) {
+  .buyer-hero {
+    padding: 32px 0 24px;
+    margin-bottom: 24px;
+  }
+  .buyer-hero-desc {
+    font-size: 14px;
+    margin-bottom: 16px;
+  }
+  .buyer-grid-curated {
+    gap: 24px;
+  }
+  .buyer-grid-curated .buyer-card:nth-child(even) {
+    margin-top: 0;
+  }
+  .buyer-spotlight-info {
+    padding: 24px;
+  }
+  .buyer-add-to-bag-button {
+    flex: auto;
+  }
+  .buyer-footer {
+    padding-inline: 20px;
+  }
+  .buyer-header-right {
+    flex-wrap: wrap;
+  }
+  .buyer-footer-policies {
+    flex-wrap: wrap;
   }
 }

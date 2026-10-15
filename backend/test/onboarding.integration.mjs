@@ -57,7 +57,8 @@ try {
   await call("GET", "/api/v1/health/ready");
   await call("GET", "/api/v1/system/modules");
   const templates = await call("GET", "/api/v1/onboarding/templates");
-  assert.equal(templates.templates.length, 2);
+  assert.equal(templates.templates.length, 5);
+  assert.ok(templates.templates.every((template) => template.status === "available"));
   const base = {
     ownerName: "Migration Test",
     language: "en",
